@@ -26,6 +26,10 @@ module.exports = {
   LOCAL_USERS: (process.env.MTA_LOCAL_USERS || 'alice,bob,postmaster')
     .split(',').map((s) => s.trim()).filter(Boolean),
 
+  // AUTH PLAIN/LOGIN credential. MTA_AUTH_PASS is generated fresh per
+  // deployment by ../generate-secrets.sh; the 'relay'/'relay123' fallback
+  // only applies when it's unset, for zero-setup local dev. checkAuth()
+  // (src/smtp.js) compares the password in constant time.
   AUTH_USER: process.env.MTA_AUTH_USER || 'relay',
   AUTH_PASS: process.env.MTA_AUTH_PASS || 'relay123',
 
