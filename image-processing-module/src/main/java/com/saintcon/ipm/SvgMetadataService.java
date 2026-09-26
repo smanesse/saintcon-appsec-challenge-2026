@@ -23,10 +23,11 @@ public class SvgMetadataService {
         // can't pull host files or URLs into the parse. (#6 was a default
         // DocumentBuilderFactory that resolved SYSTEM entities.)
         //
-        // VULN (billion-laughs / entity-expansion DoS, #7): DOCTYPEs are still
-        // accepted and internal entities are expanded with no limit (the JVM's
-        // entity caps are lifted in the Dockerfile's JAVA_TOOL_OPTIONS), so
-        // deeply-nested internal entities exhaust memory/CPU.
+        // Internal entity expansion is capped by secure processing plus
+        // explicit per-factory limits. These API-level properties take
+        // precedence over the jdk.xml.* system properties, which the image's
+        // JAVA_TOOL_OPTIONS sets to 0 (unlimited). (#7 was nested internal
+        // entities expanding without bound - "billion laughs".)
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
         dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
@@ -35,6 +36,11 @@ public class SvgMetadataService {
         dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         dbf.setXIncludeAware(false);
         dbf.setExpandEntityReferences(false);
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        dbf.setAttribute("http://www.oracle.com/xml/jaxp/properties/entityExpansionLimit", "2000");
+        dbf.setAttribute("http://www.oracle.com/xml/jaxp/properties/totalEntitySizeLimit", "1000000");
+        dbf.setAttribute("http://www.oracle.com/xml/jaxp/properties/maxGeneralEntitySizeLimit", "100000");
+        dbf.setAttribute("http://www.oracle.com/xml/jaxp/properties/maxParameterEntitySizeLimit", "100000");
         DocumentBuilder builder = dbf.newDocumentBuilder();
 
         Document doc = builder.parse(new ByteArrayInputStream(svg));
