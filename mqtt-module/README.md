@@ -60,7 +60,7 @@ premature packet).
 |----------------------|-----------------------------------------------------|
 | `0`                  | Accepted                                            |
 | `1`                  | Unacceptable protocol version (protocol level != 4) |
-| `2`                  | Identifier rejected (empty Client ID with `CleanSession=0`) |
+| `2`                  | Identifier rejected (empty Client ID with `CleanSession=0`, or Client ID already connected) |
 | `4`                  | Bad username or password (only when `MQB_REQUIREPASS` is set) |
 
 The CONNACK's Session Present flag is `1` when the client reconnected with
@@ -69,6 +69,11 @@ for that Client ID from a previous connection; otherwise `0`.
 
 An empty Client ID is allowed only when `CleanSession=1`, in which case the
 broker assigns one (`mqb-auto-<random>`).
+
+A CONNECT whose Client ID is already in use by a live connection is refused
+with return code `2`; the existing connection is not disturbed. A stored
+persistent session is resumed only by a CONNECT carrying the same username
+it was created under.
 
 Last Will and Testament (Will Topic/Message/QoS/Retain in CONNECT) is
 supported: if the connection ends without a clean DISCONNECT, the Will

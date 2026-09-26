@@ -30,6 +30,7 @@ class ClientConn:
     keep_alive: int = 60
     clean_session: bool = True
     authenticated: bool = False
+    username: Optional[str] = None
     subscriptions: Dict[str, int] = field(default_factory=dict)
     pending_ack: Dict[int, Tuple[str, bytes]] = field(default_factory=dict)
     next_out_packet_id: int = 1
@@ -57,7 +58,15 @@ class Broker:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.clients: Dict[str, ClientConn] = {}
+        # Subscriptions of clients that connected with clean_session=False,
+        # kept around after they disconnect so a later reconnect resumes
+        # them, but only under the same username (see connect
+        # handling below.)
         self.persisted_subs: Dict[str, Dict[str, int]] = {}
+        # Username each persisted session was created under; a later CONNECT
+        # only resumes it when it presents the same one.
+        self.persisted_owner: Dict[str, Optional[str]] = {}
+        # In-memory retained-message table: topic -> payload bytes.
         self.retained: Dict[str, bytes] = {}
         # The fleet-control namespace (the parent of cfg.flag_topic, i.e.
         # "fleet/control" by default) is broker-owned, like $SYS on a real
@@ -162,28 +171,40 @@ class Broker:
             keep_alive=cp.keep_alive,
             clean_session=cp.clean_session,
             authenticated=True,
+            username=cp.username,
             will_topic=cp.will_topic,
             will_message=cp.will_message,
             will_qos=cp.will_qos,
             will_retain=cp.will_retain,
         )
 
+        # --- Client-ID collision / session takeover --------------------------
+        # A Client ID that is live on another connection cannot be taken over:
+        # the newcomer is refused with rc=2 (identifier rejected) and the
+        # existing session is left alone. Every client authenticates with the
+        # same shared password, so nothing on a new CONNECT proves it is the
+        # device that owns the ID; letting it evict the live connection (and
+        # inherit its persistent subscriptions) handed any client that knew
+        # an ID the victim's session. A device whose old TCP connection is
+        # half-open reconnects once keep-alive reaps it. A stored persistent
+        # session is resumed only under the username that created it. (VULN
+        # #4 was a takeover with no identity check at all.)
+        old_conn = self.clients.get(client_id)
+        if old_conn is not None and not old_conn.closing:
+            log.info("client id %r is already connected; refusing the new CONNECT", client_id)
+            writer.write(p.build_connack(False, p.CONNACK_IDENTIFIER_REJECTED))
+            await writer.drain()
+            return None
+
         session_present = False
         inherited_subs: Dict[str, int] = {}
-        old_conn = self.clients.get(client_id)
-        if not cp.clean_session:
-            if old_conn is not None:
-                session_present = True
-                inherited_subs = dict(old_conn.subscriptions)
-            elif client_id in self.persisted_subs:
-                session_present = True
-                inherited_subs = dict(self.persisted_subs[client_id])
+        if not cp.clean_session and client_id in self.persisted_subs \
+                and self.persisted_owner.get(client_id) == cp.username:
+            session_present = True
+            inherited_subs = dict(self.persisted_subs[client_id])
         else:
             self.persisted_subs.pop(client_id, None)
-
-        if old_conn is not None:
-            log.info("client id %r reconnected; disconnecting previous connection (no identity check)", client_id)
-            await old_conn.force_close()
+            self.persisted_owner.pop(client_id, None)
 
         conn.subscriptions = inherited_subs
         self.clients[client_id] = conn
@@ -243,8 +264,10 @@ class Broker:
             del self.clients[conn.client_id]
         if not conn.clean_session:
             self.persisted_subs[conn.client_id] = dict(conn.subscriptions)
+            self.persisted_owner[conn.client_id] = conn.username
         else:
             self.persisted_subs.pop(conn.client_id, None)
+            self.persisted_owner.pop(conn.client_id, None)
 
         if not graceful and conn.will_topic is not None and not self.is_reserved(conn.will_topic):
             await self._route_publish(conn.will_topic, conn.will_message or b"", conn.will_qos, conn.will_retain)
