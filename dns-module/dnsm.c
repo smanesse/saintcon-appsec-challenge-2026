@@ -211,9 +211,24 @@ static int collect(zone_t *z, const char *name, uint16_t qtype, rr_t **out, int 
     return n;
 }
 
+// ---------------------------------------------------------------------------
+// Response assembly.
+//
+// append_rr() copies one record onto the wire, bounds-checked against 'outcap':
+// it refuses (returns 0, writing nothing) if the record would not fit, so it
+// can never run past the end of 'out'. assemble() uses that to truncate and
+// set TC instead of overflowing, on EVERY path - UDP and TCP alike. (VULN #2
+// was the old TCP path serializing into a fixed stack buffer with the space
+// check disabled; the check is now unconditional and append_rr is safe by
+// construction.)
+// ---------------------------------------------------------------------------
 static int rr_wire_size(const rr_t *r) { return (int)strlen(r->name) + 2 + 10 + r->rdlen; }
 
-static void append_rr(unsigned char *out, int *pos, const rr_t *r) {
+// Append one RR if it fits in the remaining space; returns 1 on success, 0 if
+// there is not enough room (in which case nothing is written and *pos is left
+// unchanged, so the caller can truncate cleanly).
+static int append_rr(unsigned char *out, int *pos, int outcap, const rr_t *r) {
+    if (*pos + rr_wire_size(r) > outcap) return 0;    // no room -> caller truncates
     *pos += encode_name(r->name, out + *pos);
     put16(out, pos, r->type);
     put16(out, pos, C_IN);
@@ -221,11 +236,15 @@ static void append_rr(unsigned char *out, int *pos, const rr_t *r) {
     put16(out, pos, r->rdlen);
     memcpy(out + *pos, r->rdata, r->rdlen);
     *pos += r->rdlen;
+    return 1;
 }
 
+// Build a full response message into 'out'. Every RR is bounds-checked against
+// outcap before it is appended; if the next RR would not fit the message is
+// truncated and the TC (truncated) bit is set, per RFC 1035.
 static int assemble(uint16_t id, int rd, const char *qname, uint16_t qtype, uint16_t qclass,
                     rr_t **ans, int nans, int rcode,
-                    unsigned char *out, int outcap, int enforce) {
+                    unsigned char *out, int outcap) {
     int pos = 0;
     int tc = 0;
     put16(out, &pos, id);
@@ -243,8 +262,7 @@ static int assemble(uint16_t id, int rd, const char *qname, uint16_t qtype, uint
 
     int written = 0;
     for (int i = 0; i < nans; i++) {
-        if (enforce && pos + rr_wire_size(ans[i]) > outcap) { tc = 1; break; }
-        append_rr(out, &pos, ans[i]);
+        if (!append_rr(out, &pos, outcap, ans[i])) { tc = 1; break; }
         written++;
     }
 
@@ -320,7 +338,7 @@ static int forward_query(const char *qname, uint16_t qtype, uint16_t qclass,
 }
 
 static int process_query(const unsigned char *msg, int msglen,
-                         unsigned char *out, int outcap, int enforce) {
+                         unsigned char *out, int outcap) {
     char qname[256] = {0};
     uint16_t qtype = 0, qclass = 0;
     if (parse_question(msg, msglen, qname, sizeof(qname), &qtype, &qclass) < 0) return 0;
@@ -332,15 +350,15 @@ static int process_query(const unsigned char *msg, int msglen,
     if (z && in_zone(qname, z->origin)) {
         rr_t *ans[MAX_ANS];
         int nans = collect(z, qname, qtype, ans, MAX_ANS);
-        int rcode = (nans > 0) ? 0 : 3;
-        return assemble(id, rd, qname, qtype, qclass, ans, nans, rcode, out, outcap, enforce);
+        int rcode = (nans > 0) ? 0 : 3;                          // NXDOMAIN when empty
+        return assemble(id, rd, qname, qtype, qclass, ans, nans, rcode, out, outcap);
     }
 
     int fl = forward_query(qname, qtype, qclass, id, out, outcap);
     if (fl > 0) return fl;
 
     rr_t *none[1];
-    return assemble(id, rd, qname, qtype, qclass, none, 0, 2, out, outcap, enforce);
+    return assemble(id, rd, qname, qtype, qclass, none, 0, 2, out, outcap);
 }
 
 typedef struct { int sock; struct sockaddr_in cli; socklen_t clilen; unsigned char pkt[2048]; int len; } udp_job_t;
@@ -348,7 +366,7 @@ typedef struct { int sock; struct sockaddr_in cli; socklen_t clilen; unsigned ch
 static void *udp_worker(void *arg) {
     udp_job_t *j = (udp_job_t *)arg;
     unsigned char resp[8192];
-    int rlen = process_query(j->pkt, j->len, resp, sizeof(resp),1);
+    int rlen = process_query(j->pkt, j->len, resp, sizeof(resp));
     if (rlen > 0)
         sendto(j->sock, resp, rlen, 0, (struct sockaddr *)&j->cli, j->clilen);
     free(j);
@@ -401,7 +419,7 @@ static void handle_axfr(int fd, uint16_t id, const char *qname, uint16_t qclass,
     }
     if (soa) ans[n++] = soa;
 
-    int rlen = assemble(id, 0, qname, T_AXFR, qclass, ans, n, 0, resp, sizeof(resp),1);
+    int rlen = assemble(id, 0, qname, T_AXFR, qclass, ans, n, 0, resp, sizeof(resp));
     send_tcp_msg(fd, resp, rlen);
 }
 
@@ -430,8 +448,13 @@ static void *tcp_worker(void *arg) {
         return NULL;
     }
 
-    unsigned char resp[1500];
-    int rlen = process_query(qbuf, qlen, resp, sizeof(resp),0);
+    // Normal TCP query. The response is serialized into a buffer sized for the
+    // maximum DNS-over-TCP message (a 16-bit length prefix -> 65535 bytes), and
+    // assemble()/append_rr() bounds-check every record against that capacity,
+    // truncating with TC rather than overflowing (VULN #2 was this path
+    // building into a 1500-byte stack buffer with the space check disabled).
+    unsigned char resp[65535];
+    int rlen = process_query(qbuf, qlen, resp, sizeof(resp));
     if (rlen > 0) send_tcp_msg(fd, resp, rlen);
     close(fd);
     return NULL;
