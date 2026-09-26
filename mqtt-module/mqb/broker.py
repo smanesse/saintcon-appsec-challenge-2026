@@ -16,6 +16,11 @@ log = logging.getLogger("mqb")
 
 CONNECT_TIMEOUT = 20.0
 MAX_PACKET_ID = 0xFFFF
+# Per-subscriber flow control (see Broker._forward_to): at most this many
+# un-acked outbound QoS-1 messages (Mosquitto's max_inflight_messages
+# default), and at most this many bytes queued in the socket's write buffer.
+MAX_INFLIGHT = 20
+MAX_WRITE_BUFFER = 1024 * 1024
 
 
 def retained_path(retain_dir: str, topic: str) -> str:
@@ -32,6 +37,8 @@ class ClientConn:
     authenticated: bool = False
     username: Optional[str] = None
     subscriptions: Dict[str, int] = field(default_factory=dict)
+    # Un-acked outbound QoS-1 messages, capped at MAX_INFLIGHT -- see
+    # _forward_to() below.
     pending_ack: Dict[int, Tuple[str, bytes]] = field(default_factory=dict)
     next_out_packet_id: int = 1
     will_topic: Optional[str] = None
@@ -315,8 +322,20 @@ class Broker:
                     break
 
     async def _forward_to(self, target: ClientConn, topic: str, payload: bytes, qos: int):
+        # Flow control: a subscriber that isn't keeping up doesn't get to make
+        # the broker buffer for it without bound. Once its socket already has
+        # MAX_WRITE_BUFFER bytes queued, or (for QoS 1) MAX_INFLIGHT messages
+        # are awaiting its PUBACK, further messages to it are dropped until it
+        # catches up -- other clients are unaffected. (VULN #5 was pending_ack
+        # growing by one entry, payload included, per forwarded QoS-1 message
+        # with no cap, so a publisher flooding a never-acking subscriber
+        # exhausted the broker's memory.)
+        if target.writer.transport.get_write_buffer_size() > MAX_WRITE_BUFFER:
+            return
         if qos == 0:
             target.writer.write(p.build_publish(topic, payload, 0, False))
+            return
+        if len(target.pending_ack) >= MAX_INFLIGHT:
             return
         pid = target.alloc_packet_id()
         target.pending_ack[pid] = (topic, payload)
