@@ -32,6 +32,9 @@ func main() {
 	dir := envOr("KVS_DIR", ".")
 	dbfilename := envOr("KVS_DBFILENAME", "dump.kvs")
 
+	// KVS_REQUIREPASS configures the AUTH password. When it is set, the AUTH
+	// gate in Session.dispatch() refuses every unauthenticated client (see the
+	// session setup in handleConn()).
 	requirepass := os.Getenv("KVS_REQUIREPASS")
 
 	srv := &Server{
@@ -76,7 +79,12 @@ func (srv *Server) handleConn(conn net.Conn) {
 		srv:  srv,
 		conn: conn,
 		rr:   newRESPReader(conn),
-		authenticated: true,
+		// A session starts authenticated only when no password is configured.
+		// With KVS_REQUIREPASS set, the AUTH gate in Session.dispatch() refuses
+		// every command but AUTH until cmdAuth() accepts the password. (VULN #1
+		// was every session starting authenticated regardless, so a configured
+		// password was never enforced. See 01_no_auth_default.py.)
+		authenticated: srv.cfg.password() == "",
 	}
 
 	for {
