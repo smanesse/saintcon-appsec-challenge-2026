@@ -62,8 +62,11 @@ func handleDeviceRegister(store *Store) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing module"})
 			return
 		}
-		d := store.RegisterDevice(req.Module, "")
-		d.Token = deviceToken(d.ID)
+		// A device may register claiming any module name; the fleet allowlist
+		// is only enforced on /publish. Devices are provisioned by the sibling
+		// containers' entrypoints, not by untrusted clients, in the intended
+		// deployment - but nothing here actually checks that.
+		d := store.RegisterDevice(req.Module, newDeviceToken())
 		writeJSON(w, http.StatusCreated, map[string]string{
 			"id":     d.ID,
 			"token":  d.Token,
@@ -86,7 +89,7 @@ func handleDeviceReport(store *Store) http.HandlerFunc {
 			return
 		}
 		tok := bearerToken(r)
-		if tok == "" || tok != d.Token {
+		if !tokenEqual(tok, d.Token) {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "bad or missing device token"})
 			return
 		}
@@ -122,7 +125,7 @@ func handleDeviceSync(store *Store) http.HandlerFunc {
 			return
 		}
 		tok := bearerToken(r)
-		if tok == "" || tok != d.Token {
+		if !tokenEqual(tok, d.Token) {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "bad or missing device token"})
 			return
 		}

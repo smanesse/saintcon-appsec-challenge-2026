@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha256"
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
 	"net/http"
@@ -12,11 +12,25 @@ import (
 // is configured it is the ONLY key accepted - see checkPublishAuth.
 const defaultAPIKey = "ota-default-key-2024"
 
-const deviceTokenSalt = "ota-static-fleet-salt-v1"
+// randomHex returns n bytes from the OS CSPRNG, hex-encoded.
+func randomHex(n int) string {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand unavailable: " + err.Error())
+	}
+	return hex.EncodeToString(b)
+}
 
-func deviceToken(id string) string {
-	sum := sha256.Sum256([]byte(deviceTokenSalt + ":" + id))
-	return hex.EncodeToString(sum[:])[:32]
+// newDeviceToken returns a fresh 128-bit random device token. (VULNS.md #9
+// was deriving tokens as sha256(compiled-in salt + ":" + id), which with
+// sequential IDs made every device's token computable.)
+func newDeviceToken() string {
+	return randomHex(16)
+}
+
+// tokenEqual compares two secrets in constant time.
+func tokenEqual(a, b string) bool {
+	return a != "" && subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
 func apiKey() string {
@@ -42,7 +56,7 @@ func checkPublishAuth(r *http.Request, store *Store) bool {
 		return false
 	}
 	d, ok := store.GetDevice(id)
-	if !ok || d.Token != tok {
+	if !ok || !tokenEqual(tok, d.Token) {
 		return false
 	}
 	return d.Trusted

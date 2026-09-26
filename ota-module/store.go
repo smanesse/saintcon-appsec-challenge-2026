@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -45,8 +44,7 @@ type Store struct {
 
 	packages map[string]map[string]*Package
 
-	devices   map[string]*Device
-	deviceSeq int
+	devices map[string]*Device
 }
 
 func NewStore() *Store {
@@ -92,9 +90,9 @@ func (s *Store) GetVersion(module, version string) (*Package, bool) {
 func (s *Store) RegisterDevice(module, token string) *Device {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.deviceSeq++
+	// Random, unguessable IDs (not a sequential counter).
 	d := &Device{
-		ID:         fmt.Sprintf("device-%d", s.deviceSeq),
+		ID:         "device-" + randomHex(8),
 		Token:      token,
 		Module:     module,
 		Status:     "registered",
