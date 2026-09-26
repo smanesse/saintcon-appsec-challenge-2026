@@ -19,6 +19,7 @@
 #include <climits>
 #include <cerrno>
 #include <mutex>
+#include <fcntl.h>
 
 #define PORT 2121
 #define CREDS_FILE "credentials.txt"
@@ -407,24 +408,46 @@ void handle_retr(Session* session, int fd, const std::string& arg) {
 
     std::string path = session->cwd + "/" + arg;
 
-    if (!is_path_within_root(path)) {
+    // Open the file first, then decide whether we're allowed to serve *this
+    // opened fd* -- rather than checking the name and re-opening it later.
+    // Checking the fd's real target (via /proc/self/fd) closes the TOCTOU
+    // race the old check-then-open had: a symlink swapped in after the check
+    // cannot change what an already-open descriptor refers to.
+    int file_fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW);
+    if (file_fd < 0) {
+        // O_NOFOLLOW rejects a symlinked final component outright; anything
+        // else (missing file, permissions) is reported the same way.
+        send_line(fd, "550 File not found");
+        return;
+    }
+
+    char linkpath[64];
+    snprintf(linkpath, sizeof(linkpath), "/proc/self/fd/%d", file_fd);
+    char resolved[PATH_MAX];
+    ssize_t rl = readlink(linkpath, resolved, sizeof(resolved) - 1);
+    struct stat st;
+    bool allowed = false;
+    if (rl > 0) {
+        resolved[rl] = '\0';
+        allowed = is_path_within_root(std::string(resolved)) &&
+                  fstat(file_fd, &st) == 0 && S_ISREG(st.st_mode);
+    }
+    if (!allowed) {
+        close(file_fd);
         send_line(fd, "550 Access denied");
         return;
     }
 
-    usleep(200 * 1000);
-
-    std::ifstream f(path, std::ios::binary);
-    if (!f.is_open()) { send_line(fd, "550 File not found"); return; }
-
     int data_fd = open_data_connection(session);
-    if (data_fd < 0) { send_line(fd, "425 Use PASV or PORT first"); return; }
+    if (data_fd < 0) { close(file_fd); send_line(fd, "425 Use PASV or PORT first"); return; }
 
     send_line(fd, "150 Opening data connection");
     char buf[4096];
-    while (f.read(buf, sizeof(buf)) || f.gcount() > 0) {
-        send(data_fd, buf, f.gcount(), 0);
+    ssize_t n;
+    while ((n = read(file_fd, buf, sizeof(buf))) > 0) {
+        send(data_fd, buf, n, 0);
     }
+    close(file_fd);
     close(data_fd);
     send_line(fd, "226 Transfer complete");
 }
