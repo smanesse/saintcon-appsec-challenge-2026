@@ -50,6 +50,8 @@ object Config {
 }
 
 object Store {
+  // Real log4j2 logger. The pinned log4j-core 2.14.1 (see build.sbt) evaluates
+  // message lookups by default; see append() for how that is neutralised.
   private val logger: Logger = LogManager.getLogger("flightrecorder")
 
   def warmup(): Unit = {
@@ -70,8 +72,22 @@ object Store {
   private def fileFor(source: String): Path =
     Config.logsRoot.resolve(sanitizeSource(source) + ".log")
 
+  /**
+   * Append a record to a per-source log file and return the stored message.
+   *
+   * The message is also echoed to the flight recorder through log4j. The
+   * pinned log4j-core 2.14.1 (see build.sbt) is vulnerable to CVE-2021-44228
+   * (Log4Shell): by default it evaluates `${...}` lookups, including
+   * `${jndi:...}` and `${env:...}`, inside logged content. Two guards keep
+   * attacker text inert: Main sets `log4j2.formatMsgNoLookups=true` before
+   * log4j initialises (disabling message lookups in this version), and the
+   * echoed copy has every `${` broken up, so even a lookup-evaluating logger
+   * has nothing to evaluate. The message stored on disk is the raw text.
+   * (VULN #3 was passing the untrusted message straight to logger.info with
+   * lookups enabled.)
+   */
   def append(source: String, level: String, message: String): String = {
-    logger.info(message)
+    logger.info("{}", message.replace("${", "$ {"))
 
     val ts = Instant.now().toString
     val line = s"$ts [$level] $message"
@@ -163,6 +179,10 @@ object Search {
 }
 
 object Main extends IOApp {
+
+  // Must run before log4j initialises (Store's logger): disables message
+  // lookups in the pinned log4j-core 2.14.1 (CVE-2021-44228). See Store.append.
+  System.setProperty("log4j2.formatMsgNoLookups", "true")
 
   private def jsonError(msg: String): Json = Json.obj("error" -> Json.fromString(msg))
 
