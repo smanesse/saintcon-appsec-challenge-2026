@@ -33,14 +33,18 @@ func (e *fmmEndpoint) retr(u *url.URL) ([]byte, error) {
 	}
 
 	deadline := time.Now().Add(e.timeout)
-	ctrl, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), e.timeout)   
+	dialer := &net.Dialer{Timeout: e.timeout, Control: blockInternalDial}
+	ctrl, err := dialer.Dial("tcp", net.JoinHostPort(host, port))
 	if err != nil {
 		return nil, fmt.Errorf("fmm connect: %w", err)
 	}
 	defer ctrl.Close()
 	_ = ctrl.SetDeadline(deadline)
 	br := bufio.NewReader(ctrl)
- 
+
+	// Banner, then a straight-line login + binary-mode + passive transfer. Each
+	// step insists on FMM's documented success code so a protocol hiccup fails
+	// loudly rather than returning half a file.
 	if _, err := expect(br, "220"); err != nil {
 		return nil, err
 	}
@@ -58,7 +62,7 @@ func (e *fmmEndpoint) retr(u *url.URL) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := net.DialTimeout("tcp", net.JoinHostPort(dataHost, dataPort), e.timeout)
+	data, err := dialer.Dial("tcp", net.JoinHostPort(dataHost, dataPort))
 	if err != nil {
 		return nil, fmt.Errorf("fmm data connect: %w", err)
 	}

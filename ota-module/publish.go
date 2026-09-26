@@ -206,6 +206,14 @@ func handlePublish(store *Store, dataDir string, fetcher *SourceFetcher) http.Ha
 			return
 		}
 
+		// Obtain the package bytes: either the uploaded multipart part, or -
+		// if the manifest names a source_url - fetched server-side through the
+		// SourceFetcher (http(s) or fmm:// only, loopback/link-local refused,
+		// non-2xx is a failure). The fetched bytes are never reflected back:
+		// they're only stored if they match the signed checksum. (VULNS.md #6
+		// was an unrestricted fetch whose checksum-mismatch error echoed the
+		// fetched bytes' SHA-256, letting a publisher learn it, re-publish with
+		// that checksum and download an internal service's response.)
 		var data []byte
 		if m.SourceURL != "" {
 			body, err := fetcher.Fetch(m.SourceURL)
@@ -236,10 +244,11 @@ func handlePublish(store *Store, dataDir string, fetcher *SourceFetcher) http.Ha
 		sum := sha256.Sum256(data)
 		got := hex.EncodeToString(sum[:])
 		if got != m.SHA256 {
+			// Never echo the computed digest: for a source_url package that
+			// is a hash oracle over bytes the publisher was never shown.
 			writeJSON(w, http.StatusBadRequest, map[string]string{
 				"error":    "checksum mismatch",
 				"expected": m.SHA256,
-				"computed": got,
 			})
 			return
 		}
