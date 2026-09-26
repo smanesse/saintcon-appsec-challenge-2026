@@ -8,6 +8,17 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
+// cmdEval implements EVAL <script> <numkeys> [key ...] [arg ...].
+//
+// FIX #2 (sandboxed server-side scripting): scripts run in a locked-down Lua
+// state built by newSandboxedLua() below — only the pure, side-effect-free
+// standard libraries (base, table, string, math) are opened, and the file/OS
+// escape hatches (`os`, `io`, `package`/`require`, `dofile`, `loadfile`, `load`,
+// `loadstring`) are never installed. A client that speaks only RESP therefore
+// can no longer reach os.execute() (command execution), io.open() (arbitrary
+// file read/write, including reading back a CONFIG SET dir/dbfilename + SAVE
+// dump), or os.getenv() (environment/secret disclosure). This matches how real
+// Redis locks its scripting sandbox down. See vuln_tests/02_eval_lua_rce.py.
 func (s *Session) cmdEval(args []string) bool {
 	if len(args) < 3 {
 		return s.arityErr("EVAL")
@@ -20,7 +31,7 @@ func (s *Session) cmdEval(args []string) bool {
 	keys := args[3 : 3+numKeys]
 	argv := args[3+numKeys:]
 
-	L := lua.NewState()
+	L := newSandboxedLua()
 	defer L.Close()
 
 	L.SetGlobal("KEYS", toLuaArray(L, keys))
@@ -34,6 +45,37 @@ func (s *Session) cmdEval(args []string) bool {
 
 	ret := L.Get(-1)
 	return s.reply(luaToResp(s, ret))
+}
+
+// newSandboxedLua builds a Lua state safe to run untrusted EVAL scripts in.
+// It opens ONLY the pure standard libraries (base, table, string, math) and
+// never installs `os`, `io`, `package`/`require`, `debug` or `coroutine`, so a
+// script has no path to the filesystem, the process environment, or a
+// subprocess. It then strips the remaining base-library escape hatches that can
+// load or execute code/files (dofile, loadfile, load, loadstring). Together
+// with redis.call (installed by the caller) this leaves scripts able to touch
+// the keyspace but nothing else — the same posture real Redis enforces.
+func newSandboxedLua() *lua.LState {
+	L := lua.NewState(lua.Options{SkipOpenLibs: true})
+	for _, lib := range []struct {
+		name string
+		open lua.LGFunction
+	}{
+		{lua.BaseLibName, lua.OpenBase},
+		{lua.TabLibName, lua.OpenTable},
+		{lua.StringLibName, lua.OpenString},
+		{lua.MathLibName, lua.OpenMath},
+	} {
+		L.Push(L.NewFunction(lib.open))
+		L.Push(lua.LString(lib.name))
+		L.Call(1, 0)
+	}
+	// OpenBase installs a handful of globals that can load or run external
+	// code/files; remove them so the sandbox can't be pried back open.
+	for _, name := range []string{"dofile", "loadfile", "load", "loadstring", "collectgarbage"} {
+		L.SetGlobal(name, lua.LNil)
+	}
+	return L
 }
 
 func toLuaArray(L *lua.LState, items []string) *lua.LTable {
