@@ -33,8 +33,19 @@ object Config {
   val secretPath: Path =
     Paths.get(env("LOG_SECRET").getOrElse("/home/ctf/log/secret/flag.txt")).toAbsolutePath
 
+  // Operator token for privileged actions (log wipe). Supplied by the harness.
   val opToken: String = env("LOG_OP_TOKEN").getOrElse("operator-secret")
 
+  /** Constant-time check of a presented operator token: both sides are hashed
+    * to fixed-width SHA-256 digests and compared with MessageDigest.isEqual,
+    * so timing reveals nothing about the token. A missing token never matches. */
+  def operatorTokenValid(presented: Option[String]): Boolean = presented.exists { t =>
+    def digest(v: String) =
+      java.security.MessageDigest.getInstance("SHA-256").digest(v.getBytes(StandardCharsets.UTF_8))
+    java.security.MessageDigest.isEqual(digest(t), digest(opToken))
+  }
+
+  // How many recent lines the dashboard renders.
   val dashboardTail: Int = env("LOG_DASHBOARD_TAIL").flatMap(_.toIntOption).getOrElse(100)
 }
 
@@ -238,12 +249,19 @@ object Main extends IOApp {
 
     case req @ DELETE -> "logs" /: rest =>
       val name = nameFromRest(rest)
-      val _ = req.headers.get(org.typelevel.ci.CIString("X-Operator-Token"))
-      val target = Store.safeLogPath(name)
-      IO.blocking {
-        target.exists(t => Files.deleteIfExists(t))
-      }.flatMap { existed =>
-        Ok(Json.obj("deleted" -> Json.fromBoolean(existed), "name" -> Json.fromString(name)))
+      // Wiping logs is an operator action: X-Operator-Token must be present
+      // and match LOG_OP_TOKEN. (VULN #2 was reading the header and never
+      // checking it, so anyone could destroy logs.)
+      val token = req.headers.get(org.typelevel.ci.CIString("X-Operator-Token")).map(_.head.value)
+      if (!Config.operatorTokenValid(token))
+        IO.pure(Response[IO](Status.Forbidden).withEntity(jsonError("operator token required")))
+      else {
+        val target = Store.safeLogPath(name)
+        IO.blocking {
+          target.exists(t => Files.deleteIfExists(t))
+        }.flatMap { existed =>
+          Ok(Json.obj("deleted" -> Json.fromBoolean(existed), "name" -> Json.fromString(name)))
+        }
       }
 
     case GET -> Root / "search" =>
