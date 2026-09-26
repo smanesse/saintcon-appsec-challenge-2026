@@ -286,11 +286,26 @@ void handle_port(Session* session, int fd, const std::string& arg) {
         return;
     }
 
-    sockaddr_in target{};
-    target.sin_family = AF_INET;
-    target.sin_port = htons((p1 << 8) | p2);
     char ip[16];
     snprintf(ip, sizeof(ip), "%d.%d.%d.%d", h1, h2, h3, h4);
+
+    // Anti-bounce: the data target must be the control connection's own peer.
+    // Refusing a third-party address stops FMM being aimed at other hosts to
+    // port-scan or deliver data on the attacker's behalf.
+    if (session->client_ip != ip) {
+        send_line(fd, "500 PORT address must match the control connection");
+        return;
+    }
+    int dport = (p1 << 8) | p2;
+    // Never open a data connection to a privileged port.
+    if (dport < 1024) {
+        send_line(fd, "500 PORT to a privileged port is not allowed");
+        return;
+    }
+
+    sockaddr_in target{};
+    target.sin_family = AF_INET;
+    target.sin_port = htons(dport);
     target.sin_addr.s_addr = inet_addr(ip);
 
     if (session->pasv_listen_fd >= 0) {
