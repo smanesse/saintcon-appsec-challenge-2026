@@ -1,4 +1,8 @@
 'use strict';
+// All configuration comes from environment variables under the MTA_ prefix
+// (SERVER_PORT also wins for the SMTP port, matching this repo's convention).
+// Message size is capped by MTA_MAX_MESSAGE_SIZE (advertised via SIZE);
+// relaying off-domain requires AUTH (see src/smtp.js).
 const path = require('path');
 
 function num(v, def) {
@@ -30,6 +34,9 @@ module.exports = {
 
   TLS_KEY: process.env.MTA_TLS_KEY || path.join(MODULE_ROOT, 'certs', 'dev-key.pem'),
   TLS_CERT: process.env.MTA_TLS_CERT || path.join(MODULE_ROOT, 'certs', 'dev-cert.pem'),
+
+  // Largest message (bytes) accepted in one DATA phase; see src/smtp.js.
+  MAX_MESSAGE_SIZE: num(process.env.MTA_MAX_MESSAGE_SIZE, 10 * 1024 * 1024),
 
   WEBHOOK_TIMEOUT_MS: num(process.env.MTA_WEBHOOK_TIMEOUT_MS, 5000),
 

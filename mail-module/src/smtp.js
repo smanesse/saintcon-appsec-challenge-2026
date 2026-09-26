@@ -33,6 +33,14 @@ function safeEqual(provided, actual) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// Protocol size limits. MAX_DATA_LINE is RFC 5321 §4.5.3.1.6's 1000-octet
+// text line (998 + CRLF); MAX_COMMAND_LINE leaves room for long AUTH
+// responses (RFC 4954 §4); MAX_MESSAGE_SIZE is advertised via the SIZE
+// extension (RFC 1870).
+const MAX_DATA_LINE = 998;
+const MAX_COMMAND_LINE = 12288;
+const MAX_MESSAGE_SIZE = config.MAX_MESSAGE_SIZE;
+
 class SmtpSession {
   constructor(socket) {
     this.socket = socket;
@@ -44,6 +52,9 @@ class SmtpSession {
     this.heloName = null;
     this.envelope = null;
     this.dataLines = [];
+    this.dataSize = 0;
+    this.dataTooBig = false; // DATA exceeded a limit; swallow it, then 552
+    this.discardingLine = false; // dropping the rest of an over-long line
 
     socket.on('data', (chunk) => this.onSocketData(chunk));
     socket.on('error', () => {});
@@ -73,6 +84,11 @@ class SmtpSession {
     while ((idx = this.buffer.indexOf('\n')) !== -1) {
       let line = this.buffer.slice(0, idx);
       this.buffer = this.buffer.slice(idx + 1);
+      if (this.discardingLine) {
+        // Tail of a line already rejected as over-long below.
+        this.discardingLine = false;
+        continue;
+      }
       if (line.endsWith('\r')) line = line.slice(0, -1);
 
       if (this.state === 'data') {
@@ -83,6 +99,26 @@ class SmtpSession {
       // STARTTLS (onStartTls) empties this.buffer, which ends this loop:
       // nothing pipelined before the handshake is ever dispatched.
     }
+
+    // No newline yet: never let one unterminated line grow without bound.
+    // Past the limit the partial line is dropped (and the rest of it, up to
+    // its newline, discarded) - a DATA line marks the message too big, a
+    // command line is refused.
+    const limit = this.state === 'data' ? MAX_DATA_LINE + 2 : MAX_COMMAND_LINE;
+    if (this.buffer.length > limit) {
+      this.buffer = '';
+      this.discardingLine = true;
+      if (this.state === 'data') {
+        this.markDataTooBig();
+      } else {
+        this.write('500 5.5.2 Line too long\r\n');
+      }
+    }
+  }
+
+  markDataTooBig() {
+    this.dataTooBig = true;
+    this.dataLines = []; // release what was buffered; the message is refused
   }
 
   onCommandLine(line) {
@@ -133,6 +169,7 @@ class SmtpSession {
       '250-PIPELINING',
       '250-8BITMIME',
       '250-AUTH PLAIN LOGIN',
+      `250-SIZE ${MAX_MESSAGE_SIZE}`,
     ];
     if (!this.tlsActive) lines.push('250-STARTTLS');
     lines.push('250 HELP');
@@ -151,6 +188,9 @@ class SmtpSession {
       if (eq === -1) continue;
       const key = p.slice(0, eq).toUpperCase();
       const val = p.slice(eq + 1);
+      if (key === 'SIZE' && Number(val) > MAX_MESSAGE_SIZE) {
+        return this.write('552 5.3.4 Message size exceeds fixed maximum message size\r\n');
+      }
       if (key === 'AUTH') {
         // RFC 4954 ESMTP AUTH= parameter, xtext-encoded. Per RFC 3461 §4 a
         // decoded value carrying CR, LF or NUL is invalid and is rejected
@@ -202,6 +242,8 @@ class SmtpSession {
     }
     this.state = 'data';
     this.dataLines = [];
+    this.dataSize = 0;
+    this.dataTooBig = false;
     this.write('354 End data with <CR><LF>.<CR><LF>\r\n');
   }
 
@@ -211,13 +253,29 @@ class SmtpSession {
       return;
     }
     if (line.startsWith('..')) line = line.slice(1);
+    if (this.dataTooBig) return; // already refused; just consume to the '.'
+    // Enforce the line-length and total-size limits as the data arrives, not
+    // after buffering it. (VULN #5 was having neither, so one DATA phase
+    // could buffer until the Node heap was exhausted.)
+    this.dataSize += line.length + 2;
+    if (line.length > MAX_DATA_LINE || this.dataSize > MAX_MESSAGE_SIZE) {
+      this.markDataTooBig();
+      return;
+    }
     this.dataLines.push(line);
   }
 
   finishData() {
     this.state = 'command';
+    const tooBig = this.dataTooBig;
     const body = this.dataLines.join('\r\n');
     this.dataLines = [];
+    this.dataSize = 0;
+    this.dataTooBig = false;
+    if (tooBig) {
+      this.envelope = null;
+      return this.write('552 5.3.4 Message exceeds size or line-length limits\r\n');
+    }
 
     const bodyBlankIdx = body.indexOf('\r\n\r\n');
     const bodyHeaderBlock = bodyBlankIdx === -1 ? body : body.slice(0, bodyBlankIdx);
