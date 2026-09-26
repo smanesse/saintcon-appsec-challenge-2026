@@ -3,6 +3,7 @@ package com.saintcon.ipm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -53,6 +54,14 @@ public class ImageMagickService {
         if (inCoder == null) {
             throw new IOException("unsupported or unrecognised image type");
         }
+        if (inCoder.equals("png")) {
+            // CVE-2022-44268 (pinned ImageMagick 7.1.0-48): a PNG text chunk
+            // keyed "profile" makes magick read a named host file and embed
+            // it in the output. The image is pinned in the Dockerfile, so text
+            // chunks are dropped here before magick sees the file, and -strip
+            // (below) removes any profile from the output regardless.
+            data = stripPngTextChunks(data);
+        }
         Path in = work.resolve("input");
         Files.write(in, data);
 
@@ -88,6 +97,7 @@ public class ImageMagickService {
         cmd.add(inCoder + ":" + in.toAbsolutePath());
         cmd.add("-resize");
         cmd.add(resize);
+        cmd.add("-strip");
         cmd.add(coder + ":" + outFile.toAbsolutePath());
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -149,6 +159,34 @@ public class ImageMagickService {
             return head.contains("<svg") ? "svg" : null;
         }
         return null;
+    }
+
+    /**
+     * Return the PNG with its tEXt/zTXt/iTXt chunks removed. Chunk framing is
+     * validated as we go; a malformed PNG is returned unchanged for magick to
+     * reject.
+     */
+    static byte[] stripPngTextChunks(byte[] png) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(png.length);
+        out.write(png, 0, 8);
+        int pos = 8;
+        while (pos + 12 <= png.length) {
+            long len = ((png[pos] & 0xFFL) << 24) | ((png[pos + 1] & 0xFF) << 16)
+                    | ((png[pos + 2] & 0xFF) << 8) | (png[pos + 3] & 0xFF);
+            if (len > png.length - pos - 12) {
+                return png;
+            }
+            String type = new String(png, pos + 4, 4, StandardCharsets.ISO_8859_1);
+            int total = (int) len + 12;
+            if (!type.equals("tEXt") && !type.equals("zTXt") && !type.equals("iTXt")) {
+                out.write(png, pos, total);
+            }
+            pos += total;
+        }
+        if (pos != png.length) {
+            return png;
+        }
+        return out.toByteArray();
     }
 
     private static boolean startsWith(byte[] d, int... prefix) {
