@@ -7,6 +7,7 @@
 #include <strings.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <limits.h>
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
@@ -888,19 +889,34 @@ static void *admin_worker(void *arg) {
         // Public zone-file transparency endpoint: returns the text of a loaded
         // zone file by name, the HTTP sibling of AXFR. No auth, by design - the
         // served files hold no secret.
+        // Path-traversal fix: reject absolute paths and any ".." segment, then
+        // canonicalize and confirm the resolved file still lives inside
+        // ZONE_DIR before reading it (so "../secret/flag.txt" cannot escape).
         if (!is_get) { http_send(fd, "405 Method Not Allowed", "GET only\n"); close(fd); return NULL; }
         char name[4096] = {0};
         if (!query_param(qs, "name", name, sizeof(name))) {
             http_send(fd, "400 Bad Request", "need name=\n"); close(fd); return NULL;
         }
         char full[8192];
+        char real_zone[PATH_MAX], real_full[PATH_MAX];
         snprintf(full, sizeof(full), "%s/%s", ZONE_DIR, name);
+        size_t zl = 0;
+        int ok = name[0] != '/' && strstr(name, "..") == NULL
+                 && realpath(ZONE_DIR, real_zone) != NULL
+                 && realpath(full, real_full) != NULL;
+        if (ok) {
+            zl = strlen(real_zone);
+            ok = strncmp(real_full, real_zone, zl) == 0
+                 && (real_full[zl] == '/' || real_full[zl] == '\0');
+        }
         long len = 0;
-        char *content = read_file(full, &len);
-        if (!content) { http_send(fd, "404 Not Found", "no such zone file\n"); }
+        char *content = ok ? read_file(real_full, &len) : NULL;
+        if (!ok) { http_send(fd, "403 Forbidden", "invalid zone file path\n"); }
+        else if (!content) { http_send(fd, "404 Not Found", "no such zone file\n"); }
         else {
             char *out = malloc(len + 256);
-            int hl = snprintf(out, 200, "--- %s ---\n", full);
+            int hl = snprintf(out, 200, "--- %s ---\n", real_full);
+            if (hl < 0 || hl > 199) hl = 199;           // snprintf reports the untruncated length
             memcpy(out + hl, content, len); out[hl + len] = '\0';
             http_send(fd, "200 OK", out);
             free(out); free(content);
@@ -928,18 +944,22 @@ static void *admin_worker(void *arg) {
                 http_send(fd, "200 OK", out);
             }
         } else if (query_param(qs, "path", fpath, sizeof(fpath))) {
+            // Import a zone from a named file in the zone dir.
+            // VULN #5 fix: reject absolute paths and any ".." segment, then
+            // canonicalize and confirm the resolved file still lives inside
+            // ZONE_DIR before reading it (so "../../etc/passwd" cannot escape).
             char full[8192];
-            snprintf(full, sizeof(full), "%s/%s", ZONE_DIR, fpath);
-            // Confine the import to ZONE_DIR: reject absolute paths and any ".."
-            // segment, then canonicalize and prefix-check (with the trailing
-            // separator) so the resolved file can't escape the zone directory.
             char real_zone[PATH_MAX], real_full[PATH_MAX];
-            size_t zl;
+            snprintf(full, sizeof(full), "%s/%s", ZONE_DIR, fpath);
+            size_t zl = 0;
             int ok = fpath[0] != '/' && strstr(fpath, "..") == NULL
                      && realpath(ZONE_DIR, real_zone) != NULL
-                     && realpath(full, real_full) != NULL
-                     && (zl = strlen(real_zone),
-                         strncmp(real_full, real_zone, zl) == 0 && real_full[zl] == '/');
+                     && realpath(full, real_full) != NULL;
+            if (ok) {
+                zl = strlen(real_zone);
+                ok = strncmp(real_full, real_zone, zl) == 0
+                     && (real_full[zl] == '/' || real_full[zl] == '\0');
+            }
             long len = 0;
             char *content = ok ? read_file(real_full, &len) : NULL;
             if (!ok) { http_send(fd, "403 Forbidden", "invalid zone file path\n"); }
@@ -949,6 +969,7 @@ static void *admin_worker(void *arg) {
                 zone_publish(z);
                 char *out = malloc(len + 256);
                 int hl = snprintf(out, 200, "imported %s (%d records total)\n--- content ---\n", real_full, z->n);
+                if (hl < 0 || hl > 199) hl = 199;           // snprintf reports the untruncated length
                 memcpy(out + hl, content, len); out[hl + len] = '\0';
                 http_send(fd, "200 OK", out);
                 free(out); free(content);
