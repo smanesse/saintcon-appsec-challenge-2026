@@ -19,6 +19,9 @@ class Config:
     @classmethod
     def from_env(cls) -> "Config":
         port = int(os.environ.get("SERVER_PORT") or os.environ.get("MQB_PORT", "1883"))
+        # MQB_REQUIREPASS configures the AUTH password. When it is set, the
+        # broker rejects (and closes) every CONNECT that doesn't carry it -- see
+        # Broker._handle_connect(). When unset, there is no password to check.
         require_pass = os.environ.get("MQB_REQUIREPASS") or None
         return cls(
             host=os.environ.get("MQB_HOST", "0.0.0.0"),

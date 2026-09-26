@@ -124,8 +124,16 @@ class Broker:
                 await writer.drain()
                 return None
 
+        # --- Authentication ---------------------------------------------------
+        # A failed credential gets the rc=4 CONNACK and the connection is
+        # closed right here, per MQTT-3.2.2-5 -- no session is registered or
+        # served. (VULN #1 was reporting rc=4 but then serving the session
+        # anyway, so a configured MQB_REQUIREPASS was never enforced.)
         creds_ok = self._check_credentials(cp.username, cp.password)
-        connack_rc = p.CONNACK_ACCEPTED if creds_ok else p.CONNACK_BAD_USERNAME_PASSWORD
+        if not creds_ok:
+            writer.write(p.build_connack(False, p.CONNACK_BAD_USERNAME_PASSWORD))
+            await writer.drain()
+            return None
 
         conn = ClientConn(
             client_id=client_id,
@@ -133,7 +141,7 @@ class Broker:
             writer=writer,
             keep_alive=cp.keep_alive,
             clean_session=cp.clean_session,
-            authenticated=creds_ok,
+            authenticated=True,
             will_topic=cp.will_topic,
             will_message=cp.will_message,
             will_qos=cp.will_qos,
@@ -160,13 +168,19 @@ class Broker:
         conn.subscriptions = inherited_subs
         self.clients[client_id] = conn
 
-        writer.write(p.build_connack(session_present and creds_ok, connack_rc))
+        writer.write(p.build_connack(session_present, p.CONNACK_ACCEPTED))
         await writer.drain()
         return conn
 
     def _check_credentials(self, username: Optional[str], password: Optional[bytes]) -> bool:
+        """Answer whether the supplied credentials are valid; _handle_connect
+        closes the connection when they aren't. When a password IS configured,
+        the comparison here is the non-constant-time compare that is VULN #6."""
         required = self.cfg.require_pass
         if required is None:
+            # No password configured at all: nothing to check, every CONNECT
+            # is genuinely anonymous. A deployment that wants auth sets
+            # MQB_REQUIREPASS, and _handle_connect enforces it.
             return True
         supplied = (password or b"").decode("utf-8", errors="replace")
         return hmac.compare_digest(supplied.encode(), required.encode())
