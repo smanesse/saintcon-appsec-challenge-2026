@@ -219,11 +219,13 @@ class Broker:
             conn.last_activity = time.monotonic()
 
             if raw.ptype == p.PUBLISH:
-                await self._handle_publish(conn, raw.flags, raw.body)
+                if not await self._handle_publish(conn, raw.flags, raw.body):
+                    return  # ACL violation: drop the connection
             elif raw.ptype == p.PUBACK:
                 self._handle_puback(conn, raw.body)
             elif raw.ptype == p.SUBSCRIBE:
-                await self._handle_subscribe(conn, raw.body)
+                if not await self._handle_subscribe(conn, raw.body):
+                    return  # ACL violation: drop the connection
             elif raw.ptype == p.UNSUBSCRIBE:
                 await self._handle_unsubscribe(conn, raw.body)
             elif raw.ptype == p.PINGREQ:
@@ -244,17 +246,34 @@ class Broker:
         else:
             self.persisted_subs.pop(conn.client_id, None)
 
-        if not graceful and conn.will_topic is not None:
+        if not graceful and conn.will_topic is not None and not self.is_reserved(conn.will_topic):
             await self._route_publish(conn.will_topic, conn.will_message or b"", conn.will_qos, conn.will_retain)
 
 
-    async def _handle_publish(self, conn: ClientConn, flags: int, body: bytes):
+    async def _handle_publish(self, conn: ClientConn, flags: int, body: bytes) -> bool:
+        """Route one PUBLISH. Returns False if the client must be disconnected."""
         pub = p.parse_publish(flags, body)
+        # Publish-side ACL: a client may not publish (retained or live) into
+        # the broker-owned control namespace. MQTT 3.1.1 has no negative
+        # PUBACK, so -- as HiveMQ and AWS IoT do -- the offending client is
+        # disconnected and the message discarded. (VULN #3 was any client
+        # being able to retain-publish over the seeded flag topic and poison
+        # it for every later subscriber.) Other topics carry no per-client
+        # ownership: the broker has one shared credential, not per-device
+        # identities to check ownership against.
+        if self.is_reserved(pub.topic):
+            log.info("client %r published into reserved topic %r; disconnecting", conn.client_id, pub.topic)
+            return False
         await self._route_publish(pub.topic, pub.payload, min(pub.qos, 1), pub.retain)
 
         if pub.qos == 1 and pub.packet_id is not None:
             conn.writer.write(p.build_puback(pub.packet_id))
             await conn.writer.drain()
+        # QoS 2 is not implemented by this broker (see README); we downgrade
+        # incoming QoS 2 PUBLISH to at-least-once delivery above and still
+        # ack with PUBACK so QoS-2-capable clients don't hang, at the cost
+        # of not honouring exactly-once semantics.
+        return True
 
     async def _route_publish(self, topic: str, payload: bytes, qos: int, retain: bool):
         if retain:
@@ -287,7 +306,9 @@ class Broker:
             return
         conn.pending_ack.pop(pid, None)
 
-    async def _handle_subscribe(self, conn: ClientConn, body: bytes):
+    async def _handle_subscribe(self, conn: ClientConn, body: bytes) -> bool:
+        """Handle one SUBSCRIBE. Returns False if the client must be
+        disconnected (it asked for the reserved control namespace)."""
         sub = p.parse_subscribe(body)
         return_codes = []
         newly_retained_deliveries = []
@@ -308,8 +329,15 @@ class Broker:
 
         conn.writer.write(p.build_suback(sub.packet_id, return_codes))
         await conn.writer.drain()
+        if p.SUBACK_FAILURE in return_codes:
+            # The SUBACK above tells the client which filter was refused; an
+            # attempt on the control namespace then ends the session, same as
+            # a denied PUBLISH.
+            log.info("client %r subscribed into the reserved namespace; disconnecting", conn.client_id)
+            return False
         for topic, payload, qos in newly_retained_deliveries:
             await self._forward_to(conn, topic, payload, qos)
+        return True
 
     async def _handle_unsubscribe(self, conn: ClientConn, body: bytes):
         unsub = p.parse_unsubscribe(body)

@@ -89,13 +89,18 @@ the broker has accepted it for routing. QoS-0 PUBLISH gets no acknowledgement.
 An empty payload with Retain set clears any existing retained message for
 that topic.
 
+Topics in the broker-owned control namespace (the parent of
+`MQB_FLAG_TOPIC`, `fleet/control/` by default) cannot be published to: a
+PUBLISH there is discarded and the client is disconnected.
+
 ### SUBSCRIBE / SUBACK, UNSUBSCRIBE / UNSUBACK
 
 SUBSCRIBE carries one or more `(topic filter, requested QoS)` pairs; SUBACK
 returns one granted-QoS byte per filter, in the same order (`0`, `1`, or
 `0x80` for failure — returned for a filter that names the broker-owned
 control namespace, the parent of `MQB_FLAG_TOPIC`, `fleet/control/` by
-default; wildcard filters such as `#` never match topics in that namespace). Immediately after SUBACK, any currently retained message
+default; wildcard filters such as `#` never match topics in that namespace).
+A client whose SUBSCRIBE is refused this way is disconnected after the SUBACK. Immediately after SUBACK, any currently retained message
 matching the new filter is delivered as a PUBLISH.
 
 Filters support the standard MQTT wildcards:
