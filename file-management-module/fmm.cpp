@@ -14,7 +14,6 @@
 #include <arpa/inet.h>
 #include <cctype>
 #include <thread>
-#include <regex>
 #include <ctime>
 #include <climits>
 #include <cerrno>
@@ -423,9 +422,27 @@ bool is_path_within_root(const std::string& path) {
     return !canonical_within_root(path).empty();
 }
 
+// Accepts "<base>.<ext>" where base is one or more [A-Za-z0-9_] and ext is
+// one or more [A-Za-z0-9], with exactly one dot separating them -- the same
+// grammar the old regex encoded, but validated with a single linear scan.
+// The previous std::regex used nested quantifiers (((...)+)+) that caused
+// catastrophic backtracking (ReDoS) on inputs like a long run of underscores
+// with no extension; a hand-written char scan has no backtracking at all.
 bool is_valid_filename(const std::string& name) {
-    static const std::regex pattern(R"(^([a-zA-Z0-9_]+)+\.[a-zA-Z0-9]+$)");
-    return std::regex_match(name, pattern);
+    size_t dot = name.find('.');
+    if (dot == std::string::npos) return false; // must have an extension
+    if (dot == 0) return false;                 // base must be non-empty
+    if (dot + 1 >= name.size()) return false;   // extension must be non-empty
+
+    for (size_t i = 0; i < dot; ++i) {
+        char c = name[i];
+        if (!(isalnum((unsigned char)c) || c == '_')) return false;
+    }
+    for (size_t i = dot + 1; i < name.size(); ++i) {
+        // No second dot and no other punctuation allowed past the extension.
+        if (!isalnum((unsigned char)name[i])) return false;
+    }
+    return true;
 }
 
 void handle_retr(Session* session, int fd, const std::string& arg) {
