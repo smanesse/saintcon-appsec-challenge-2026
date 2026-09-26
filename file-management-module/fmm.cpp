@@ -252,8 +252,14 @@ void handle_port(Session* session, int fd, const std::string& arg) {
 }
 
 
+// --- USER -------------------------------------------------------------
+// Copies the client-supplied username into a fixed 32-byte buffer inside the
+// Session object. snprintf bounds the copy to the buffer size and always
+// null-terminates, so an over-long username is truncated instead of
+// overflowing adjacent Session fields (which previously let a crafted string
+// flip the `authenticated` flag).
 void handle_user(Session* session, int fd, const std::string& arg) {
-    strcpy(session->username, arg.c_str());
+    snprintf(session->username, sizeof(session->username), "%s", arg.c_str());
     send_line(fd, "331 Password required for " + arg);
 }
 
