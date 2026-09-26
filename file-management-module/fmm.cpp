@@ -18,6 +18,7 @@
 #include <climits>
 #include <cerrno>
 #include <mutex>
+#include <csignal>
 #include <fcntl.h>
 
 #define PORT 2121
@@ -170,6 +171,13 @@ void send_line(int fd, const std::string& msg) {
     send(fd, out.c_str(), out.size(), 0);
 }
 
+// Upper bound on a single control-line length. A client that never sends a
+// newline can no longer grow this buffer without limit: once the cap is hit
+// the excess is discarded (memory stays bounded), and the over-long command
+// just fails to parse. Paired with the per-connection recv timeout set in
+// handle_client(), which turns a stalled recv() into a clean disconnect.
+static const size_t MAX_LINE = 4096;
+
 std::string recv_line(int fd) {
     std::string line;
     char c;
@@ -177,7 +185,8 @@ std::string recv_line(int fd) {
         ssize_t n = recv(fd, &c, 1, 0);
         if (n <= 0) return line;
         if (c == '\n') break;
-        if (c != '\r') line += c;
+        if (c == '\r') continue;
+        if (line.size() < MAX_LINE) line += c; // drop bytes past the cap
     }
     return line;
 }
@@ -555,6 +564,54 @@ void handle_pwd(Session* session, int fd) {
     send_line(fd, "257 \"" + session->cwd + "\"");
 }
 
+// ---------------------------------------------------------------------------
+// Connection handling
+// ---------------------------------------------------------------------------
+// Live control connections, keyed by fd, with the time each last completed a
+// command. The accept loop caps concurrency at MAX_CONNECTIONS (well under the
+// container pids_limit) so threads can never be spawned without bound. At the
+// cap it does NOT refuse the newcomer -- that would just hand the pool to
+// whoever fills it first -- it evicts the least-recently-active connection
+// instead. A flood of parked/idle sockets therefore only ever competes with
+// itself, while a client that is actually issuing commands stays live.
+// Entries are erased (under the lock) before their fd is closed, so an evict
+// can never shutdown() a recycled fd belonging to a different connection.
+static std::mutex g_conns_mutex;
+static std::map<int, time_t> g_conns;
+static const size_t MAX_CONNECTIONS = 64;
+
+void conn_touch(int fd) {
+    std::lock_guard<std::mutex> lock(g_conns_mutex);
+    auto it = g_conns.find(fd);
+    if (it != g_conns.end()) it->second = time(nullptr);
+}
+
+// Registers `fd`, first evicting the least-recently-active connection if the
+// table is full. Eviction is shutdown(), which wakes that connection's thread
+// out of recv() so it tears itself down and releases its slot.
+void conn_register(int fd) {
+    std::lock_guard<std::mutex> lock(g_conns_mutex);
+    if (g_conns.size() >= MAX_CONNECTIONS) {
+        auto oldest = g_conns.begin();
+        for (auto it = g_conns.begin(); it != g_conns.end(); ++it) {
+            if (it->second < oldest->second) oldest = it;
+        }
+        shutdown(oldest->first, SHUT_RDWR);
+        g_conns.erase(oldest);
+    }
+    g_conns[fd] = time(nullptr);
+}
+
+void conn_unregister(int fd) {
+    std::lock_guard<std::mutex> lock(g_conns_mutex);
+    g_conns.erase(fd);
+}
+
+// Idle timeout (seconds) applied to each control connection's recv() calls: a
+// client that stops sending is disconnected instead of pinning a thread open
+// forever (slowloris).
+static const int IDLE_TIMEOUT_SECS = 120;
+
 void handle_client(int fd) {
     Session* session = new Session();
 
@@ -565,6 +622,12 @@ void handle_client(int fd) {
         session->client_ip = inet_ntoa(peer.sin_addr);
     }
 
+    // Drop connections that go idle so they can't accumulate held-open threads.
+    struct timeval tv{};
+    tv.tv_sec = IDLE_TIMEOUT_SECS;
+    tv.tv_usec = 0;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
     send_line(fd, "220 Welcome to FMM (educational build)");
 
     bool freed = false;
@@ -572,6 +635,7 @@ void handle_client(int fd) {
     while (true) {
         std::string raw = recv_line(fd);
         if (raw.empty()) break;
+        conn_touch(fd);
 
         auto parsed = parse_command(raw);
         std::string cmd = parsed.first;
@@ -618,10 +682,15 @@ void handle_client(int fd) {
     }
 
     if (!freed) forget_session(session); // plain disconnect: drop token(s) too
+    conn_unregister(fd);
     close(fd);
 }
 
 int main() {
+    // A peer that disconnects (or is evicted) mid-reply must cost only its own
+    // connection: without this, the resulting SIGPIPE kills the whole server.
+    signal(SIGPIPE, SIG_IGN);
+
     write_flag_files();
 
     std::ifstream creds_check(CREDS_FILE);
@@ -655,7 +724,21 @@ int main() {
         int client_fd = accept(server_fd, (sockaddr*)&client_addr, &len);
         if (client_fd < 0) continue;
 
-        std::thread(handle_client, client_fd).detach();
+        // Cap concurrency so a flood of held-open connections can't spawn
+        // threads without bound (which, once the container's pids_limit is
+        // reached, made pthread_create throw and kill the whole process). At
+        // the cap the least-recently-active connection is evicted.
+        conn_register(client_fd);
+        try {
+            std::thread(handle_client, client_fd).detach();
+        } catch (const std::system_error&) {
+            // Thread creation failed (e.g. pid/resource limit) -- recover
+            // gracefully instead of letting the exception terminate the
+            // process; the connection is refused and the slot released.
+            conn_unregister(client_fd);
+            send_line(client_fd, "421 Server busy, try again later");
+            close(client_fd);
+        }
     }
 
     return 0;
