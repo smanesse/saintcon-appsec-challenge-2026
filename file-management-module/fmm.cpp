@@ -18,6 +18,7 @@
 #include <ctime>
 #include <climits>
 #include <cerrno>
+#include <mutex>
 
 #define PORT 2121
 #define CREDS_FILE "credentials.txt"
@@ -114,7 +115,31 @@ void write_flag_files() {
     }
 }
 
+// Shared table of "resume tokens" -> the Session that owns them, so a client
+// can reconnect and pick a session back up with SESS instead of logging in
+// again. Every read/write is serialized by g_sessions_mutex, and a Session is
+// only ever deleted through forget_session() (below) which erases the owning
+// token(s) and frees the object while still holding that lock -- so a
+// concurrent SESS either observes the live entry (and copies what it needs
+// under the same lock) or no entry at all, never a dangling pointer.
 static std::map<std::string, Session*> g_sessions;
+static std::mutex g_sessions_mutex;
+
+// Removes every token that maps to `session` from g_sessions and frees the
+// Session, atomically under g_sessions_mutex. Used for both the QUIT teardown
+// and the plain-disconnect teardown so a resume token can never outlive the
+// Session it points at.
+void forget_session(Session* session) {
+    std::lock_guard<std::mutex> lock(g_sessions_mutex);
+    for (auto it = g_sessions.begin(); it != g_sessions.end(); ) {
+        if (it->second == session) {
+            it = g_sessions.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    delete session;
+}
 
 std::string generate_token() {
     int n = rand() % 100000;
@@ -268,23 +293,37 @@ void handle_pass(Session* session, int fd, const std::string& arg) {
     if (check_credentials(user, arg)) {
         session->authenticated = true;
         std::string token = generate_token();
-        g_sessions[token] = session;
+        {
+            std::lock_guard<std::mutex> lock(g_sessions_mutex);
+            g_sessions[token] = session;
+        }
         send_line(fd, "230 Login successful token=" + token);
     } else {
         send_line(fd, "530 Login incorrect");
     }
 }
 
+// --- SESS ---------------------------------------------------------------
+// Resumes a previous session by token instead of USER/PASS. The lookup and
+// the copy of the target's username both happen under g_sessions_mutex, and
+// forget_session() only ever frees a Session while holding that same lock, so
+// the target pointer is guaranteed live for the duration of the copy (no
+// use-after-free). (Token possession is still the sole proof of identity here;
+// that weakness is addressed by the token-generation fix, not this one.)
 void handle_sess(Session* session, int fd, const std::string& arg) {
-    auto it = g_sessions.find(arg);
-    if (it == g_sessions.end()) {
-        send_line(fd, "530 Unknown or expired session token");
-        return;
+    std::string username;
+    {
+        std::lock_guard<std::mutex> lock(g_sessions_mutex);
+        auto it = g_sessions.find(arg);
+        if (it == g_sessions.end()) {
+            send_line(fd, "530 Unknown or expired session token");
+            return;
+        }
+        username = it->second->username; // copied while the entry is held live
     }
-    Session* target = it->second;
     session->authenticated = true;
-    strcpy(session->username, target->username);
-    send_line(fd, "230 Session resumed as " + std::string(target->username));
+    snprintf(session->username, sizeof(session->username), "%s", username.c_str());
+    send_line(fd, "230 Session resumed as " + username);
 }
 
 void handle_list(Session* session, int fd) {
@@ -452,19 +491,22 @@ void handle_client(int fd) {
             handle_sess(session, fd, arg);
         } else if (cmd == "QUIT") {
             send_line(fd, "221 Goodbye");
-            delete session;
+            forget_session(session); // erases resume token(s) + frees session
+            session = nullptr;
             freed = true;
         } else {
             send_line(fd, "502 Command not implemented");
         }
 
+        if (freed) break; // session is gone; stop before touching it again
+
+        // "Debug" bookkeeping that runs after every non-terminating command.
+        // Only reached while `session` is still live.
         fprintf(stderr, "[debug] last command from user='%s' authenticated=%d\n",
                 session->username, session->authenticated);
-
-        if (freed) break;
     }
 
-    if (!freed) delete session;
+    if (!freed) forget_session(session); // plain disconnect: drop token(s) too
     close(fd);
 }
 
