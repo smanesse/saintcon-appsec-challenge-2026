@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -44,6 +45,9 @@ func (rr *respReader) readCommand() ([]string, error) {
 	if count <= 0 {
 		return []string{}, nil
 	}
+	if count > maxMultibulkLen {
+		return nil, fmt.Errorf("Protocol error: invalid multibulk length")
+	}
 
 	args := make([]string, 0, count)
 	for i := 0; i < count; i++ {
@@ -63,6 +67,36 @@ func (rr *respReader) readCommand() ([]string, error) {
 	return args, nil
 }
 
+// maxBulkLen bounds a single RESP bulk string, matching real Redis's
+// proto-max-bulk-len default (512MB). A declared length outside [0, maxBulkLen]
+// is rejected before any allocation.
+const maxBulkLen = 512 * 1024 * 1024
+
+// maxMultibulkLen bounds the argument count of one array-form command (real
+// Redis's 1024*1024 limit), so a huge *<count> can't size an allocation.
+const maxMultibulkLen = 1024 * 1024
+
+// maxLineLen bounds a single protocol line (a length header or an inline
+// command), so a client that never sends \n can't grow the buffer forever.
+const maxLineLen = 64 * 1024
+
+// bulkChunk is how much of a bulk payload is read (and allocated) at a time.
+// Memory therefore tracks the bytes the client has actually sent, not the
+// length it merely declared.
+const bulkChunk = 64 * 1024
+
+// readBulk reads the body of a bulk string whose leading '$' has already been
+// consumed: <len>\r\n<len bytes>\r\n.
+//
+// FIX #4 (bounded bulk length): the declared length is validated before it is
+// used to size any allocation. A negative length (which previously reached
+// make([]byte, n) and panicked the whole process, an unrecovered crash) and an
+// oversized one (> proto-max-bulk-len, previously an unbounded up-front
+// allocation / memory-exhaustion) are both rejected here with a protocol error,
+// dropping only the offending connection. The payload is then read in
+// bulkChunk-sized pieces rather than allocated up front, so a large declared
+// length costs nothing until the bytes actually arrive.
+// See vuln_tests/04_bulklen_overflow_dos.py.
 func (rr *respReader) readBulk() (string, error) {
 	lenLine, err := rr.readLine()
 	if err != nil {
@@ -72,24 +106,47 @@ func (rr *respReader) readBulk() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Protocol error: invalid bulk length")
 	}
+	if n < 0 || n > maxBulkLen {
+		return "", fmt.Errorf("Protocol error: invalid bulk length")
+	}
 
-	buf := make([]byte, n)
-	if _, err := io.ReadFull(rr.r, buf); err != nil {
-		return "", err
+	var buf bytes.Buffer
+	for remaining := int64(n); remaining > 0; {
+		step := remaining
+		if step > bulkChunk {
+			step = bulkChunk
+		}
+		if _, err := io.CopyN(&buf, rr.r, step); err != nil {
+			return "", err
+		}
+		remaining -= step
 	}
 	if _, err := rr.readLine(); err != nil {
 		return "", err
 	}
-	return string(buf), nil
+	return buf.String(), nil
 }
 
+// readLine reads through the next \r\n and returns the line without it. A
+// line longer than maxLineLen is a protocol error.
 func (rr *respReader) readLine() (string, error) {
-	line, err := rr.r.ReadString('\n')
-	if err != nil {
-		return "", err
+	var line []byte
+	for {
+		frag, err := rr.r.ReadSlice('\n')
+		if len(line)+len(frag) > maxLineLen {
+			return "", fmt.Errorf("Protocol error: line too long")
+		}
+		line = append(line, frag...)
+		if err == bufio.ErrBufferFull {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		break
 	}
-	line = trimCRLF(line)
-	return line, nil
+	// Strip trailing \r\n (or bare \n).
+	return trimCRLF(string(line)), nil
 }
 
 func trimCRLF(s string) string {

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -93,6 +94,11 @@ func (srv *Server) handleConn(conn net.Conn) {
 	for {
 		args, err := sess.rr.readCommand()
 		if err != nil {
+			// Client closed, or a protocol error we can't recover from (e.g. an
+			// out-of-range bulk length): report the latter, then drop the conn.
+			if strings.HasPrefix(err.Error(), "Protocol error") {
+				writeError(conn, "ERR "+err.Error())
+			}
 			return
 		}
 		if len(args) == 0 {
