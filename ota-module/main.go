@@ -22,6 +22,9 @@ func main() {
 	}
 
 	publishPubKey() // validate OTA_PUBLISH_PUBKEY (or warn) at startup
+	if os.Getenv("OTA_API_KEY") == "" {
+		log.Printf("WARNING: OTA_API_KEY is not set - using the built-in development key; set a real key in any deployment")
+	}
 
 	store := NewStore()
 	fetcher := NewSourceFetcher()
