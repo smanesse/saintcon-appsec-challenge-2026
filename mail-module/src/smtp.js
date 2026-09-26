@@ -11,6 +11,9 @@ const { decodeXtext } = require('./xtext');
 const tlscert = require('./tlscert');
 
 function sanitizeAddr(raw) {
+  // Strip control characters from an envelope address before it's used
+  // anywhere. Applied to MAIL FROM / RCPT TO addresses. (The decoded AUTH=
+  // parameter is rejected outright if it carries them - see onMailFrom().)
   return String(raw || '').replace(/[\r\n\0]/g, '').trim();
 }
 
@@ -147,7 +150,15 @@ class SmtpSession {
       const key = p.slice(0, eq).toUpperCase();
       const val = p.slice(eq + 1);
       if (key === 'AUTH') {
+        // RFC 4954 ESMTP AUTH= parameter, xtext-encoded. Per RFC 3461 §4 a
+        // decoded value carrying CR, LF or NUL is invalid and is rejected
+        // outright, so it can never splice a line into the stored header
+        // block (see finishData()). (VULN #2 was keeping such a value as-is,
+        // letting "+0D+0A" forge an X-Notify-Webhook header.)
         authParam = decodeXtext(val);
+        if (/[\r\n\0]/.test(authParam)) {
+          return this.write('501 5.5.4 Invalid AUTH= parameter\r\n');
+        }
       }
     }
 
@@ -218,6 +229,8 @@ class SmtpSession {
     let prefix = `Return-Path: <${this.envelope.from}>\r\n`;
     prefix += `Received: from ${this.heloName || 'unknown'} by ${config.DOMAIN} with ESMTP; ${new Date().toUTCString()}\r\n`;
     if (this.envelope.authParam && this.tlsActive) {
+      // authParam was validated CR/LF/NUL-free in onMailFrom(), so this is
+      // exactly one header line.
       prefix += `X-Original-Auth: ${this.envelope.authParam}\r\n`;
     }
 
