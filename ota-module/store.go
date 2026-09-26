@@ -6,12 +6,17 @@ import (
 	"time"
 )
 
+// Manifest is the update descriptor a publisher supplies alongside a package.
+// SHA256 is a plain content checksum; Signature is the publisher's ed25519
+// signature over "module:version:sha256", verified against the pinned
+// OTA_PUBLISH_PUBKEY (see verifyManifestSignature in publish.go).
 type Manifest struct {
 	Module      string `json:"module"`
 	Version     string `json:"version"`
 	SHA256      string `json:"sha256"`
-	PostInstall string `json:"post_install,omitempty"`
-	SourceURL   string `json:"source_url,omitempty"`
+	PostInstall string `json:"post_install,omitempty"` // documented values: "none", "restart"
+	SourceURL   string `json:"source_url,omitempty"`   // optional: fetch package bytes from here instead of the upload
+	Signature   string `json:"signature,omitempty"`    // base64 ed25519 signature over "module:version:sha256"
 }
 
 type Package struct {

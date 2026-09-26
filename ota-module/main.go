@@ -21,6 +21,8 @@ func main() {
 		log.Fatalf("cannot create data dir %s: %v", dataDir, err)
 	}
 
+	publishPubKey() // validate OTA_PUBLISH_PUBKEY (or warn) at startup
+
 	store := NewStore()
 	fetcher := NewSourceFetcher()
 
