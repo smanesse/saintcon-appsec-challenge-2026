@@ -44,6 +44,9 @@ function handle(req, res) {
     const name = decodeURIComponent(req.url.slice('/queue/'.length).split('?')[0]);
     let raw;
     try {
+      // This re-reads straight from disk via queue.readMessage() rather than
+      // trusting the in-memory registry; queueFilePath() rejects any name
+      // that isn't a plain file directly inside the queue directory.
       raw = queue.readMessage(name);
     } catch (e) {
       return send(res, 404, { error: 'not found' });
