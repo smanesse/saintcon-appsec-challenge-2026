@@ -142,8 +142,24 @@ object Store {
 }
 
 object Render {
+  /** HTML-escape a stored log line before it is placed in the dashboard. */
+  def escapeHtml(s: String): String =
+    s.flatMap {
+      case '&'  => "&amp;"
+      case '<'  => "&lt;"
+      case '>'  => "&gt;"
+      case '"'  => "&quot;"
+      case '\'' => "&#39;"
+      case c    => c.toString
+    }
+
+  /**
+   * Render the dashboard. Every line is HTML-escaped, so ingested markup or
+   * <script> is displayed as text rather than executed in an operator's
+   * browser. (The un-numbered stored-XSS vuln was interpolating lines raw.)
+   */
   def dashboard(lines: List[String]): String = {
-    val body = lines.map(l => s"""        <div class="line">$l</div>""").mkString("\n")
+    val body = lines.map(l => s"""        <div class="line">${escapeHtml(l)}</div>""").mkString("\n")
     s"""<!doctype html>
 <html lang="en">
 <head>
