@@ -59,6 +59,11 @@ class Broker:
         self.clients: Dict[str, ClientConn] = {}
         self.persisted_subs: Dict[str, Dict[str, int]] = {}
         self.retained: Dict[str, bytes] = {}
+        # The fleet-control namespace (the parent of cfg.flag_topic, i.e.
+        # "fleet/control" by default) is broker-owned, like $SYS on a real
+        # broker: its retained state is seeded by the broker itself and is
+        # never delivered to MQTT clients -- see is_reserved().
+        self.control_root = cfg.flag_topic.rsplit("/", 1)[0] if "/" in cfg.flag_topic else cfg.flag_topic
         os.makedirs(cfg.retain_dir, exist_ok=True)
 
     def seed_startup_state(self):
@@ -73,6 +78,21 @@ class Broker:
         except OSError as e:
             log.warning("failed to write flag file %r: %s", self.cfg.flag_file, e)
 
+    def is_reserved(self, topic: str) -> bool:
+        """True for a topic inside the broker-owned control namespace."""
+        root = self.control_root
+        return topic == root or topic.startswith(root + "/")
+
+    def _filter_targets_reserved(self, topic_filter: str) -> bool:
+        """True for a filter that names the control namespace explicitly
+        (e.g. "fleet/control/flag" or "fleet/control/#"). Generic wildcard
+        filters such as "#" or "fleet/#" are allowed, but never match a
+        reserved topic at delivery time."""
+        return self.is_reserved(topic_filter.rstrip("#").rstrip("/"))
+
+    # ------------------------------------------------------------------
+    # Connection lifecycle
+    # ------------------------------------------------------------------
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         peer = writer.get_extra_info("peername")
@@ -240,6 +260,12 @@ class Broker:
         if retain:
             self._store_retained(topic, payload)
 
+        # Topic ACL: nothing in the broker-owned control namespace is ever
+        # delivered to a client subscription, whatever filter it used. (VULN
+        # #2 was delivery being a pure filter match with no authorization, so
+        # a bare "#" subscribe received the seeded flag.)
+        if self.is_reserved(topic):
+            return
         for target in list(self.clients.values()):
             for filt, granted_qos in target.subscriptions.items():
                 if p.topic_matches(filt, topic):
@@ -266,10 +292,17 @@ class Broker:
         return_codes = []
         newly_retained_deliveries = []
         for filt, req_qos in sub.filters:
-            granted = min(req_qos, 1)
+            if self._filter_targets_reserved(filt):
+                # Subscribing into the broker-owned control namespace is not
+                # authorized for any client: SUBACK failure (0x80).
+                return_codes.append(p.SUBACK_FAILURE)
+                continue
+            granted = min(req_qos, 1)  # this broker supports QoS 0/1 only
             conn.subscriptions[filt] = granted
             return_codes.append(granted)
             for topic, payload in self.retained.items():
+                if self.is_reserved(topic):
+                    continue  # never hand out control-namespace retained state
                 if p.topic_matches(filt, topic):
                     newly_retained_deliveries.append((topic, payload, granted))
 

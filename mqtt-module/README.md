@@ -93,8 +93,9 @@ that topic.
 
 SUBSCRIBE carries one or more `(topic filter, requested QoS)` pairs; SUBACK
 returns one granted-QoS byte per filter, in the same order (`0`, `1`, or
-`0x80` for failure — this broker never fails a syntactically valid
-subscription). Immediately after SUBACK, any currently retained message
+`0x80` for failure — returned for a filter that names the broker-owned
+control namespace, the parent of `MQB_FLAG_TOPIC`, `fleet/control/` by
+default; wildcard filters such as `#` never match topics in that namespace). Immediately after SUBACK, any currently retained message
 matching the new filter is delivered as a PUBLISH.
 
 Filters support the standard MQTT wildcards:
