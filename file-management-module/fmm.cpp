@@ -277,6 +277,29 @@ void handle_port(Session* session, int fd, const std::string& arg) {
 }
 
 
+// Canonicalizes `path` (resolving "..", symlinks, etc.) and returns the
+// resolved absolute path iff it is ROOT_DIR itself or lies strictly inside
+// ROOT_DIR; returns "" otherwise (including when `path` does not exist). The
+// trailing separator check prevents a sibling like "<root>_evil" from passing
+// a naive prefix match against "<root>".
+std::string canonical_within_root(const std::string& path) {
+    char resolved[PATH_MAX];
+    if (!realpath(path.c_str(), resolved)) return "";
+
+    char root[PATH_MAX];
+    if (!realpath(ROOT_DIR, root)) return "";
+
+    std::string resolved_str(resolved);
+    std::string root_str(root);
+    if (resolved_str == root_str) return resolved_str;
+    if (resolved_str.size() > root_str.size() &&
+        resolved_str.compare(0, root_str.size(), root_str) == 0 &&
+        resolved_str[root_str.size()] == '/') {
+        return resolved_str;
+    }
+    return "";
+}
+
 // --- USER -------------------------------------------------------------
 // Copies the client-supplied username into a fixed 32-byte buffer inside the
 // Session object. snprintf bounds the copy to the buffer size and always
@@ -328,6 +351,12 @@ void handle_sess(Session* session, int fd, const std::string& arg) {
 
 void handle_list(Session* session, int fd) {
     if (!session->authenticated) { send_line(fd, "530 Please login first"); return; }
+    // Same containment check RETR applies to files: never disclose a directory
+    // listing from outside ROOT_DIR, even if cwd somehow points there.
+    if (canonical_within_root(session->cwd).empty()) {
+        send_line(fd, "550 Access denied");
+        return;
+    }
     std::ostringstream out;
     DIR* d = opendir(session->cwd.c_str());
     if (!d) { send_line(fd, "450 Could not open directory"); return; }
@@ -358,16 +387,11 @@ void log_download(const std::string& filename) {
     }
 }
 
+// Returns true if 'path' resolves (via realpath) to ROOT_DIR or somewhere
+// inside it. Thin wrapper over canonical_within_root() so callers that only
+// need the yes/no answer stay readable.
 bool is_path_within_root(const std::string& path) {
-    char resolved[PATH_MAX];
-    if (!realpath(path.c_str(), resolved)) return false;
-
-    char root[PATH_MAX];
-    if (!realpath(ROOT_DIR, root)) return false;
-
-    std::string resolved_str(resolved);
-    std::string root_str(root);
-    return resolved_str.compare(0, root_str.size(), root_str) == 0;
+    return !canonical_within_root(path).empty();
 }
 
 bool is_valid_filename(const std::string& name) {
@@ -431,20 +455,31 @@ void handle_stor(Session* session, int fd, const std::string& arg) {
     send_line(fd, "226 Transfer complete");
 }
 
+// --- CWD ----------------------------------------------------------------
+// The target is canonicalized and confined to ROOT_DIR before it is
+// accepted: realpath resolves any "../" or symlink components, and
+// canonical_within_root() rejects anything that lands at or above the root.
+// The canonical path (not the raw concatenation) becomes the new cwd, so
+// later LIST/RETR/STOR operate on a path already proven to be inside root.
 void handle_cwd(Session* session, int fd, const std::string& arg) {
     if (!session->authenticated) { send_line(fd, "530 Please login first"); return; }
     if (arg.empty()) { send_line(fd, "501 Syntax error in parameters"); return; }
 
     std::string new_path = session->cwd + "/" + arg;
+    std::string canonical = canonical_within_root(new_path);
+    if (canonical.empty()) {
+        send_line(fd, "550 Failed to change directory");
+        return;
+    }
 
-    DIR* d = opendir(new_path.c_str());
+    DIR* d = opendir(canonical.c_str());
     if (!d) {
         send_line(fd, "550 Failed to change directory");
         return;
     }
     closedir(d);
 
-    session->cwd = new_path;
+    session->cwd = canonical;
     send_line(fd, "250 Directory successfully changed");
 }
 
