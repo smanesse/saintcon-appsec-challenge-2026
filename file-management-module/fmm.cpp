@@ -302,9 +302,15 @@ void handle_list(Session* session, int fd) {
     send_line(fd, "226 Directory send OK");
 }
 
+// --- RETR -------------------------------------------------------------
+// Every download is recorded to a log file. The filename is client-supplied,
+// so the entry is written with plain file I/O (never handed to a shell) --
+// there is no command interpreter involved and nothing to inject into.
 void log_download(const std::string& filename) {
-    std::string cmd = "echo \"Download requested: " + filename + "\" >> transfer.log";
-    system(cmd.c_str());
+    std::ofstream log("transfer.log", std::ios::app);
+    if (log.is_open()) {
+        log << "Download requested: " << filename << "\n";
+    }
 }
 
 bool is_path_within_root(const std::string& path) {
