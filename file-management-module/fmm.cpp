@@ -198,15 +198,29 @@ std::pair<std::string, std::string> parse_command(const std::string& raw) {
 }
 
 
-static int g_next_data_port = PORT + 1;
-
+// Opens the data connection negotiated by the most recent PASV or PORT
+// command and returns a connected fd, or -1 if none was set up / it failed.
+// The returned fd carries an opaque byte stream; end-of-file is signalled by
+// closing it, so payloads are never parsed as lines and binary is byte-exact.
 int open_data_connection(Session* session) {
     if (session->pasv_listen_fd >= 0) {
+        // PASV: accept the incoming data connection, but only from the same
+        // client that owns the control connection. Rejecting a mismatched
+        // peer (combined with the OS-assigned ephemeral port from handle_pasv)
+        // stops another client pre-connecting to steal a download or inject
+        // bytes into an upload.
         sockaddr_in peer{};
         socklen_t plen = sizeof(peer);
         int data_fd = accept(session->pasv_listen_fd, (sockaddr*)&peer, &plen);
         close(session->pasv_listen_fd);
         session->pasv_listen_fd = -1;
+        if (data_fd < 0) return -1;
+
+        const char* peer_ip = inet_ntoa(peer.sin_addr);
+        if (!session->client_ip.empty() && session->client_ip != peer_ip) {
+            close(data_fd);
+            return -1;
+        }
         return data_fd;
     }
     if (session->port_active) {
@@ -246,16 +260,34 @@ void handle_pasv(Session* session, int fd) {
     int opt = 1;
     setsockopt(lfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    int data_port = g_next_data_port++;
+    // Let the OS pick an unpredictable ephemeral port (bind to 0) instead of
+    // handing out sequential, guessable ports from a shared counter.
     sockaddr_in daddr{};
     daddr.sin_family = AF_INET;
     daddr.sin_addr.s_addr = INADDR_ANY;
-    daddr.sin_port = htons(data_port);
+    daddr.sin_port = htons(0);
     if (bind(lfd, (sockaddr*)&daddr, sizeof(daddr)) < 0 || listen(lfd, 1) < 0) {
         close(lfd);
         send_line(fd, "425 Can't open data connection");
         return;
     }
+
+    // Read back the actual port the OS assigned, to advertise in the reply.
+    sockaddr_in bound{};
+    socklen_t bound_len = sizeof(bound);
+    if (getsockname(lfd, (sockaddr*)&bound, &bound_len) != 0) {
+        close(lfd);
+        send_line(fd, "425 Can't open data connection");
+        return;
+    }
+    int data_port = ntohs(bound.sin_port);
+
+    // Bound how long open_data_connection()'s accept() will wait, so a PASV
+    // that is never connected to can't pin a worker thread indefinitely.
+    struct timeval atv{};
+    atv.tv_sec = 30;
+    atv.tv_usec = 0;
+    setsockopt(lfd, SOL_SOCKET, SO_RCVTIMEO, &atv, sizeof(atv));
 
     if (session->pasv_listen_fd >= 0) close(session->pasv_listen_fd);
     session->pasv_listen_fd = lfd;
