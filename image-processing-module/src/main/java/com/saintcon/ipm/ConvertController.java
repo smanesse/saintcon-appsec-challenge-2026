@@ -15,6 +15,19 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * HTTP surface of the Image Processing Module.
+ *
+ * Endpoints:
+ *   POST /convert        multipart image -> PNG, STORed into FMM
+ *   POST /convert-url    fetch a URL server-side, then convert
+ *   POST /convert-batch  multipart .zip of images, convert each
+ *   GET  /image/{name}   RETR a stored image back from FMM
+ *   GET  /health         liveness probe
+ *
+ * Client-chosen stored names are validated as plain filenames before they
+ * reach FMM (see {@link #convertAndStore}).
+ */
 @RestController
 public class ConvertController {
  
@@ -108,6 +121,10 @@ public class ConvertController {
 
     @GetMapping("/image/{name}")
     public ResponseEntity<?> image(@PathVariable("name") String name) {
+        if (!validStoredName(name)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "no such image"));
+        }
         try {
             byte[] data = fmm.retrieve(name);
             String coder = storedFormats.getOrDefault(name, "png");
@@ -144,10 +161,18 @@ public class ConvertController {
             body.put("svg", meta);
         }
 
+        // The stored name is a plain filename (letters, digits, '.', '_', '-')
+        // - it becomes the FMM STOR target and must not carry path segments
+        // or control characters into the FTP command line. ImageMagick's own
+        // output path is server-chosen (see ImageMagickService). (This was an
+        // unsanitised name reaching both the local output path and FMM.)
         String coder = (format == null || format.isBlank()) ? "png" : format;
         String outName = (name == null || name.isBlank())
                 ? "img_" + UUID.randomUUID().toString().replace("-", "") + "." + coder.toLowerCase(Locale.ROOT)
                 : name;
+        if (!validStoredName(outName)) {
+            throw new IllegalArgumentException("invalid name (allowed: letters, digits, . _ -)");
+        }
 
         byte[] png;
         try {
@@ -180,6 +205,13 @@ public class ConvertController {
             body.put("storeError", storeError);
         }
         return body;
+    }
+
+    private static final java.util.regex.Pattern STORED_NAME =
+            java.util.regex.Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
+
+    private static boolean validStoredName(String name) {
+        return name != null && STORED_NAME.matcher(name).matches() && !name.contains("..");
     }
 
     private boolean looksLikeSvg(String inputName, byte[] data) {
