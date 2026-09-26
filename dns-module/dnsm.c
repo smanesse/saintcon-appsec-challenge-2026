@@ -100,18 +100,41 @@ static int encode_name(const char *name, unsigned char *out) {
     return pos;
 }
 
-static int parse_name(const unsigned char *msg, int msglen, int offset, char *out) {
-    (void)msglen;
+// ---------------------------------------------------------------------------
+// DNS name decompression, bounds- and loop-checked.
+//
+// parse_name() expands a (possibly compression-pointer-using) name from an
+// incoming message into the caller's fixed-size buffer. Every read is bounded
+// against 'msglen', every write is bounded against 'outcap', and compression
+// pointers are required to move STRICTLY BACKWARD (a pointer must target an
+// offset before the byte it lives at), which makes forward progress impossible
+// to loop: each jump strictly decreases 'pos', so the number of jumps is
+// bounded by the message length. A hard jump cap backs that up. Any malformed
+// or hostile name (out-of-bounds read, over-long expansion, forward/self
+// pointer) makes the function return -1 so the caller drops the message
+// instead of overrunning a buffer or spinning forever
+// (see 01_compression_pointer_loop.py).
+//
+// Returns the number of message bytes consumed by the name at 'offset' (for
+// following the wire past it), or -1 on any malformed/hostile input.
+// ---------------------------------------------------------------------------
+static int parse_name(const unsigned char *msg, int msglen, int offset, char *out, int outcap) {
     int outpos = 0;
     int pos = offset;
     int consumed = 0;
     int jumped = 0;
+    int jumps = 0;
 
+    if (outcap < 1) return -1;
     while (1) {
+        if (pos < 0 || pos >= msglen) return -1;          // read bound on the length byte
         unsigned char len = msg[pos];
-        if ((len & 0xC0) == 0xC0) {
+        if ((len & 0xC0) == 0xC0) {                        // compression pointer
+            if (pos + 1 >= msglen) return -1;             // second pointer byte in bounds
             int ptr = ((len & 0x3F) << 8) | msg[pos + 1];
             if (!jumped) consumed = (pos + 2) - offset;
+            if (ptr >= pos) return -1;                     // must move strictly backward -> no self/forward loop
+            if (++jumps > 128) return -1;                  // backstop cap on jumps
             pos = ptr;
             jumped = 1;
             continue;
@@ -121,9 +144,12 @@ static int parse_name(const unsigned char *msg, int msglen, int offset, char *ou
             break;
         }
         pos++;
+        if (pos + len > msglen) return -1;                 // read bound on the label bytes
         for (int i = 0; i < len; i++) {
+            if (outpos >= outcap - 1) return -1;           // write bound (reserve room for '.')
             out[outpos++] = (char)tolower((unsigned char)msg[pos + i]);
         }
+        if (outpos >= outcap - 1) return -1;               // write bound for the separator
         out[outpos++] = '.';
         pos += len;
     }
@@ -131,11 +157,17 @@ static int parse_name(const unsigned char *msg, int msglen, int offset, char *ou
     return consumed;
 }
 
-static int parse_question(const unsigned char *msg, int msglen, char *qname,
+// Parse the single question at offset 12. Fills qname/qtype/qclass and returns
+// the offset just past the question, or -1 on a malformed message (empty
+// question section, truncated header, or a bad/hostile QNAME).
+static int parse_question(const unsigned char *msg, int msglen, char *qname, int qnamecap,
                           uint16_t *qtype, uint16_t *qclass) {
-    if (get16(msg, 4) < 1) return -1;
-    int consumed = parse_name(msg, msglen, 12, qname);
+    if (msglen < 12) return -1;                   // header must be present
+    if (get16(msg, 4) < 1) return -1;             // QDCOUNT
+    int consumed = parse_name(msg, msglen, 12, qname, qnamecap);
+    if (consumed < 0) return -1;                  // malformed/hostile name -> drop
     int qpos = 12 + consumed;
+    if (qpos + 4 > msglen) return -1;             // qtype/qclass must be in bounds
     *qtype  = get16(msg, qpos);
     *qclass = get16(msg, qpos + 2);
     return qpos + 4;
@@ -291,7 +323,7 @@ static int process_query(const unsigned char *msg, int msglen,
                          unsigned char *out, int outcap, int enforce) {
     char qname[256] = {0};
     uint16_t qtype = 0, qclass = 0;
-    if (parse_question(msg, msglen, qname, &qtype, &qclass) < 0) return 0;
+    if (parse_question(msg, msglen, qname, sizeof(qname), &qtype, &qclass) < 0) return 0;
     uint16_t id = get16(msg, 0);
     int rd = (msg[2] & 0x01);
 
@@ -387,7 +419,7 @@ static void *tcp_worker(void *arg) {
 
     char qname[256] = {0};
     uint16_t qtype = 0, qclass = 0;
-    if (parse_question(qbuf, qlen, qname, &qtype, &qclass) < 0) { close(fd); return NULL; }
+    if (parse_question(qbuf, qlen, qname, sizeof(qname), &qtype, &qclass) < 0) { close(fd); return NULL; }
     uint16_t id = get16(qbuf, 0);
 
     zone_t *z = zone_get();
