@@ -24,7 +24,17 @@ function queueFilePath(name) {
 function writeMessage(envelope, rawSource) {
   const name = deriveFilename(envelope);
   const filePath = queueFilePath(name);
-  fs.writeFileSync(filePath, rawSource, { encoding: 'binary' });
+  try {
+    fs.writeFileSync(filePath, rawSource, { encoding: 'binary' });
+  } catch (e) {
+    // Don't leave a truncated spool file behind (e.g. after ENOSPC).
+    try {
+      fs.unlinkSync(filePath);
+    } catch {
+      // nothing written, or already gone
+    }
+    throw e;
+  }
   return { name, filePath, size: Buffer.byteLength(rawSource, 'binary') };
 }
 

@@ -13,6 +13,8 @@ module.exports = {
   PORT: num(process.env.MTA_PORT || process.env.SERVER_PORT, 2525),
   ADMIN_PORT: num(process.env.MTA_ADMIN_PORT, 8081),
 
+  // Domain this server delivers locally for; anything else is relayed, and
+  // only for an authenticated session (see SmtpSession.onRcptTo).
   DOMAIN: process.env.MTA_DOMAIN || 'mta.local',
 
   QUEUE_DIR: process.env.MTA_QUEUE_DIR || path.join(MODULE_ROOT, 'queue'),

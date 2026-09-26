@@ -172,6 +172,13 @@ class SmtpSession {
     const rcpt = sanitizeAddr(m[1]);
     if (!rcpt.includes('@')) return this.write('501 5.1.3 Bad recipient address syntax\r\n');
 
+    // Relay control: mail for MTA_DOMAIN is accepted from anyone, but relaying
+    // to any other domain requires an authenticated session. (VULN #1 was an
+    // open relay: any unauthenticated client could push unbounded mail for
+    // any domain onto the shared queue disk.)
+    if (domainOf(rcpt).toLowerCase() !== config.DOMAIN.toLowerCase() && !this.authenticated) {
+      return this.write('554 5.7.1 Relay access denied: authentication required\r\n');
+    }
     this.envelope.rcpts.push(rcpt);
     this.write('250 2.1.5 Ok\r\n');
   }
@@ -215,7 +222,18 @@ class SmtpSession {
     }
 
     const rawSource = prefix + body;
-    const { name, size } = queue.writeMessage(this.envelope, rawSource);
+    let name;
+    let size;
+    try {
+      ({ name, size } = queue.writeMessage(this.envelope, rawSource));
+    } catch (e) {
+      // A failed spool write (e.g. ENOSPC on a full queue disk) rejects this
+      // one message; it must never escape as an uncaught exception and take
+      // the whole relay down.
+      console.error(`[mta] queue write failed: ${e.message}`);
+      this.envelope = null;
+      return this.write('452 4.3.1 Insufficient system storage\r\n');
+    }
 
     const rawBlankIdx = rawSource.indexOf('\r\n\r\n');
     const rawHeaderBlock = rawBlankIdx === -1 ? rawSource : rawSource.slice(0, rawBlankIdx);
