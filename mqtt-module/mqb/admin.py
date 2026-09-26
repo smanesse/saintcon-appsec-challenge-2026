@@ -51,17 +51,9 @@ class _Handler(BaseHTTPRequestHandler):
                 # as it is never delivered over MQTT (see Broker.is_reserved).
                 self._send(404, b"no persisted retained message for that topic\n")
                 return
-            # VULN #7 (path traversal in retained-message persistence): this
-            # calls the exact same retained_path() helper broker.py uses to
-            # WRITE a retained message's persistence file. Because that
-            # helper does no sanitisation, exporting a topic whose name
-            # walks outside MQB_RETAIN_DIR (e.g. "../../../../etc/passwd",
-            # or the seeded flag file at MQB_FLAG_FILE -- see
-            # Broker.seed_startup_state() in broker.py -- or any topic an
-            # attacker previously retain-PUBLISHed with traversal segments)
-            # reads whatever file sits at the resolved path and returns its
-            # raw bytes here -- an arbitrary file read that mirrors the
-            # arbitrary file write on the PUBLISH side.
+            # retained_path() is the same helper the broker writes with, and
+            # it maps every topic to a hashed filename inside MQB_RETAIN_DIR,
+            # so no topic can reach a file outside it.
             path = retained_path(self.cfg.retain_dir, topic)
             if not os.path.isfile(path):
                 self._send(404, b"no persisted retained message for that topic\n")

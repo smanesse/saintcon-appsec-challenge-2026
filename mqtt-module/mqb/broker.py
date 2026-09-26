@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import hmac
 import logging
 import os
@@ -24,7 +25,17 @@ MAX_WRITE_BUFFER = 1024 * 1024
 
 
 def retained_path(retain_dir: str, topic: str) -> str:
-    return os.path.join(retain_dir, topic)
+    """Map a retained-message topic to its on-disk persistence file.
+
+    The filename is the SHA-256 hex digest of the topic, placed directly in
+    retain_dir, so no topic string -- however many "../" segments or leading
+    "/" it carries -- can influence where the file lands. This one helper
+    backs both the write path (retained PUBLISH, below) and the read path
+    (the admin /admin/retained/export endpoint in admin.py). (VULN #7 was
+    joining the raw topic onto retain_dir, a path traversal on both sides.)
+    """
+    digest = hashlib.sha256(topic.encode("utf-8", errors="surrogatepass")).hexdigest()
+    return os.path.join(retain_dir, digest)
 
 
 @dataclass
@@ -400,9 +411,11 @@ class Broker:
             return
 
         self.retained[topic] = payload
+        # Persist the retained message to disk, one file per topic, so
+        # retained state survives a restart. retained_path() confines the
+        # file to retain_dir.
         path = retained_path(self.cfg.retain_dir, topic)
         try:
-            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
             with open(path, "wb") as f:
                 f.write(payload)
         except OSError as e:
