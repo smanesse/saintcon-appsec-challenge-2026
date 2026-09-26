@@ -4,10 +4,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -19,27 +22,50 @@ public class ImageMagickService {
     @Value("${ipm.stdsize}")
     private int stdsize;
 
+    /**
+     * Convert {@code data} to PNG bytes.
+     *
+     * @param inputName client-supplied source name (multipart filename, or a
+     *                  name derived from a URL/zip entry). Informational only:
+     *                  never used as a path or ImageMagick argument.
+     * @param data      the uploaded/fetched source bytes.
+     * @param width     raw width string (defaults to stdsize).
+     * @param height    raw height string (defaults to stdsize).
+     * @param format    raw output coder (defaults to "png").
+     * @param outName   client-chosen stored name; not used for any local path.
+     */
     public byte[] convert(String inputName, byte[] data,
                           String width, String height,
                           String format, String outName) throws IOException, InterruptedException {
 
         Path work = Files.createTempDirectory("ipm_");
 
-        if (inputName == null || inputName.isBlank()) {
-            inputName = "upload";
+        // The client-supplied name is never used as an ImageMagick argument or
+        // a path: the bytes are written to a fixed file in the private work dir
+        // and read back with an explicit coder chosen from the content's magic
+        // bytes (an allow-list of raster formats plus SVG). The output goes to
+        // a fixed file with an allow-listed coder, and a restrictive
+        // policy.xml (see policyDir) disables ImageMagick's file-reading /
+        // scripting coders and indirect "@file" reads. (#2 was passing the
+        // client-supplied name straight through as the magick source, so coder
+        // syntax in it read arbitrary host files into the output.)
+        String inCoder = sniffInputCoder(data);
+        if (inCoder == null) {
+            throw new IOException("unsupported or unrecognised image type");
         }
-        try {
-            Path in = work.resolve(inputName);
-            Files.write(in, data);
-        } catch (Exception ignore) {
-        }
+        Path in = work.resolve("input");
+        Files.write(in, data);
 
         String w = (width == null || width.isBlank()) ? String.valueOf(stdsize) : width;
         String h = (height == null || height.isBlank()) ? String.valueOf(stdsize) : height;
-        String coder = (format == null || format.isBlank()) ? "png" : format;
-        if (outName == null || outName.isBlank()) {
-            outName = "out.png";
+        if (!validDimension(w) || !validDimension(h)) {
+            throw new IOException("width/height must be integers between 1 and " + MAX_DIMENSION);
         }
+        String coder = (format == null || format.isBlank()) ? "png" : format.toLowerCase(Locale.ROOT);
+        if (!OUTPUT_CODERS.contains(coder)) {
+            throw new IOException("unsupported output format: " + coder);
+        }
+        Path outFile = work.resolve("output");
 
         String resize = w + "x" + h;
 
@@ -48,32 +74,18 @@ public class ImageMagickService {
         // characters inside a single argument. (#1 was building this command
         // line by string concatenation and running it with `sh -c`.)
         //
-        // VULN (coder-LFI / arbitrary file read, #2): inputName is passed
-        // straight through as the magick source, so ImageMagick coder tricks
-        // like `label:@/etc/passwd`, `@/etc/passwd`, MVG/MSL, or a leading `-`
-        // are honoured and read host files into the rendered PNG (retrievable
-        // via GET /image/{name}). Root cause: no coder allow-list / policy.xml.
-        //
         // VULN (decompression-bomb / pixel-flood DoS, #3): no -limit area /
-        // memory / disk and no policy.xml, so a tiny input that decodes to a
-        // gigapixel canvas exhausts memory/CPU. Root cause: missing resource
-        // limits.
-        //
-        // BUG, not independently scoreable (pruned from vuln_tests): the same
-        // missing -limit/policy.xml also lets an uploaded SVG/MVG whose content
-        // references a remote resource (<image xlink:href="http://internal/">)
-        // make ImageMagick's delegate fetch that URL server-side. Real by code
-        // review, but this build's pinned inkscape/rsvg-convert both refuse
-        // remote hrefs outright, so it never fires over the network here - see
-        // vuln_tests/README.md's "Pruned / reclassified" section.
+        // memory / disk, so a tiny input that decodes to a gigapixel canvas
+        // exhausts memory/CPU. Root cause: missing resource limits.
         List<String> cmd = new ArrayList<>();
         cmd.add(magick);
-        cmd.add(inputName);
+        cmd.add(inCoder + ":" + in.toAbsolutePath());
         cmd.add("-resize");
         cmd.add(resize);
-        cmd.add(coder + ":" + outName);
+        cmd.add(coder + ":" + outFile.toAbsolutePath());
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.environment().put("MAGICK_CONFIGURE_PATH", policyDir().toString());
         pb.directory(work.toFile());
         pb.redirectErrorStream(true);
         Process proc = pb.start();
@@ -85,11 +97,77 @@ public class ImageMagickService {
             throw new IOException("ImageMagick timed out");
         }
 
-        Path outFile = work.resolve(outName);
         if (!Files.exists(outFile)) {
             throw new IOException("ImageMagick produced no output (exit="
                     + proc.exitValue() + "): " + output);
         }
         return Files.readAllBytes(outFile);
+    }
+
+    private static final int MAX_DIMENSION = 8192;
+
+    /** Output coders a client may request. */
+    private static final Set<String> OUTPUT_CODERS =
+            Set.of("png", "jpg", "jpeg", "gif", "bmp", "webp", "tif", "tiff");
+
+    private static boolean validDimension(String v) {
+        if (!v.matches("[0-9]{1,5}")) {
+            return false;
+        }
+        int n = Integer.parseInt(v);
+        return n >= 1 && n <= MAX_DIMENSION;
+    }
+
+    /**
+     * Identify the input format from its leading bytes. Only these formats are
+     * ever handed to ImageMagick, each with an explicit coder prefix, so the
+     * input can never select a different (file-reading or scripting) coder.
+     */
+    static String sniffInputCoder(byte[] d) {
+        if (startsWith(d, 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A)) return "png";
+        if (startsWith(d, 0xFF, 0xD8, 0xFF)) return "jpeg";
+        if (startsWith(d, 'G', 'I', 'F', '8')) return "gif";
+        if (startsWith(d, 'B', 'M')) return "bmp";
+        if (startsWith(d, 'I', 'I', 0x2A, 0x00) || startsWith(d, 'M', 'M', 0x00, 0x2A)) return "tiff";
+        if (d.length >= 12 && startsWith(d, 'R', 'I', 'F', 'F')
+                && d[8] == 'W' && d[9] == 'E' && d[10] == 'B' && d[11] == 'P') return "webp";
+        String head = new String(d, 0, Math.min(d.length, 512), StandardCharsets.ISO_8859_1)
+                .trim().toLowerCase(Locale.ROOT);
+        if (head.startsWith("<?xml") || head.startsWith("<svg")) {
+            return head.contains("<svg") ? "svg" : null;
+        }
+        return null;
+    }
+
+    private static boolean startsWith(byte[] d, int... prefix) {
+        if (d.length < prefix.length) return false;
+        for (int i = 0; i < prefix.length; i++) {
+            if ((d[i] & 0xFF) != prefix[i]) return false;
+        }
+        return true;
+    }
+
+    /**
+     * ImageMagick security policy, written once to a private directory and
+     * picked up via MAGICK_CONFIGURE_PATH for every magick run. Disables the
+     * coders that read files or run scripts and indirect "@file" reads.
+     */
+    private static final String POLICY_XML = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <policymap>
+              <policy domain="coder" rights="none" pattern="{LABEL,CAPTION,TEXT,MSL,MVG,URL,HTTP,HTTPS,FTP,EPHEMERAL,SHOW,WIN,PLT,PS,PS2,PS3,EPS,EPI,EPSF,EPSI,PDF,XPS}" />
+              <policy domain="path" rights="none" pattern="@*" />
+            </policymap>
+            """;
+
+    private static Path policyDir;
+
+    private static synchronized Path policyDir() throws IOException {
+        if (policyDir == null) {
+            Path dir = Files.createTempDirectory("ipm_magick_policy_");
+            Files.writeString(dir.resolve("policy.xml"), POLICY_XML);
+            policyDir = dir;
+        }
+        return policyDir;
     }
 }
