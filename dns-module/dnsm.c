@@ -907,9 +907,21 @@ static void *admin_worker(void *arg) {
     int is_get = strcmp(method, "GET") == 0;
     int is_post = strcmp(method, "POST") == 0;
 
-    if (strncmp(path, "/admin/", 7) == 0 && ADMIN_TOKEN[0]) {
+    // Admin authentication gate. Fail-closed: every /admin/* request must
+    // PRESENT an X-Admin-Token that equals DNSM_ADMIN_TOKEN - a missing,
+    // empty, or wrong header is rejected, and if no token is configured the
+    // admin endpoints are disabled outright. The comparison runs over the
+    // full length regardless of where the first mismatch is. (VULN #8 was a
+    // gate that only rejected a WRONG token, so simply omitting the header
+    // reached /admin/reload and /admin/import. See 08_admin_auth_bypass.py.)
+    if (strncmp(path, "/admin/", 7) == 0) {
         char tok[256] = {0};
-        if (http_header(req, "X-Admin-Token", tok, sizeof(tok)) && strcmp(tok, ADMIN_TOKEN) != 0) {
+        int have = http_header(req, "X-Admin-Token", tok, sizeof(tok));
+        size_t tl = strlen(tok), al = strlen(ADMIN_TOKEN);
+        unsigned char diff = (unsigned char)(tl != al);
+        for (size_t i = 0; i < al; i++)
+            diff |= (unsigned char)(ADMIN_TOKEN[i] ^ (i < tl ? tok[i] : 0));
+        if (!ADMIN_TOKEN[0] || !have || !tok[0] || diff) {
             http_send(fd, "403 Forbidden", "invalid admin token\n");
             close(fd);
             return NULL;
