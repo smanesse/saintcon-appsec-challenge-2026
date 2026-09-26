@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
@@ -18,7 +19,22 @@ import java.util.regex.Pattern;
 public class SvgMetadataService {
 
     public Map<String, String> parse(byte[] svg) throws Exception {
+        // External entities and external DTDs are never resolved, so an SVG
+        // can't pull host files or URLs into the parse. (#6 was a default
+        // DocumentBuilderFactory that resolved SYSTEM entities.)
+        //
+        // VULN (billion-laughs / entity-expansion DoS, #7): DOCTYPEs are still
+        // accepted and internal entities are expanded with no limit (the JVM's
+        // entity caps are lifted in the Dockerfile's JAVA_TOOL_OPTIONS), so
+        // deeply-nested internal entities exhaust memory/CPU.
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        dbf.setXIncludeAware(false);
+        dbf.setExpandEntityReferences(false);
         DocumentBuilder builder = dbf.newDocumentBuilder();
 
         Document doc = builder.parse(new ByteArrayInputStream(svg));
