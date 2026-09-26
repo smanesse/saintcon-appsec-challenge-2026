@@ -13,6 +13,22 @@ type replicaConn struct {
 
 func (replicaConn) Write(p []byte) (int, error) { return len(p), nil }
 
+// cmdReplicaOf handles REPLICAOF <host> <port> (and its SLAVEOF alias).
+//
+// The server dials out to the host:port the client names and applies the RESP
+// command stream that peer sends back. Two things bound the trust that places
+// in the peer: REPLICAOF itself sits behind the AUTH gate (only an
+// authenticated client can point the server at a master), and the stream is
+// filtered through replicableCommands below - a master may only replay plain
+// keyspace writes, never scripting, configuration, persistence, replication or
+// auth commands. (VULN #3 was the stream being dispatched as a fully trusted
+// session, so a rogue master could run EVAL / CONFIG / SAVE over the link. See
+// 03_replicaof_injection.py.)
+//
+// REPLICAOF NO ONE stops replication: it closes the active link (if any),
+// which ends that goroutine's read loop, and starts nothing new. A fresh
+// REPLICAOF <host> <port> likewise closes any existing link before dialing
+// the new one, so at most one replication goroutine is ever running.
 func (s *Session) cmdReplicaOf(args []string) bool {
 	if len(args) != 3 {
 		return s.arityErr("REPLICAOF")
@@ -37,6 +53,21 @@ func (srv *Server) stopReplication() {
 	}
 }
 
+// replicableCommands is the set of commands a replication master may stream.
+// Anything else (EVAL, CONFIG, SAVE, REPLICAOF/SLAVEOF, AUTH, FLUSHALL/FLUSHDB,
+// ...) is dropped: those are operator actions a replication peer has no
+// business issuing on this server's behalf.
+var replicableCommands = map[string]bool{
+	"SET": true, "DEL": true, "EXPIRE": true, "PERSIST": true,
+	"INCR": true, "DECR": true,
+	"LPUSH": true, "RPUSH": true, "LPOP": true, "RPOP": true,
+	"HSET": true, "HDEL": true,
+	"SELECT": true,
+}
+
+// replicateFrom connects to a replication master and applies whatever command
+// stream it sends. Runs in its own goroutine; registers itself as the active
+// link so a later REPLICAOF (or REPLICAOF NO ONE) can stop it.
 func (srv *Server) replicateFrom(addr string) {
 	conn, err := net.DialTimeout("tcp", addr, 5*time.Second)
 	if err != nil {
@@ -67,7 +98,7 @@ func (srv *Server) replicateFrom(addr string) {
 		srv:           srv,
 		conn:          rc,
 		rr:            newRESPReader(conn),
-		authenticated: true,
+		authenticated: true, // bounded by replicableCommands above
 	}
 
 	for {
@@ -80,8 +111,15 @@ func (srv *Server) replicateFrom(addr string) {
 		if len(args) == 0 {
 			continue
 		}
-		switch strings.ToUpper(args[0]) {
-		case "PING", "REPLCONF", "PSYNC", "OK", "FULLRESYNC", "CONTINUE":
+		// Skip handshake chatter a benign master might send back, and refuse
+		// anything that isn't a plain keyspace write.
+		name := strings.ToUpper(args[0])
+		if !replicableCommands[name] {
+			switch name {
+			case "PING", "REPLCONF", "PSYNC", "OK", "FULLRESYNC", "CONTINUE":
+			default:
+				log.Printf("replicaof: dropping non-replicable command %q from master", name)
+			}
 			continue
 		}
 		sess.dispatch(args)
