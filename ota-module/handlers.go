@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +100,19 @@ func handleDeviceReport(store *Store) http.HandlerFunc {
 	}
 }
 
+// syncRequest is the complete set of fields a device may self-report via
+// /sync. Only fields present in the body are applied.
+type syncRequest struct {
+	Version *string `json:"version"`
+	Status  *string `json:"status"`
+}
+
+// handleDeviceSync lets a device push richer self-reported metadata than the
+// narrow report endpoint accepts. The body is decoded into the syncRequest
+// DTO and only its fields are copied onto the device record, so server-owned
+// fields (ID, module, Trusted, timestamps) can't be set by the device.
+// (VULNS.md #7 was decoding the body straight onto the live *Device, letting
+// any device token holder set "trusted": true and gain publish rights.)
 func handleDeviceSync(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
@@ -112,14 +126,22 @@ func handleDeviceSync(store *Store) http.HandlerFunc {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "bad or missing device token"})
 			return
 		}
-		store.mu.Lock()
-		err := json.NewDecoder(r.Body).Decode(d)
-		store.mu.Unlock()
-		if err != nil {
+		var req syncRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 			return
 		}
-		writeJSON(w, http.StatusOK, d)
+		store.mu.Lock()
+		if req.Version != nil {
+			d.Version = *req.Version
+		}
+		if req.Status != nil {
+			d.Status = *req.Status
+		}
+		d.LastSeen = time.Now()
+		out := *d
+		store.mu.Unlock()
+		writeJSON(w, http.StatusOK, out)
 	}
 }
 
