@@ -341,6 +341,8 @@ class SmtpSession {
       }
     }
 
+    // Only authenticated senders may request a delivery-status webhook
+    // callback, and fireWebhook() only ever calls public destinations.
     if (this.envelope.notifyWebhook && this.authenticated) {
       webhook
         .fireWebhook(this.envelope.notifyWebhook, {
