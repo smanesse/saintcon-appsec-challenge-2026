@@ -38,6 +38,7 @@ struct Session {
     char username[32];
     bool authenticated;
     std::string cwd;
+    std::string client_ip;   // control-connection peer, set in handle_client()
 
     bool binary_mode;
     int pasv_listen_fd;
@@ -142,11 +143,27 @@ void forget_session(Session* session) {
     delete session;
 }
 
+// Generates a 128-bit resume token from the OS CSPRNG (/dev/urandom),
+// hex-encoded to 32 characters. This replaces the old 5-decimal-digit
+// rand() token: the keyspace is now 2^128 rather than 100,000, and the
+// values are not derivable from a process-start seed, so SESS tokens can no
+// longer be predicted or brute-forced.
 std::string generate_token() {
-    int n = rand() % 100000;
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%05d", n);
-    return std::string(buf);
+    unsigned char rnd[16];
+    std::ifstream urandom("/dev/urandom", std::ios::binary);
+    if (!urandom.read(reinterpret_cast<char*>(rnd), sizeof(rnd))) {
+        // /dev/urandom should always be readable; if it isn't, refuse to
+        // hand out a weak/guessable token rather than fall back to rand().
+        return std::string();
+    }
+    static const char hex[] = "0123456789abcdef";
+    std::string token;
+    token.reserve(sizeof(rnd) * 2);
+    for (unsigned char b : rnd) {
+        token += hex[b >> 4];
+        token += hex[b & 0x0f];
+    }
+    return token;
 }
 
 void send_line(int fd, const std::string& msg) {
@@ -315,8 +332,12 @@ void handle_user(Session* session, int fd, const std::string& arg) {
 void handle_pass(Session* session, int fd, const std::string& arg) {
     std::string user(session->username);
     if (check_credentials(user, arg)) {
-        session->authenticated = true;
         std::string token = generate_token();
+        if (token.empty()) {
+            send_line(fd, "451 Could not allocate session token");
+            return;
+        }
+        session->authenticated = true;
         {
             std::lock_guard<std::mutex> lock(g_sessions_mutex);
             g_sessions[token] = session;
@@ -335,7 +356,7 @@ void handle_pass(Session* session, int fd, const std::string& arg) {
 // use-after-free). (Token possession is still the sole proof of identity here;
 // that weakness is addressed by the token-generation fix, not this one.)
 void handle_sess(Session* session, int fd, const std::string& arg) {
-    std::string username;
+    std::string username, owner_ip;
     {
         std::lock_guard<std::mutex> lock(g_sessions_mutex);
         auto it = g_sessions.find(arg);
@@ -344,6 +365,13 @@ void handle_sess(Session* session, int fd, const std::string& arg) {
             return;
         }
         username = it->second->username; // copied while the entry is held live
+        owner_ip = it->second->client_ip;
+    }
+    // Bind the token to the address that obtained it: a token observed or
+    // guessed from a different host cannot be replayed here.
+    if (owner_ip != session->client_ip) {
+        send_line(fd, "530 Session token not valid from this address");
+        return;
     }
     session->authenticated = true;
     snprintf(session->username, sizeof(session->username), "%s", username.c_str());
@@ -512,6 +540,14 @@ void handle_pwd(Session* session, int fd) {
 
 void handle_client(int fd) {
     Session* session = new Session();
+
+    // Record the control-connection peer so resume tokens can be bound to it.
+    sockaddr_in peer{};
+    socklen_t plen = sizeof(peer);
+    if (getpeername(fd, (sockaddr*)&peer, &plen) == 0) {
+        session->client_ip = inet_ntoa(peer.sin_addr);
+    }
+
     send_line(fd, "220 Welcome to FMM (educational build)");
 
     bool freed = false;
@@ -569,8 +605,6 @@ void handle_client(int fd) {
 }
 
 int main() {
-    srand((unsigned)time(nullptr));
-
     write_flag_files();
 
     std::ifstream creds_check(CREDS_FILE);
