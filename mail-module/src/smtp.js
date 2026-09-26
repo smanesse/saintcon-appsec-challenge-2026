@@ -80,6 +80,8 @@ class SmtpSession {
       } else {
         this.onCommandLine(line);
       }
+      // STARTTLS (onStartTls) empties this.buffer, which ends this loop:
+      // nothing pipelined before the handshake is ever dispatched.
     }
   }
 
@@ -228,6 +230,13 @@ class SmtpSession {
 
     let prefix = `Return-Path: <${this.envelope.from}>\r\n`;
     prefix += `Received: from ${this.heloName || 'unknown'} by ${config.DOMAIN} with ESMTP; ${new Date().toUTCString()}\r\n`;
+    // A client's self-asserted MAIL FROM AUTH= identity claim (RFC 4954) is
+    // only trustworthy if it arrived over an encrypted session, so it is only
+    // recorded (as X-Original-Auth) when TLS is active. onStartTls() discards
+    // any plaintext pipelined ahead of the handshake, so a claim that reaches
+    // here with tlsActive set genuinely came over TLS. (VULN #4 was that
+    // pre-handshake bytes stayed buffered and were dispatched after
+    // tlsActive flipped true, smuggling a plaintext claim past this check.)
     if (this.envelope.authParam && this.tlsActive) {
       // authParam was validated CR/LF/NUL-free in onMailFrom(), so this is
       // exactly one header line.
@@ -373,11 +382,15 @@ class SmtpSession {
     this.tlsActive = true;
     this.heloName = null;
     this.envelope = null;
+    // Discard anything the client pipelined after STARTTLS on the plaintext
+    // socket: those bytes never touched the encrypted channel and must not be
+    // processed as if they had (RFC 3207 §4.2). Emptying the buffer also ends
+    // the drain() pass that dispatched this STARTTLS.
+    this.buffer = '';
 
     tlsSocket.on('data', (chunk) => this.onSocketData(chunk));
     tlsSocket.on('error', () => {});
     tlsSocket.on('close', () => {});
-
   }
 }
 
