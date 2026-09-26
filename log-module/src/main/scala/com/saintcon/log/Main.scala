@@ -167,13 +167,20 @@ $body
 }
 
 object Search {
+  /**
+   * Return every stored line containing `q` as a plain substring. The query is
+   * never compiled into a regex, so matching is linear in the line length and
+   * no input can drive a backtracking engine into catastrophic recursion.
+   * (VULN #4 was `q.r`: a crafted pattern like `(a|a)+` against a long line
+   * overflowed java.util.regex's recursive matcher, and the resulting
+   * StackOverflowError is fatal, taking the whole JVM down.)
+   */
   def run(q: String, source: Option[String]): (Int, List[String]) = {
     val files = source match {
       case Some(s) => List(Config.logsRoot.resolve(Store.sanitizeSource(s) + ".log"))
       case None    => Store.listLogFiles()
     }
-    val re = q.r
-    val matches = files.flatMap(Store.readLines).filter(line => re.findFirstIn(line).isDefined)
+    val matches = files.flatMap(Store.readLines).filter(line => line.contains(q))
     (matches.size, matches)
   }
 }
