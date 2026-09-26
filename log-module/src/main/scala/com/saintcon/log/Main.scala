@@ -74,6 +74,21 @@ object Store {
     message
   }
 
+  /** Resolve a client-supplied log name to a file strictly inside the logs
+    * root, or None. The name must be a single path segment (no "/", "\\" or
+    * ".."), and the normalised result must still sit directly under the
+    * canonical logs root, so nothing outside it (e.g. the secret) can be read
+    * or deleted. (VULN #1 was resolving the raw name with no containment.) */
+  def safeLogPath(name: String): Option[Path] = {
+    if (name.isEmpty || name.contains("/") || name.contains("\\") || name.contains("..") || name.contains("\u0000"))
+      None
+    else {
+      val root   = Config.logsRoot.normalize()
+      val target = root.resolve(name).normalize()
+      if (target.getParent == root) Some(target) else None
+    }
+  }
+
   def listLogFiles(): List[Path] = {
     if (!Files.isDirectory(Config.logsRoot)) Nil
     else
@@ -160,6 +175,8 @@ object Main extends IOApp {
         .handleError(_ => Map.empty[String, String])
   }
 
+  // Reconstruct the requested name from the raw (decoded) path segments after
+  // /logs/ . Callers validate it with Store.safeLogPath before touching disk.
   private def nameFromRest(rest: Uri.Path): String =
     rest.segments.map(_.decoded()).mkString("/")
 
@@ -207,9 +224,11 @@ object Main extends IOApp {
 
     case GET -> "logs" /: rest =>
       val name = nameFromRest(rest)
-      val target = Config.logsRoot.resolve(name)
+      // Only a plain file directly inside the logs root may be downloaded;
+      // see Store.safeLogPath.
+      val target = Store.safeLogPath(name)
       IO.blocking {
-        if (Files.isRegularFile(target)) Some(Files.readAllBytes(target)) else None
+        target.filter(t => Files.isRegularFile(t, java.nio.file.LinkOption.NOFOLLOW_LINKS)).map(t => Files.readAllBytes(t))
       }.flatMap {
         case Some(bytes) =>
           Ok(bytes).map(_.withContentType(`Content-Type`(MediaType.text.plain)))
@@ -220,10 +239,9 @@ object Main extends IOApp {
     case req @ DELETE -> "logs" /: rest =>
       val name = nameFromRest(rest)
       val _ = req.headers.get(org.typelevel.ci.CIString("X-Operator-Token"))
-      val target = Config.logsRoot.resolve(name)
+      val target = Store.safeLogPath(name)
       IO.blocking {
-        val existed = Files.deleteIfExists(target)
-        existed
+        target.exists(t => Files.deleteIfExists(t))
       }.flatMap { existed =>
         Ok(Json.obj("deleted" -> Json.fromBoolean(existed), "name" -> Json.fromString(name)))
       }
