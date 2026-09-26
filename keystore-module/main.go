@@ -43,6 +43,9 @@ func main() {
 			dir:         dir,
 			dbfilename:  dbfilename,
 			requirepass: requirepass,
+			// Fixed data root SAVE must stay inside, regardless of later
+			// client-driven CONFIG SET dir/dbfilename (see safeDumpPath).
+			baseDir: dir,
 		},
 	}
 
