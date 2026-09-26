@@ -728,6 +728,27 @@ static int query_param(const char *qs, const char *key, char *out, int outcap) {
     return 0;
 }
 
+// Refuse fetch targets the DNS host should never be steered at: loopback,
+// "this network", link-local (cloud instance metadata lives at 169.254.169.254),
+// and multicast/reserved space.
+static int fetch_addr_forbidden(struct in_addr ia) {
+    uint32_t a = ntohl(ia.s_addr);
+    if ((a >> 24) == 127) return 1;              // 127.0.0.0/8 loopback
+    if ((a >> 24) == 0) return 1;                // 0.0.0.0/8
+    if ((a >> 16) == 0xA9FE) return 1;           // 169.254.0.0/16 link-local
+    if ((a >> 28) >= 0xE) return 1;              // 224.0.0.0/3 multicast + reserved
+    return 0;
+}
+
+// Minimal HTTP GET client used by the "import zone from URL" ops feature.
+//
+// Only plain http:// is supported, the resolved destination is checked
+// against fetch_addr_forbidden() before connecting, and a non-2xx reply is a
+// failed fetch. The fetched body is only ever parsed as zone data - the admin
+// handler never echoes it back to the caller - so pointing the import at an
+// internal service can no longer read that service's response out through
+// DNSM. (VULN #4 was a fetch-anything client whose body was reflected
+// verbatim in the admin response. See 04_admin_ssrf.py.)
 static int http_fetch(const char *url, char *out, int outcap) {
     if (strncasecmp(url, "http://", 7) != 0) return -1;
     const char *hp = url + 7;
@@ -751,6 +772,7 @@ static int http_fetch(const char *url, char *out, int outcap) {
         if (!he) return -1;
         memcpy(&a.sin_addr, he->h_addr_list[0], he->h_length);
     }
+    if (fetch_addr_forbidden(a.sin_addr)) return -1;
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) return -1;
     struct timeval tv = { 5, 0 };
@@ -770,6 +792,8 @@ static int http_fetch(const char *url, char *out, int outcap) {
     }
     close(s);
     raw[total] = '\0';
+    int status = 0;
+    if (sscanf(raw, "HTTP/%*s %d", &status) != 1 || status < 200 || status > 299) return -1;
     char *body = strstr(raw, "\r\n\r\n");
     body = body ? body + 4 : raw;
     int bl = (int)strlen(body);
@@ -891,16 +915,16 @@ static void *admin_worker(void *arg) {
         if (!is_get && !is_post) { http_send(fd, "405 Method Not Allowed", "GET or POST only\n"); close(fd); return NULL; }
         char srcurl[4096] = {0}, fpath[4096] = {0};
         if (query_param(qs, "source_url", srcurl, sizeof(srcurl))) {
+            // Pull a zone update from a config-management URL. Only the record
+            // count is reported; the fetched body is never reflected.
             char fetched[65536];
             int fl = http_fetch(srcurl, fetched, sizeof(fetched));
             if (fl < 0) { http_send(fd, "502 Bad Gateway", "fetch failed\n"); }
             else {
                 zone_t *z = zone_clone_plus(fetched);
                 zone_publish(z);
-                char out[66000];
-                snprintf(out, sizeof(out),
-                         "imported from %s (%d records total)\n--- fetched content ---\n%s",
-                         srcurl, z->n, fetched);
+                char out[4400];
+                snprintf(out, sizeof(out), "imported from %s (%d records total)\n", srcurl, z->n);
                 http_send(fd, "200 OK", out);
             }
         } else if (query_param(qs, "path", fpath, sizeof(fpath))) {
