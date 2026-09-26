@@ -180,6 +180,24 @@ static int in_zone(const char *name, const char *origin) {
     return 0;
 }
 
+// Records owned by the reserved `_internal` label (e.g. the runtime-injected
+// `_internal TXT` - see entrypoint.sh) are operator-only data that happen to
+// live in the zone file. They are never served to DNS clients: not by a zone
+// transfer (VULN #3) and not by a direct query, so the only way to read them
+// is the zone file on the server itself.
+static int is_internal_name(const char *name) {
+    return strncasecmp(name, "_internal", 9) == 0 && (name[9] == '.' || name[9] == '\0');
+}
+
+// Collect the answer RRs for (name, qtype), following CNAME chains.
+//
+// VULN #6: the CNAME-following loop below has no depth limit and no
+// visited-name set. A zone containing a self-referential chain
+// (loop1 -> loop2 -> loop1) makes this spin forever for an A/AAAA/MX/etc.
+// query. Combined with udp_server()'s uncapped thread-per-datagram dispatch,
+// a burst of these leaks many permanently-spinning threads and pins every
+// CPU core, degrading the shared service for every other client. See
+// 06_cname_chain_dos.py.
 static int collect(zone_t *z, const char *name, uint16_t qtype, rr_t **out, int outcap) {
     int n = 0;
     char cur[256];
@@ -200,6 +218,8 @@ static int collect(zone_t *z, const char *name, uint16_t qtype, rr_t **out, int 
         }
         break;
     }
+
+    if (is_internal_name(cur)) return n;         // never answer internal-only records
 
     for (int i = 0; i < z->n; i++) {
         if (strcasecmp(z->recs[i].name, cur) != 0) continue;
@@ -405,6 +425,13 @@ static void send_tcp_msg(int fd, const unsigned char *msg, int len) {
     send(fd, msg, len, 0);
 }
 
+// AXFR: dump the zone (SOA first, all public records, SOA last).
+//
+// Records under the reserved `_internal` label are skipped (see
+// is_internal_name()): a transfer hands a peer every public record in the
+// zone, but operator-only data never leaves the server this way. (VULN #3 was
+// this function dumping every record, including the runtime secret carried in
+// the `_internal` TXT record, to any TCP client. See 03_axfr_no_acl.py.)
 static void handle_axfr(int fd, uint16_t id, const char *qname, uint16_t qclass, zone_t *z) {
     rr_t *soa = NULL;
     for (int i = 0; i < z->n; i++) if (z->recs[i].type == T_SOA) { soa = &z->recs[i]; break; }
@@ -415,6 +442,7 @@ static void handle_axfr(int fd, uint16_t id, const char *qname, uint16_t qclass,
     if (soa) ans[n++] = soa;
     for (int i = 0; i < z->n && n < MAX_ANS - 1; i++) {
         if (z->recs[i].type == T_SOA) continue;
+        if (is_internal_name(z->recs[i].name)) continue;
         ans[n++] = &z->recs[i];
     }
     if (soa) ans[n++] = soa;
