@@ -28,6 +28,10 @@ func handleDownload(store *Store, dataDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		module := r.PathValue("module")
 		version := r.PathValue("version")
+		if !allowedModules[module] || !validVersion(version) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such module/version"})
+			return
+		}
 		pkg, ok := store.GetVersion(module, version)
 		if !ok {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such module/version"})

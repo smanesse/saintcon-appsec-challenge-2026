@@ -39,6 +39,8 @@ type Device struct {
 type Store struct {
 	mu sync.Mutex
 
+	// latest[module] = version currently advertised as the latest release,
+	// set by every successful (signed) /publish.
 	latest map[string]string
 
 	packages map[string]map[string]*Package

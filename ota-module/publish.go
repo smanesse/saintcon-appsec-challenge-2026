@@ -17,17 +17,36 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
 
+// allowedModules is the known fleet: the only modules this OTA server is
+// meant to manage updates for. It's checked against the manifest's Module
+// field on publish.
 var allowedModules = map[string]bool{
 	"fmm": true,
 	"ipm": true,
 	"log": true,
 }
 
+// versionPattern is the accepted shape of a Version: a single path-safe token
+// (letters, digits, '.', '_', '+', '-'), starting with an alphanumeric.
+var versionPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$`)
+
+// validVersion reports whether v is safe to use as a directory name under a
+// module's package directory: no separators and no ".." anywhere.
+func validVersion(v string) bool {
+	return versionPattern.MatchString(v) && !strings.Contains(v, "..")
+}
+
+// packagePath builds the on-disk location for a stored package. Callers must
+// have validated module against allowedModules and version with
+// validVersion(), so the result always stays inside <dataDir>/packages/<module>.
+// (VULNS.md #5 was Version reaching this Join unvalidated: "../ipm/<v>" in a
+// publish for "log" overwrote ipm's stored release.)
 func packagePath(dataDir, module, version string) string {
 	return filepath.Join(dataDir, "packages", module, version)
 }
@@ -164,6 +183,10 @@ func handlePublish(store *Store, dataDir string, fetcher *SourceFetcher) http.Ha
 		}
 		if !allowedModules[m.Module] {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown module (fleet is fmm, ipm, log)"})
+			return
+		}
+		if !validVersion(m.Version) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid version (allowed: letters, digits, . _ + -)"})
 			return
 		}
 		// post_install is a keyword, never a command: only the documented
