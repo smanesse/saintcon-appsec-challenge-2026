@@ -47,11 +47,31 @@ agent_loop() {
         echo "[ota-agent] new version for $OTA_MODULE: $current -> $version"
         pkg_url="$OTA_SERVER/updates/$OTA_MODULE/$version/package"
         if curl -fsS "$pkg_url" -o "$STATE_DIR/package.tar.gz" 2>/dev/null; then
-          python3 -c "
-import tarfile
+          # Extract into the module's staging directory, but only after every
+          # member has been checked: regular files and directories only (no
+          # symlinks, hardlinks or device nodes) whose resolved path stays
+          # inside $STATE_DIR. Anything else rejects the whole package and it
+          # is not applied. (This was the CVE-2007-4559-class tar-slip: a bare
+          # tarfile.extractall() with no containment check at all.)
+          if python3 -c "
+import os, sys, tarfile
+dest = os.path.realpath('$STATE_DIR')
 with tarfile.open('$STATE_DIR/package.tar.gz') as tf:
-    tf.extractall('$STATE_DIR')
-" 2>/tmp/ota-tar-err.log
+    members = tf.getmembers()
+    for m in members:
+        target = os.path.realpath(os.path.join(dest, m.name))
+        if not (m.isfile() or m.isdir()) or not (target == dest or target.startswith(dest + os.sep)):
+            sys.exit('unsafe archive member: ' + m.name)
+    tf.extractall(dest, members=members)
+" 2>/tmp/ota-tar-err.log; then
+            :
+          else
+            echo "[ota-agent] rejected $OTA_MODULE $version: unsafe or unreadable package (see /tmp/ota-tar-err.log)"
+            echo "$version" > "$VERSION_FILE"
+            report "$current" "rejected"
+            sleep "$OTA_POLL_INTERVAL"
+            continue
+          fi
 
           post_install=$(printf '%s' "$latest_json" | jq -r '.manifest.post_install // empty' 2>/dev/null)
           if [ -n "$post_install" ] && [ "$post_install" != "none" ]; then

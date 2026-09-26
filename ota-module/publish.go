@@ -1,16 +1,23 @@
 package main
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -58,6 +65,69 @@ func verifyManifestSignature(m Manifest) bool {
 	}
 	msg := []byte(m.Module + ":" + m.Version + ":" + m.SHA256)
 	return ed25519.Verify(pub, msg, sig)
+}
+
+// Extraction limits enforced on a published archive (see
+// validatePackageArchive).
+const (
+	maxArchiveEntries  = 10000
+	maxArchiveUnpacked = 512 << 20
+)
+
+// validatePackageArchive inspects a package the way a device will extract it
+// and rejects anything unsafe to unpack: every entry must be a regular file or
+// a directory with a relative path that stays inside the extraction directory
+// - no symlinks, hardlinks or device nodes, no absolute paths, no ".."
+// segments - and the archive must stay within entry-count/size limits. A
+// payload that isn't a tar archive at all is left opaque (devices only ever
+// extract archives). bzip2/xz-wrapped tars, which devices would also open,
+// are refused outright: packages are .tar.gz. (VULNS.md #3 was the fleet
+// extracting whatever a package contained, so a "../" symlink entry planted a
+// link to a host's secret.)
+func validatePackageArchive(data []byte) error {
+	var r io.Reader = bytes.NewReader(data)
+	switch {
+	case len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b:
+		gz, err := gzip.NewReader(r)
+		if err != nil {
+			return errors.New("corrupt gzip stream")
+		}
+		defer gz.Close()
+		r = gz
+	case bytes.HasPrefix(data, []byte("BZh")), bytes.HasPrefix(data, []byte("\xfd7zXZ\x00")):
+		return errors.New("unsupported compression: packages must be .tar.gz")
+	}
+	tr := tar.NewReader(io.LimitReader(r, maxArchiveUnpacked+1))
+	var total int64
+	for n := 0; ; n++ {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			if n == 0 {
+				return nil // not a tar archive: opaque payload
+			}
+			return errors.New("corrupt archive")
+		}
+		if n >= maxArchiveEntries {
+			return errors.New("archive has too many entries")
+		}
+		switch hdr.Typeflag {
+		case tar.TypeReg, tar.TypeRegA, tar.TypeDir:
+		default:
+			return fmt.Errorf("archive entry %q is not a regular file or directory", hdr.Name)
+		}
+		name := strings.ReplaceAll(hdr.Name, "\\", "/")
+		clean := path.Clean(name)
+		if path.IsAbs(name) || clean == ".." || strings.HasPrefix(clean, "../") {
+			return fmt.Errorf("archive entry %q escapes the extraction directory", hdr.Name)
+		}
+		total += hdr.Size
+		if total > maxArchiveUnpacked {
+			return errors.New("archive unpacks too large")
+		}
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -139,6 +209,11 @@ func handlePublish(store *Store, dataDir string, fetcher *SourceFetcher) http.Ha
 				"expected": m.SHA256,
 				"computed": got,
 			})
+			return
+		}
+
+		if err := validatePackageArchive(data); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "rejected package: " + err.Error()})
 			return
 		}
 
