@@ -166,6 +166,15 @@ func handlePublish(store *Store, dataDir string, fetcher *SourceFetcher) http.Ha
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown module (fleet is fmm, ipm, log)"})
 			return
 		}
+		// post_install is a keyword, never a command: only the documented
+		// values are accepted. (VULNS.md #4 was devices handing whatever
+		// string the manifest carried to `sh -c`.)
+		switch m.PostInstall {
+		case "", "none", "restart":
+		default:
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "post_install must be \"none\" or \"restart\""})
+			return
+		}
 		// The manifest must carry a valid publisher signature (checked before
 		// any source_url fetch); the bytes are then checked against the signed
 		// checksum below.

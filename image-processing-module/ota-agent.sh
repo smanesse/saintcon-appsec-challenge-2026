@@ -73,10 +73,16 @@ with tarfile.open('$STATE_DIR/package.tar.gz') as tf:
             continue
           fi
 
+          # post_install is one of a fixed set of maintenance keywords and is
+          # never executed: "restart" is what applying an update already does
+          # (the restart flag below), "none"/empty means nothing extra, and any
+          # other value is ignored. (Previously the field was handed straight
+          # to `sh -c` - command injection from the manifest.)
           post_install=$(printf '%s' "$latest_json" | jq -r '.manifest.post_install // empty' 2>/dev/null)
-          if [ -n "$post_install" ] && [ "$post_install" != "none" ]; then
-            (cd "$OTA_INSTALL_DIR" && sh -c "$post_install")
-          fi
+          case "$post_install" in
+            ""|none|restart) ;;
+            *) echo "[ota-agent] ignoring unsupported post_install for $OTA_MODULE $version" ;;
+          esac
 
           echo "$version" > "$VERSION_FILE"
           touch "$RESTART_FLAG"

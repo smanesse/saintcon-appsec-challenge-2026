@@ -14,7 +14,7 @@ type Manifest struct {
 	Module      string `json:"module"`
 	Version     string `json:"version"`
 	SHA256      string `json:"sha256"`
-	PostInstall string `json:"post_install,omitempty"` // documented values: "none", "restart"
+	PostInstall string `json:"post_install,omitempty"` // "none" or "restart" only (enforced in handlePublish)
 	SourceURL   string `json:"source_url,omitempty"`   // optional: fetch package bytes from here instead of the upload
 	Signature   string `json:"signature,omitempty"`    // base64 ed25519 signature over "module:version:sha256"
 }
