@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdatomic.h>
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
@@ -190,17 +191,21 @@ static int is_internal_name(const char *name) {
     return strncasecmp(name, "_internal", 9) == 0 && (name[9] == '.' || name[9] == '\0');
 }
 
+// Maximum CNAME redirections followed while resolving one query. A chain
+// longer than this (including a self-referential loop1->loop2->loop1 cycle) is
+// abandoned rather than followed forever.
+#define MAX_CNAME_DEPTH 16
+
 // Collect the answer RRs for (name, qtype), following CNAME chains.
 //
-// VULN #6: the CNAME-following loop below has no depth limit and no
-// visited-name set. A zone containing a self-referential chain
-// (loop1 -> loop2 -> loop1) makes this spin forever for an A/AAAA/MX/etc.
-// query. Combined with udp_server()'s uncapped thread-per-datagram dispatch,
-// a burst of these leaks many permanently-spinning threads and pins every
-// CPU core, degrading the shared service for every other client. See
-// 06_cname_chain_dos.py.
+// The CNAME-following loop is bounded by MAX_CNAME_DEPTH, so a self-referential
+// chain (loop1 -> loop2 -> loop1) stops after a fixed number of hops instead of
+// spinning a worker thread forever (VULN #6 was this loop with no depth/loop
+// guard; combined with udp_server()'s uncapped dispatch a burst pinned every
+// CPU - see 06_cname_chain_dos.py and the worker cap in udp_server()).
 static int collect(zone_t *z, const char *name, uint16_t qtype, rr_t **out, int outcap) {
     int n = 0;
+    int depth = 0;
     char cur[256];
     strncpy(cur, name, sizeof(cur) - 1);
     cur[sizeof(cur) - 1] = '\0';
@@ -211,10 +216,11 @@ static int collect(zone_t *z, const char *name, uint16_t qtype, rr_t **out, int 
             if (z->recs[i].type == T_CNAME && strcasecmp(z->recs[i].name, cur) == 0) { cn = &z->recs[i]; break; }
 
         if (cn && qtype != T_CNAME && qtype != T_ANY) {
+            if (++depth > MAX_CNAME_DEPTH) break;  // depth/loop guard (VULN #6)
             if (n < outcap) out[n++] = cn;
             strncpy(cur, cn->target, sizeof(cur) - 1);
             cur[sizeof(cur) - 1] = '\0';
-            if (!in_zone(cur, z->origin)) break;
+            if (!in_zone(cur, z->origin)) break;   // target is off-zone; stop here
             continue;
         }
         break;
@@ -384,6 +390,13 @@ static int process_query(const unsigned char *msg, int msglen,
 
 typedef struct { int sock; struct sockaddr_in cli; socklen_t clilen; unsigned char pkt[2048]; int len; } udp_job_t;
 
+// Number of UDP worker threads in flight, so udp_server() can cap concurrency
+// (see MAX_UDP_WORKERS below) instead of spawning threads without bound.
+static atomic_int g_udp_workers = 0;
+// Well under the container pids_limit; even if some class of query were slow,
+// a flood can never leak more than this many worker threads.
+#define MAX_UDP_WORKERS 128
+
 static void *udp_worker(void *arg) {
     udp_job_t *j = (udp_job_t *)arg;
     unsigned char resp[8192];
@@ -391,6 +404,7 @@ static void *udp_worker(void *arg) {
     if (rlen > 0)
         sendto(j->sock, resp, rlen, 0, (struct sockaddr *)&j->cli, j->clilen);
     free(j);
+    atomic_fetch_sub(&g_udp_workers, 1);
     return NULL;
 }
 
@@ -412,9 +426,23 @@ static void *udp_server(void *arg) {
                              (struct sockaddr *)&j->cli, &j->clilen);
         if (n <= 0) { free(j); continue; }
         j->len = (int)n;
+        // Thread per datagram, but CAPPED at MAX_UDP_WORKERS concurrent workers.
+        // Over the cap the datagram is DROPPED (clients retry), never run inline
+        // on the listener thread - so no volume of slow/looping queries can
+        // leak unbounded threads or wedge the listener (VULN #6 relied on the
+        // old uncapped dispatch and the inline fallback).
+        if (atomic_fetch_add(&g_udp_workers, 1) >= MAX_UDP_WORKERS) {
+            atomic_fetch_sub(&g_udp_workers, 1);
+            free(j);
+            continue;
+        }
         pthread_t t;
-        if (pthread_create(&t, NULL, udp_worker, j) == 0) pthread_detach(t);
-        else { udp_worker(j); }
+        if (pthread_create(&t, NULL, udp_worker, j) == 0) {
+            pthread_detach(t);
+        } else {
+            atomic_fetch_sub(&g_udp_workers, 1);
+            free(j);
+        }
     }
     return NULL;
 }
@@ -512,6 +540,9 @@ static void *tcp_server(void *arg) {
     return NULL;
 }
 
+// ====================================================================
+// Zone file parsing
+// ====================================================================
 static void make_fqdn(const char *tok, const char *origin, char *out) {
     if (strcmp(tok, "@") == 0) { strcpy(out, origin); lower_str(out); return; }
     size_t l = strlen(tok);
@@ -695,6 +726,9 @@ static zone_t *zone_clone_plus(const char *text) {
     return z;
 }
 
+// ====================================================================
+// HTTP admin side-channel
+// ====================================================================
 static void url_decode(const char *in, char *out, int outcap) {
     int o = 0;
     for (int i = 0; in[i] && o < outcap - 1; i++) {
@@ -1015,6 +1049,9 @@ static void *admin_server(void *arg) {
     return NULL;
 }
 
+// ====================================================================
+// main
+// ====================================================================
 static void env_int(const char *k, int *v) { const char *e = getenv(k); if (e) *v = atoi(e); }
 static void env_str(const char *k, char *v, size_t n) { const char *e = getenv(k); if (e) { strncpy(v, e, n - 1); v[n - 1] = '\0'; } }
 
