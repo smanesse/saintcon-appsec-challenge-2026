@@ -74,11 +74,17 @@ public class ImageMagickService {
         // characters inside a single argument. (#1 was building this command
         // line by string concatenation and running it with `sh -c`.)
         //
-        // VULN (decompression-bomb / pixel-flood DoS, #3): no -limit area /
-        // memory / disk, so a tiny input that decodes to a gigapixel canvas
-        // exhausts memory/CPU. Root cause: missing resource limits.
+        // Resource limits come first so they govern decoding: a small input
+        // that declares a huge canvas is refused instead of being rasterised.
+        // SVGs are additionally size-checked before this point (see
+        // SvgMetadataService). (#3 was running magick with no limits at all.)
         List<String> cmd = new ArrayList<>();
         cmd.add(magick);
+        for (String[] lim : LIMITS) {
+            cmd.add("-limit");
+            cmd.add(lim[0]);
+            cmd.add(lim[1]);
+        }
         cmd.add(inCoder + ":" + in.toAbsolutePath());
         cmd.add("-resize");
         cmd.add(resize);
@@ -105,6 +111,12 @@ public class ImageMagickService {
     }
 
     private static final int MAX_DIMENSION = 8192;
+
+    /** Per-run ImageMagick resource limits (also mirrored in POLICY_XML). */
+    private static final String[][] LIMITS = {
+            {"width", "8192"}, {"height", "8192"}, {"area", "64MP"},
+            {"memory", "256MiB"}, {"map", "512MiB"}, {"disk", "1GiB"}, {"time", "30"},
+    };
 
     /** Output coders a client may request. */
     private static final Set<String> OUTPUT_CODERS =
@@ -157,6 +169,13 @@ public class ImageMagickService {
             <policymap>
               <policy domain="coder" rights="none" pattern="{LABEL,CAPTION,TEXT,MSL,MVG,URL,HTTP,HTTPS,FTP,EPHEMERAL,SHOW,WIN,PLT,PS,PS2,PS3,EPS,EPI,EPSF,EPSI,PDF,XPS}" />
               <policy domain="path" rights="none" pattern="@*" />
+              <policy domain="resource" name="width" value="8192" />
+              <policy domain="resource" name="height" value="8192" />
+              <policy domain="resource" name="area" value="64MP" />
+              <policy domain="resource" name="memory" value="256MiB" />
+              <policy domain="resource" name="map" value="512MiB" />
+              <policy domain="resource" name="disk" value="1GiB" />
+              <policy domain="resource" name="time" value="30" />
             </policymap>
             """;
 
