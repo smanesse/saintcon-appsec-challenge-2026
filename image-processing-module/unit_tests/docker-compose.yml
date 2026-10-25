@@ -1,0 +1,68 @@
+# Runs the Image Processing Module, its FMM dependency, and the IPM unit tests
+# entirely in containers, so neither deliberately-vulnerable service ever
+# listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# `fmm` and `ipm` are only reachable on the private compose network — they are
+# deliberately NOT published to the host. The `tests` service connects to `ipm`
+# by service name and drives it over HTTP; `ipm` in turn STORs/RETRs to `fmm`.
+
+services:
+  fmm:
+    build:
+      context: ../../file-management-module
+      dockerfile: Dockerfile
+    # No `ports:` mapping on purpose: keep the vulnerable server off the host.
+    expose:
+      - "2121"
+
+  ipm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - fmm
+    # No `ports:` mapping on purpose either.
+    expose:
+      - "8080"
+    environment:
+      IPM_FMM_HOST: fmm
+      IPM_FMM_PORT: "2121"
+      IPM_FMM_USER: alice
+      IPM_FMM_PASS: password123
+      # Passed through from the invoking shell (see ../../generate-secrets.sh).
+      # Empty/unset falls back to entrypoint.sh's FLAG{local-dev-default}, so
+      # local/standalone module dev needs zero setup.
+      IPM_FLAG: ${IPM_FLAG:-}
+
+  tests:
+    # Runner image bakes `requests` (see Dockerfile.tests) so the grade doesn't
+    # pip-install it over the network every run.
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    depends_on:
+      - ipm
+      - fmm
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      IPM_HOST: ipm
+      IPM_PORT: "8080"
+      IPM_NO_LAUNCH: "1"   # connect to the ipm container; never launch locally
+    command: ["python3", "-m", "unittest", "test_ipm", "-v"]
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

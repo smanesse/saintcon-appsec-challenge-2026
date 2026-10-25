@@ -1,0 +1,8 @@
+# syntax=docker/dockerfile:1
+#
+# Test-runner image for the IPM functional suite. `requests` isn't in the slim
+# base, so bake it into a cached layer here instead of `pip install`-ing it over
+# the network on every grade. The suite files themselves are bind-mounted at
+# run time (see docker-compose.yml), so a source/test edit never rebuilds this.
+FROM python:3.12-slim
+RUN pip install --no-cache-dir --disable-pip-version-check requests

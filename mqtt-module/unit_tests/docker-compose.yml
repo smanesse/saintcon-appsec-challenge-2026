@@ -1,0 +1,67 @@
+# Runs the MQB broker and its unit tests entirely in containers, so the
+# deliberately-vulnerable server never listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# `mqb` is only reachable on the private compose network - it is deliberately
+# NOT published to the host. The `tests` service connects to it by service
+# name and drives the MQTT/admin-HTTP protocol over that network.
+
+services:
+  mqb:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "1883"
+      - "8081"
+    # Same resource envelope a real deployment/scoring harness pins this module
+    # under, so the functional suite runs under the exact profile the service is
+    # graded under. These tests do only light, bounded pub/sub and comfortably
+    # fit inside 256m, so the cap does not change any functional result.
+    cpus: "1.0"
+    mem_limit: "256m"
+    environment:
+      # A real configured password so the functional suite runs the way a
+      # deployed broker does: the tests authenticate with it on every CONNECT
+      # and assert the documented CONNACK codes (including rc=4 for a
+      # wrong/absent password). `${VAR:-...}` => harness-minted value (see
+      # ../../generate-secrets.sh), else dev default, kept in lockstep with
+      # `tests` below.
+      MQB_REQUIREPASS: ${MQB_REQUIREPASS:-s3cr3t-iot-pw}
+      # Same passthrough for the runtime secret the broker seeds at startup.
+      # Empty/unset falls back to a local-dev default; these functional tests
+      # don't assert on its value, just that seeding doesn't break normal
+      # pub/sub.
+      MQB_FLAG: ${MQB_FLAG:-}
+
+  tests:
+    image: python:3.12-slim
+    depends_on:
+      - mqb
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      MQB_HOST: mqb
+      MQB_PORT: "1883"
+      MQB_ADMIN_PORT: "8081"
+      MQB_NO_LAUNCH: "1"
+      # Must match the broker above so every functional CONNECT authenticates
+      # and the negative-auth tests (wrong/missing password -> rc=4) run
+      # instead of skipping.
+      MQB_REQUIREPASS: ${MQB_REQUIREPASS:-s3cr3t-iot-pw}
+    command: ["python3", "-m", "unittest", "test_mqb", "-v"]
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

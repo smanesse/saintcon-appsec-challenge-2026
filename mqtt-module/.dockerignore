@@ -1,0 +1,9 @@
+retained/
+VULNS.md
+README.md
+vuln_tests/
+unit_tests/
+.git/
+.gitignore
+__pycache__/
+*.pyc

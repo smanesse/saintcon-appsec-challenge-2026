@@ -1,0 +1,56 @@
+# Runs the Log Aggregation Module and its unit tests entirely in containers, so
+# the deliberately-vulnerable service never listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# `log` is only reachable on the private compose network — it is deliberately
+# NOT published to the host. The `tests` service connects to `log` by service
+# name and drives it over HTTP.
+
+services:
+  log:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    # No `ports:` mapping on purpose: keep the vulnerable server off the host.
+    expose:
+      - "8080"
+    # Mirrors the resource envelope a real deployment/scoring harness would give
+    # this module, so the functional tests run under the same realistic
+    # single-core / bounded-memory profile the service is graded under.
+    cpus: "1.0"
+    mem_limit: "1g"
+    environment:
+      # Passthrough so a scoring harness that injects LOG_OP_TOKEN sees the same
+      # value reach BOTH the service and the test runner below; the default here
+      # matches the tests' fallback so authorized operator requests stay green.
+      LOG_OP_TOKEN: ${LOG_OP_TOKEN:-operator-secret-123}
+      LOG_FLAG_VALUE: ${LOG_FLAG_VALUE:-}
+
+  tests:
+    image: python:3.12-slim
+    depends_on:
+      - log
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      LOG_HOST: log
+      LOG_PORT: "8080"
+      LOG_NO_LAUNCH: "1"   # connect to the log container; never launch locally
+      LOG_OP_TOKEN: ${LOG_OP_TOKEN:-operator-secret-123}
+    # Tests are pure-stdlib (urllib); no pip install needed.
+    command: ["python3", "-m", "unittest", "test_log", "-v"]
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

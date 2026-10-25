@@ -1,0 +1,13 @@
+# Build output and local cruft that has no business in the build context.
+target/
+project/target/
+project/project/
+.git/
+.gitignore
+*.class
+
+# Docs and tests are not needed to build the app image. Keep the tree lean.
+VULNS.md
+README.md
+vuln_tests/
+unit_tests/
