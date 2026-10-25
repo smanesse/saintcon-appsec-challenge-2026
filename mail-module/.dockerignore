@@ -1,0 +1,10 @@
+.git
+unit_tests
+vuln_tests
+node_modules
+queue
+data
+certs
+*.log
+README.md
+VULNS.md

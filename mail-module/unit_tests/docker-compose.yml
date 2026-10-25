@@ -1,0 +1,110 @@
+# Runs the MTA server and its unit tests entirely in containers, so the
+# deliberately-vulnerable server never listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# `mta` is only reachable on the private compose network - it is deliberately
+# NOT published to the host. The `tests` service connects to it by service
+# name and drives the SMTP protocol + admin HTTP API over that network.
+#
+# MTA_AUTH_USER/PASS here are a throwaway fixture credential used ONLY to
+# exercise the AUTH mechanism functionally - NOT the shipped default.
+
+services:
+  mta:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "2525"
+      - "8081"
+    environment:
+      MTA_AUTH_USER: "test"
+      MTA_AUTH_PASS: "testpass1"
+      # Passed through from the invoking shell (see ../../generate-secrets.sh).
+      # Unrelated to MTA_AUTH_PASS above (the AUTH fixture credential) - this is
+      # the runtime flag, written to a file outside MTA_QUEUE_DIR at container
+      # start. Empty/unset falls back to entrypoint.sh's own local-dev default.
+      MTA_FLAG: ${MTA_FLAG:-}
+    # Mirrors the resource envelope a real deployment/scoring harness would
+    # impose, so the functional suite proves the module behaves correctly under
+    # the exact caps it is graded under - not just on an unconstrained host.
+    # 512m is enormous headroom for these tests: they exchange a handful of tiny
+    # (<1KB) messages, nowhere near this ceiling. The functional suite just needs
+    # a working queue dir, which the image already provides on its normal
+    # writable layer.
+    cpus: "1.0"
+    mem_limit: "512m"
+
+  # Stand-in for "the rest of the mail world" for the relay tests: one container
+  # that is both the DNS resolver (answers MX/A for the test domains) and the SMTP
+  # sink those records point at. Lets the relay path reach a real next hop with no
+  # external network and no DNSM. See fakemx.py. A fixture, not a product piece.
+  fakemx:
+    image: python:3.12-slim
+    working_dir: /srv
+    volumes:
+      - ./:/srv:ro
+    expose:
+      - "53/udp"
+      - "25"
+    command: ["python3", "fakemx.py"]
+
+  # A second MTA with the outbound relay turned ON, pointed at the fake resolver.
+  # Kept separate from `mta` (which stays resolver-less) so the existing suite is
+  # untouched and the "resolver unset -> no relay" gate has a real control to test.
+  mta-relay:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - fakemx
+    expose:
+      - "2525"
+      - "8081"
+    environment:
+      MTA_AUTH_USER: "test"
+      MTA_AUTH_PASS: "testpass1"
+      # Route outbound mail by MX through the fake resolver, and use its SMTP
+      # sink port. Short timeout keeps the deferral case fast.
+      MTA_RESOLVER: "fakemx:53"
+      MTA_RELAY_PORT: "25"
+      MTA_RELAY_TIMEOUT_MS: "3000"
+      MTA_FLAG: ${MTA_FLAG:-}
+    cpus: "1.0"
+    mem_limit: "512m"
+
+  tests:
+    image: python:3.12-slim
+    depends_on:
+      - mta
+      - mta-relay
+      - fakemx
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      MTA_HOST: mta
+      MTA_PORT: "2525"
+      MTA_ADMIN_PORT: "8081"
+      MTA_NO_LAUNCH: "1"
+      MTA_TEST_AUTH_USER: "test"
+      MTA_TEST_AUTH_PASS: "testpass1"
+      # Relay server (relay ON) for test_mail_relay.py.
+      MTA_RELAY_HOST: mta-relay
+      MTA_RELAY_SMTP_PORT: "2525"
+      MTA_RELAY_ADMIN_PORT: "8081"
+    command: ["python3", "-m", "unittest", "test_mail", "test_mail_relay", "-v"]
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

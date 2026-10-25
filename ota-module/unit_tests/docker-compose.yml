@@ -1,0 +1,117 @@
+# Runs the OTA server and its unit tests entirely in containers, so the
+# deliberately-vulnerable server never listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# `ota` is only reachable on the private compose network - it is
+# deliberately NOT published to the host. The `tests` service connects to it
+# by service name and drives the protocol over that network.
+
+services:
+  ota:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "8090"
+    environment:
+      # Passed through from the invoking shell (see ../../generate-secrets.sh).
+      # Empty/unset falls back to the compiled-in default key with zero setup;
+      # a harness that has sourced a generated secret makes this and `tests`
+      # below agree on the same real key.
+      OTA_API_KEY: ${OTA_API_KEY:-}
+
+  # Stand-in "package origin" for the source_url resolver tests: one container
+  # that is both a DNS server (answers A for `origin.test` with its own IP) and
+  # an HTTP server serving a fixed package blob. Only this fake resolves
+  # `origin.test`, so a fetch of it proves the resolver was used. See
+  # fakeorigin.py. A fixture, not a product piece.
+  fakeorigin:
+    image: python:3.12-slim
+    working_dir: /srv
+    volumes:
+      - ./:/srv:ro
+    expose:
+      - "53/udp"
+      - "80"
+    command: ["python3", "fakeorigin.py"]
+
+  # A second OTA server with source_url resolution turned ON, pointed at the fake
+  # DNS. Kept separate from `ota` (which stays resolver-less) so the existing
+  # suite is untouched and the "resolver unset" gate has a real control to test.
+  ota-res:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - fakeorigin
+    expose:
+      - "8090"
+    environment:
+      OTA_API_KEY: ${OTA_API_KEY:-}
+      OTA_RESOLVER: "fakeorigin:53"
+
+  # Stand-in "fleet file server" (FMM) for the OTA->FMM source tests: one
+  # container speaking FMM's FTP subset, serving a fixed package for any RETR.
+  # Only this fake is needed to prove OTA's FMM client works; kept out of the
+  # real module so the suite stays self-contained. See fakefmm.py.
+  fakefmm:
+    image: python:3.12-slim
+    working_dir: /srv
+    volumes:
+      - ./:/srv:ro
+    expose:
+      - "2121"
+    command: ["python3", "fakefmm.py"]
+
+  # A third OTA server with FMM package fetching turned ON (OTA_FMM), pointed at
+  # the fake file server. Kept separate from `ota` (which stays FMM-less) so the
+  # existing suite is untouched and the "OTA_FMM unset" gate has a real control.
+  ota-fmm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - fakefmm
+    expose:
+      - "8090"
+    environment:
+      OTA_API_KEY: ${OTA_API_KEY:-}
+      OTA_FMM: "fakefmm:2121"
+
+  tests:
+    image: python:3.12-slim
+    depends_on:
+      - ota
+      - ota-res
+      - ota-fmm
+      - fakeorigin
+      - fakefmm
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      OTA_HOST: ota
+      OTA_PORT: "8090"
+      OTA_NO_LAUNCH: "1"
+      OTA_API_KEY: ${OTA_API_KEY:-}
+      # Resolver-configured server for test_ota_resolver.py.
+      OTA_RES_HOST: ota-res
+      OTA_RES_PORT: "8090"
+      # FMM-configured server for test_ota_fmm.py.
+      OTA_FMM_HOST: ota-fmm
+      OTA_FMM_PORT: "8090"
+    command: ["python3", "-m", "unittest", "test_ota", "test_ota_resolver", "test_ota_fmm", "-v"]
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A.L.I.E.N. // Docking Bay Control</title>
+  <link rel="stylesheet" href="/static/console.css">
+</head>
+<body>
+  <main class="console">
+    <h1>🛸 DOCKING BAY CONTROL</h1>
+    <p class="sub">Mothership launch subsystem — pilot terminal</p>
+
+    <section>
+      <h2>Status</h2>
+      <p>Sublight engines nominal. Two-key launch protocol <strong>ARMED-CAPABLE</strong>.</p>
+      <ul>
+        <li><a href="/status">/status</a> — bay health</li>
+        <li><a href="/admin">/admin</a> — operator console (crew credentials)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Docking requests</h2>
+      <p>
+        Submit a bay resource for flight-crew review with
+        <code>POST /dock/notify (path=/…)</code>. A crew member will pull up the
+        path you submit to review it before clearing your approach.
+      </p>
+    </section>
+
+    <section>
+      <h2>Launch protocol</h2>
+      <p>
+        Launch needs a valid launch code, then <em>two pilots turning their keys
+        simultaneously</em>. Arm with <code>/launch/arm?code=…</code>, then both
+        keys fire <code>/launch/fire?code=…</code> at once.
+      </p>
+    </section>
+
+    <footer>A.L.I.E.N. flight systems · unauthorized access is logged</footer>
+  </main>
+  <script src="/static/console.js"></script>
+</body>
+</html>

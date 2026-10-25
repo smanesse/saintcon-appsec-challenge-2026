@@ -1,0 +1,5 @@
+# ARCHIVED DOCKING-BAY MANIFEST SNAPSHOT (stale — do not use)
+# superseded; retained only for rollback drills
+launch_code = OMEGA-000000
+flag        = SAINTCON{d3c0y_m4n1f3st_n0t_th3_r34l_c0d3}
+note        = codes rotate at every boot; this snapshot is dead
