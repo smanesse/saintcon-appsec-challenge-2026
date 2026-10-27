@@ -1,0 +1,1142 @@
+{
+ "canvas": {
+  "w": 1280,
+  "h": 720
+ },
+ "plate": "combined/grading_station_plate.png",
+ "modules": {
+  "DNSM": {
+   "code": "DNSM",
+   "name": "Nav Beacon",
+   "surface": "ceiling",
+   "far": {
+    "prop": "modules/DNSM/out/far_prop.png",
+    "glow": "modules/DNSM/out/far_glow.png",
+    "hotspot": {
+     "x": 864,
+     "y": 0,
+     "w": 191,
+     "h": 185
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/DNSM/out/close_plate.png",
+    "controls": {
+     "sweep": {
+      "kind": "rotate",
+      "label": "BEACON SWEEP",
+      "image": "modules/DNSM/out/close_sweep.png",
+      "pivot": {
+       "x": 498.3,
+       "y": 333.6
+      },
+      "range": [
+       -180.0,
+       180.0
+      ],
+      "spin": 1.6,
+      "hotspot": {
+       "x": 289,
+       "y": 124,
+       "w": 419,
+       "h": 419
+      }
+     },
+     "qtype": {
+      "kind": "states",
+      "label": "QUERY TYPE",
+      "states": {
+       "A": "modules/DNSM/out/close_qtype_a.png",
+       "AAAA": "modules/DNSM/out/close_qtype_aaaa.png",
+       "CNAME": "modules/DNSM/out/close_qtype_cname.png",
+       "TXT": "modules/DNSM/out/close_qtype_txt.png",
+       "MX": "modules/DNSM/out/close_qtype_mx.png",
+       "NS": "modules/DNSM/out/close_qtype_ns.png",
+       "AXFR": "modules/DNSM/out/close_qtype_axfr.png",
+       "NX": "modules/DNSM/out/close_qtype_nx.png"
+      },
+      "hotspot": {
+       "x": 262,
+       "y": 552,
+       "w": 756,
+       "h": 81
+      }
+     },
+     "chart": {
+      "kind": "frames",
+      "label": "STAR CHART",
+      "frames": [
+       "modules/DNSM/out/close_chart_0.png",
+       "modules/DNSM/out/close_chart_1.png",
+       "modules/DNSM/out/close_chart_2.png",
+       "modules/DNSM/out/close_chart_3.png",
+       "modules/DNSM/out/close_chart_4.png",
+       "modules/DNSM/out/close_chart_5.png"
+      ],
+      "hotspot": {
+       "x": 736,
+       "y": 201,
+       "w": 267,
+       "h": 99
+      }
+     },
+     "courier": {
+      "kind": "states",
+      "label": "CHART COURIER",
+      "states": {
+       "chart": "modules/DNSM/out/close_courier_chart.png",
+       "import": "modules/DNSM/out/close_courier_import.png",
+       "empty": "modules/DNSM/out/close_courier_empty.png"
+      },
+      "hotspot": {
+       "x": 718,
+       "y": 337,
+       "w": 305,
+       "h": 182
+      }
+     }
+    }
+   }
+  },
+  "FMM": {
+   "code": "FMM",
+   "name": "Cargo Bay",
+   "surface": "dash",
+   "far": {
+    "prop": "modules/FMM/out/far_prop.png",
+    "glow": "modules/FMM/out/far_glow.png",
+    "hotspot": {
+     "x": 17,
+     "y": 397,
+     "w": 221,
+     "h": 91
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/FMM/out/close_plate.png",
+    "controls": {
+     "lift": {
+      "kind": "frames",
+      "label": "CARGO LIFT",
+      "frames": [
+       "modules/FMM/out/close_lift_0.png",
+       "modules/FMM/out/close_lift_1.png",
+       "modules/FMM/out/close_lift_2.png",
+       "modules/FMM/out/close_lift_3.png",
+       "modules/FMM/out/close_lift_4.png",
+       "modules/FMM/out/close_lift_5.png"
+      ],
+      "hotspot": {
+       "x": 203,
+       "y": 206,
+       "w": 149,
+       "h": 274
+      }
+     },
+     "rail": {
+      "kind": "frames",
+      "label": "DATA RAIL",
+      "frames": [
+       "modules/FMM/out/close_rail_0.png",
+       "modules/FMM/out/close_rail_1.png",
+       "modules/FMM/out/close_rail_2.png",
+       "modules/FMM/out/close_rail_3.png",
+       "modules/FMM/out/close_rail_4.png",
+       "modules/FMM/out/close_rail_5.png",
+       "modules/FMM/out/close_rail_6.png"
+      ],
+      "hotspot": {
+       "x": 410,
+       "y": 495,
+       "w": 687,
+       "h": 93
+      }
+     },
+     "hold": {
+      "kind": "rotate",
+      "label": "HOLD",
+      "image": "modules/FMM/out/close_hold.png",
+      "pivot": {
+       "x": 640.0,
+       "y": 230.0
+      },
+      "range": [
+       -125.0,
+       125.0
+      ],
+      "hotspot": {
+       "x": 488,
+       "y": 94,
+       "w": 304,
+       "h": 295
+      }
+     },
+     "channel": {
+      "kind": "states",
+      "label": "CHANNEL",
+      "states": {
+       "pasv": "modules/FMM/out/close_channel_pasv.png",
+       "port": "modules/FMM/out/close_channel_port.png"
+      },
+      "hotspot": {
+       "x": 846,
+       "y": 106,
+       "w": 223,
+       "h": 225
+      }
+     }
+    }
+   }
+  },
+  "IPM": {
+   "code": "IPM",
+   "name": "Optical Sensor Array",
+   "surface": "pillar",
+   "far": {
+    "prop": "modules/IPM/out/far_prop.png",
+    "glow": "modules/IPM/out/far_glow.png",
+    "hotspot": {
+     "x": 895,
+     "y": 187,
+     "w": 98,
+     "h": 213
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/IPM/out/close_plate.png",
+    "controls": {
+     "dial": {
+      "kind": "rotate",
+      "label": "SCOPE SELECT",
+      "image": "modules/IPM/out/close_dial.png",
+      "pivot": {
+       "x": 640.0,
+       "y": 271.2
+      },
+      "range": [
+       -125.0,
+       125.0
+      ],
+      "detents": [
+       "256",
+       "512",
+       "1K",
+       "SVG",
+       "ZIP"
+      ],
+      "hotspot": {
+       "x": 589,
+       "y": 219,
+       "w": 102,
+       "h": 111
+      }
+     },
+     "capture": {
+      "kind": "states",
+      "label": "CAPTURE PLUNGER",
+      "states": {
+       "armed": "modules/IPM/out/close_capture_armed.png",
+       "capture": "modules/IPM/out/close_capture_capture.png"
+      },
+      "order": [
+       "armed",
+       "capture"
+      ],
+      "hotspot": {
+       "x": 575,
+       "y": 383,
+       "w": 129,
+       "h": 81
+      }
+     },
+     "tray": {
+      "kind": "frames",
+      "label": "DEVELOPING TRAY",
+      "frames": [
+       "modules/IPM/out/close_tray_0.png",
+       "modules/IPM/out/close_tray_1.png",
+       "modules/IPM/out/close_tray_2.png",
+       "modules/IPM/out/close_tray_3.png",
+       "modules/IPM/out/close_tray_4.png",
+       "modules/IPM/out/close_tray_5.png",
+       "modules/IPM/out/close_tray_6.png",
+       "modules/IPM/out/close_tray_7.png"
+      ],
+      "axis": "y",
+      "hotspot": {
+       "x": 570,
+       "y": 477,
+       "w": 140,
+       "h": 110
+      }
+     }
+    }
+   }
+  },
+  "KVS": {
+   "code": "KVS",
+   "name": "Core Memory Banks",
+   "surface": "dash",
+   "far": {
+    "prop": "modules/KVS/out/far_prop.png",
+    "glow": "modules/KVS/out/far_glow.png",
+    "hotspot": {
+     "x": 968,
+     "y": 346,
+     "w": 166,
+     "h": 129
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/KVS/out/close_plate.png",
+    "controls": {
+     "platen": {
+      "kind": "frames",
+      "label": "TELETYPE PLATEN",
+      "frames": [
+       "modules/KVS/out/close_platen_0.png",
+       "modules/KVS/out/close_platen_1.png",
+       "modules/KVS/out/close_platen_2.png",
+       "modules/KVS/out/close_platen_3.png"
+      ],
+      "hotspot": {
+       "x": 384,
+       "y": 301,
+       "w": 519,
+       "h": 173
+      },
+      "text": [
+       [
+        "KVS CORE BANK  RESP2 RDY",
+        "> PING",
+        "+PONG",
+        "> AUTH **********",
+        "+OK"
+       ],
+       [
+        "> SET hull.integrity 97",
+        "+OK",
+        "> TYPE hull.integrity",
+        "+string",
+        "> TTL hull.integrity"
+       ],
+       [
+        ":-1",
+        "> INCR nav.fixcount",
+        ":14",
+        "> KEYS hull.*",
+        "1) \"hull.integrity\""
+       ],
+       [
+        "> EVAL \"return 6*7\" 0",
+        ":42",
+        "> SAVE",
+        "+OK  dump.kvs  812 B",
+        "> _"
+       ]
+      ]
+     },
+     "tape": {
+      "kind": "rotate",
+      "label": "PUNCHED TAPE (EVAL)",
+      "image": "modules/KVS/out/close_tape.png",
+      "pivot": {
+       "x": 377.5,
+       "y": 532.8
+      },
+      "range": [
+       0,
+       1440
+      ],
+      "hotspot": {
+       "x": 300,
+       "y": 457,
+       "w": 154,
+       "h": 150
+      }
+     },
+     "key": {
+      "kind": "states",
+      "label": "TELEGRAPH KEY",
+      "states": {
+       "up": "modules/KVS/out/close_key_up.png",
+       "down": "modules/KVS/out/close_key_down.png"
+      },
+      "hotspot": {
+       "x": 789,
+       "y": 476,
+       "w": 116,
+       "h": 167
+      }
+     },
+     "lamps": {
+      "kind": "states",
+      "label": "MEMORY BANK",
+      "states": {
+       "idle": "modules/KVS/out/close_lamps_idle.png",
+       "read": "modules/KVS/out/close_lamps_read.png",
+       "write": "modules/KVS/out/close_lamps_write.png",
+       "eval": "modules/KVS/out/close_lamps_eval.png",
+       "fault": "modules/KVS/out/close_lamps_fault.png"
+      },
+      "order": [
+       "idle",
+       "read",
+       "write",
+       "eval",
+       "fault"
+      ],
+      "lamps": [
+       "AUTH",
+       "CORE",
+       "RELAY",
+       "TTL",
+       "SCAN",
+       "SAVE",
+       "EVAL",
+       "FAULT"
+      ],
+      "patterns": {
+       "idle": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "read": [
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "write": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "eval": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0
+       ],
+       "fault": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+       ]
+      },
+      "hotspot": {
+       "x": 396,
+       "y": 220,
+       "w": 497,
+       "h": 75
+      }
+     }
+    }
+   }
+  },
+  "LOG": {
+   "code": "LOG",
+   "name": "Black Box",
+   "surface": "fascia",
+   "far": {
+    "prop": "modules/LOG/out/far_prop.png",
+    "glow": "modules/LOG/out/far_glow.png",
+    "hotspot": {
+     "x": 368,
+     "y": 466,
+     "w": 214,
+     "h": 170
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/LOG/out/close_plate.png",
+    "controls": {
+     "tape": {
+      "kind": "frames",
+      "label": "LOG TAPE",
+      "frames": [
+       "modules/LOG/out/close_tape_0.png",
+       "modules/LOG/out/close_tape_1.png",
+       "modules/LOG/out/close_tape_2.png",
+       "modules/LOG/out/close_tape_3.png",
+       "modules/LOG/out/close_tape_4.png",
+       "modules/LOG/out/close_tape_5.png",
+       "modules/LOG/out/close_tape_6.png",
+       "modules/LOG/out/close_tape_7.png"
+      ],
+      "hotspot": {
+       "x": 257,
+       "y": 150,
+       "w": 766,
+       "h": 214
+      }
+     },
+     "lens": {
+      "kind": "rotate",
+      "label": "SEARCH LENS",
+      "image": "modules/LOG/out/close_lens.png",
+      "pivot": {
+       "x": 457.1,
+       "y": 136.3
+      },
+      "range": [
+       -74.0,
+       6.0
+      ],
+      "hotspot": {
+       "x": 357,
+       "y": 117,
+       "w": 418,
+       "h": 338
+      }
+     },
+     "source": {
+      "kind": "states",
+      "label": "SOURCE",
+      "states": {
+       "all": "modules/LOG/out/close_source_all.png",
+       "nav": "modules/LOG/out/close_source_nav.png",
+       "mta": "modules/LOG/out/close_source_mta.png",
+       "kvs": "modules/LOG/out/close_source_kvs.png"
+      },
+      "hotspot": {
+       "x": 305,
+       "y": 444,
+       "w": 112,
+       "h": 83
+      }
+     },
+     "wipe": {
+      "kind": "states",
+      "label": "WIPE",
+      "states": {
+       "sealed": "modules/LOG/out/close_wipe_sealed.png",
+       "armed": "modules/LOG/out/close_wipe_armed.png",
+       "wiped": "modules/LOG/out/close_wipe_wiped.png"
+      },
+      "hotspot": {
+       "x": 842,
+       "y": 430,
+       "w": 162,
+       "h": 154
+      }
+     }
+    }
+   }
+  },
+  "MQB": {
+   "code": "MQB",
+   "name": "Drone Telemetry Bus",
+   "surface": "ceiling",
+   "far": {
+    "prop": "modules/MQB/out/far_prop.png",
+    "glow": "modules/MQB/out/far_glow.png",
+    "hotspot": {
+     "x": 60,
+     "y": 0,
+     "w": 195,
+     "h": 181
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/MQB/out/close_plate.png",
+    "controls": {
+     "scope": {
+      "kind": "frames",
+      "label": "BUS TRAFFIC",
+      "frames": [
+       "modules/MQB/out/close_scope_0.png",
+       "modules/MQB/out/close_scope_1.png",
+       "modules/MQB/out/close_scope_2.png",
+       "modules/MQB/out/close_scope_3.png",
+       "modules/MQB/out/close_scope_4.png",
+       "modules/MQB/out/close_scope_5.png",
+       "modules/MQB/out/close_scope_6.png",
+       "modules/MQB/out/close_scope_7.png",
+       "modules/MQB/out/close_scope_8.png",
+       "modules/MQB/out/close_scope_9.png"
+      ],
+      "hotspot": {
+       "x": 255,
+       "y": 178,
+       "w": 323,
+       "h": 323
+      }
+     },
+     "patch": {
+      "kind": "states",
+      "label": "PATCH BAY",
+      "states": {
+       "idle": "modules/MQB/out/close_patch_idle.png",
+       "one": "modules/MQB/out/close_patch_one.png",
+       "two": "modules/MQB/out/close_patch_two.png",
+       "party": "modules/MQB/out/close_patch_party.png"
+      },
+      "order": [
+       "idle",
+       "one",
+       "two",
+       "party"
+      ],
+      "topics": [
+       "drone/+",
+       "hull/temp",
+       "nav/fix",
+       "will/lost",
+       "#"
+      ],
+      "hotspot": {
+       "x": 583,
+       "y": 318,
+       "w": 454,
+       "h": 312
+      }
+     },
+     "retained": {
+      "kind": "states",
+      "label": "RETAINED MESSAGE",
+      "states": {
+       "clear": "modules/MQB/out/close_retained_clear.png",
+       "live": "modules/MQB/out/close_retained_live.png",
+       "retained": "modules/MQB/out/close_retained_retained.png"
+      },
+      "order": [
+       "clear",
+       "live",
+       "retained"
+      ],
+      "hotspot": {
+       "x": 479,
+       "y": 125,
+       "w": 247,
+       "h": 109
+      }
+     },
+     "keepalive": {
+      "kind": "rotate",
+      "label": "KEEP ALIVE",
+      "image": "modules/MQB/out/close_keepalive.png",
+      "pivot": {
+       "x": 832.3,
+       "y": 189.4
+      },
+      "range": [
+       -118.0,
+       118.0
+      ],
+      "hotspot": {
+       "x": 739,
+       "y": 98,
+       "w": 185,
+       "h": 185
+      }
+     }
+    }
+   }
+  },
+  "MTA": {
+   "code": "MTA",
+   "name": "Subspace Comms Relay",
+   "surface": "fascia",
+   "far": {
+    "prop": "modules/MTA/out/far_prop.png",
+    "glow": "modules/MTA/out/far_glow.png",
+    "hotspot": {
+     "x": 699,
+     "y": 471,
+     "w": 160,
+     "h": 144
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/MTA/out/close_plate.png",
+    "controls": {
+     "capsule": {
+      "kind": "frames",
+      "label": "PNEUMATIC TUBE",
+      "frames": [
+       "modules/MTA/out/close_capsule_0.png",
+       "modules/MTA/out/close_capsule_1.png",
+       "modules/MTA/out/close_capsule_2.png",
+       "modules/MTA/out/close_capsule_3.png",
+       "modules/MTA/out/close_capsule_4.png",
+       "modules/MTA/out/close_capsule_5.png",
+       "modules/MTA/out/close_capsule_6.png"
+      ],
+      "rest": 3,
+      "hotspot": {
+       "x": 191,
+       "y": 76,
+       "w": 855,
+       "h": 184
+      }
+     },
+     "queue": {
+      "kind": "states",
+      "label": "QUEUE PIGEONHOLES",
+      "states": {
+       "empty": "modules/MTA/out/close_queue_empty.png",
+       "q2": "modules/MTA/out/close_queue_q2.png",
+       "q5": "modules/MTA/out/close_queue_q5.png",
+       "q8": "modules/MTA/out/close_queue_q8.png",
+       "full": "modules/MTA/out/close_queue_full.png"
+      },
+      "order": [
+       "empty",
+       "q2",
+       "q5",
+       "q8",
+       "full"
+      ],
+      "counts": {
+       "empty": 0,
+       "q2": 2,
+       "q5": 5,
+       "q8": 8,
+       "full": 10
+      },
+      "rest": "q5",
+      "ids": [
+       "a3f1c9",
+       "7b20de",
+       "c41e8a",
+       "1f9d02",
+       "e58b47",
+       "93cc10",
+       "2dab6f",
+       "604f3b",
+       "b81a55",
+       "0c7e92"
+      ],
+      "to": [
+       "bob@somewhere.example",
+       "alice@mta.local",
+       "postmaster@mta.local",
+       "ops@fleet.example",
+       "relay@example.net",
+       "bob@somewhere.example",
+       "alice@mta.local",
+       "nav@fleet.example",
+       "hal@mta.local",
+       "postmaster@mta.local"
+      ],
+      "hotspot": {
+       "x": 324,
+       "y": 234,
+       "w": 657,
+       "h": 229
+      }
+     },
+     "scrambler": {
+      "kind": "rotate",
+      "label": "STARTTLS SCRAMBLER",
+      "image": "modules/MTA/out/close_scrambler.png",
+      "pivot": {
+       "x": 893.0,
+       "y": 586.4
+      },
+      "range": [
+       0,
+       1080
+      ],
+      "detent": 30,
+      "hotspot": {
+       "x": 788,
+       "y": 483,
+       "w": 208,
+       "h": 197
+      }
+     },
+     "handset": {
+      "kind": "states",
+      "label": "COMMS HANDSET",
+      "states": {
+       "cradled": "modules/MTA/out/close_handset_cradled.png",
+       "lifted": "modules/MTA/out/close_handset_lifted.png"
+      },
+      "order": [
+       "cradled",
+       "lifted"
+      ],
+      "rest": "cradled",
+      "hotspot": {
+       "x": 266,
+       "y": 542,
+       "w": 287,
+       "h": 123
+      }
+     }
+    }
+   }
+  },
+  "OTA": {
+   "code": "OTA",
+   "name": "Fleet Replicator Grid",
+   "surface": "pillar",
+   "far": {
+    "prop": "modules/OTA/out/far_prop.png",
+    "glow": "modules/OTA/out/far_glow.png",
+    "hotspot": {
+     "x": 279,
+     "y": 180,
+     "w": 94,
+     "h": 219
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/OTA/out/close_plate.png",
+    "controls": {
+     "cartridge": {
+      "kind": "frames",
+      "label": "PUBLISH",
+      "axis": "y",
+      "frames": [
+       "modules/OTA/out/close_cartridge_0.png",
+       "modules/OTA/out/close_cartridge_1.png",
+       "modules/OTA/out/close_cartridge_2.png",
+       "modules/OTA/out/close_cartridge_3.png",
+       "modules/OTA/out/close_cartridge_4.png",
+       "modules/OTA/out/close_cartridge_5.png",
+       "modules/OTA/out/close_cartridge_6.png"
+      ],
+      "hotspot": {
+       "x": 529,
+       "y": 17,
+       "w": 75,
+       "h": 237
+      }
+     },
+     "propagate": {
+      "kind": "frames",
+      "label": "PROPAGATE",
+      "axis": "y",
+      "frames": [
+       "modules/OTA/out/close_propagate_0.png",
+       "modules/OTA/out/close_propagate_1.png",
+       "modules/OTA/out/close_propagate_2.png",
+       "modules/OTA/out/close_propagate_3.png",
+       "modules/OTA/out/close_propagate_4.png",
+       "modules/OTA/out/close_propagate_5.png",
+       "modules/OTA/out/close_propagate_6.png",
+       "modules/OTA/out/close_propagate_7.png",
+       "modules/OTA/out/close_propagate_8.png"
+      ],
+      "hotspot": {
+       "x": 687,
+       "y": 283,
+       "w": 31,
+       "h": 368
+      }
+     },
+     "fleet": {
+      "kind": "states",
+      "label": "FLEET VERSIONS",
+      "states": {
+       "stale": "modules/OTA/out/close_fleet_stale.png",
+       "roll1": "modules/OTA/out/close_fleet_roll1.png",
+       "roll2": "modules/OTA/out/close_fleet_roll2.png",
+       "synced": "modules/OTA/out/close_fleet_synced.png"
+      },
+      "order": [
+       "stale",
+       "roll1",
+       "roll2",
+       "synced"
+      ],
+      "modules": [
+       "FMM",
+       "IPM",
+       "LOG"
+      ],
+      "hotspot": {
+       "x": 544,
+       "y": 306,
+       "w": 142,
+       "h": 295
+      }
+     },
+     "poll": {
+      "kind": "rotate",
+      "label": "POLL INTERVAL",
+      "image": "modules/OTA/out/close_poll.png",
+      "pivot": {
+       "x": 649.5,
+       "y": 166.7
+      },
+      "range": [
+       -125.0,
+       125.0
+      ],
+      "hotspot": {
+       "x": 605,
+       "y": 116,
+       "w": 97,
+       "h": 101
+      }
+     }
+    }
+   }
+  },
+  "PKT": {
+   "code": "PKT",
+   "name": "Signal Harpoon",
+   "surface": "dash",
+   "far": {
+    "prop": "modules/PKT/out/far_prop.png",
+    "glow": "modules/PKT/out/far_glow.png",
+    "glow_tint": "red",
+    "hotspot": {
+     "x": 504,
+     "y": 287,
+     "w": 272,
+     "h": 178
+    }
+   },
+   "close": {
+    "canvas": {
+     "w": 1280,
+     "h": 720
+    },
+    "plate": "modules/PKT/out/close_plate.png",
+    "controls": {
+     "target": {
+      "kind": "rotate",
+      "label": "TARGET BEARING",
+      "image": "modules/PKT/out/close_target.png",
+      "pivot": {
+       "x": 293.7,
+       "y": 331.6
+      },
+      "range": [
+       -140.0,
+       140.0
+      ],
+      "snap": "blips",
+      "overlay": {
+       "rect": {
+        "x": 229,
+        "y": 538,
+        "w": 132,
+        "h": 22
+       },
+       "style": "phosphor",
+       "scroll": false
+      },
+      "hotspot": {
+       "x": 178,
+       "y": 249,
+       "w": 236,
+       "h": 365
+      }
+     },
+     "payload": {
+      "kind": "frames",
+      "axis": "x",
+      "label": "PAYLOAD SELECT",
+      "frames": [
+       "modules/PKT/out/close_payload_0.png",
+       "modules/PKT/out/close_payload_1.png",
+       "modules/PKT/out/close_payload_2.png",
+       "modules/PKT/out/close_payload_3.png",
+       "modules/PKT/out/close_payload_4.png",
+       "modules/PKT/out/close_payload_5.png",
+       "modules/PKT/out/close_payload_6.png",
+       "modules/PKT/out/close_payload_7.png"
+      ],
+      "labels": [
+       "INJECTION",
+       "OVERFLOW",
+       "TRAVERSAL",
+       "SSRF",
+       "AUTH-BYPASS",
+       "RESOURCE-DoS",
+       "RCE",
+       "SUPPLY-CHAIN"
+      ],
+      "hotspot": {
+       "x": 485,
+       "y": 429,
+       "w": 142,
+       "h": 191
+      }
+     },
+     "charge": {
+      "kind": "frames",
+      "axis": "y",
+      "label": "CHARGE",
+      "frames": [
+       "modules/PKT/out/close_charge_0.png",
+       "modules/PKT/out/close_charge_1.png",
+       "modules/PKT/out/close_charge_2.png",
+       "modules/PKT/out/close_charge_3.png",
+       "modules/PKT/out/close_charge_4.png"
+      ],
+      "hotspot": {
+       "x": 414,
+       "y": 196,
+       "w": 71,
+       "h": 299
+      }
+     },
+     "arm": {
+      "kind": "states",
+      "label": "ARM",
+      "states": {
+       "safe": "modules/PKT/out/close_arm_safe.png",
+       "armed": "modules/PKT/out/close_arm_armed.png",
+       "interlock": "modules/PKT/out/close_arm_interlock.png"
+      },
+      "order": [
+       "safe",
+       "armed"
+      ],
+      "refusal": "interlock",
+      "hotspot": {
+       "x": 622,
+       "y": 220,
+       "w": 118,
+       "h": 192
+      }
+     },
+     "fire": {
+      "kind": "states",
+      "label": "FIRE",
+      "states": {
+       "ready": "modules/PKT/out/close_fire_ready.png",
+       "fired": "modules/PKT/out/close_fire_fired.png"
+      },
+      "order": [
+       "ready",
+       "fired"
+      ],
+      "hotspot": {
+       "x": 627,
+       "y": 425,
+       "w": 102,
+       "h": 124
+      }
+     },
+     "catch": {
+      "kind": "frames",
+      "axis": "y",
+      "label": "RETURN LINE",
+      "frames": [
+       "modules/PKT/out/close_catch_0.png",
+       "modules/PKT/out/close_catch_1.png",
+       "modules/PKT/out/close_catch_2.png",
+       "modules/PKT/out/close_catch_3.png"
+      ],
+      "overlay": {
+       "rect": {
+        "x": 817,
+        "y": 385,
+        "w": 227,
+        "h": 144
+       },
+       "style": "ink",
+       "scroll": true,
+       "paper": "#d8d2c0",
+       "ink": "#141210",
+       "note": "untrusted bytes from a target service -- render as TEXT (textContent), never as HTML"
+      },
+      "hotspot": {
+       "x": 819,
+       "y": 238,
+       "w": 279,
+       "h": 371
+      }
+     },
+     "verdict": {
+      "kind": "states",
+      "label": "IMPACT",
+      "states": {
+       "idle": "modules/PKT/out/close_verdict_idle.png",
+       "hit": "modules/PKT/out/close_verdict_hit.png",
+       "refused": "modules/PKT/out/close_verdict_refused.png",
+       "deflected": "modules/PKT/out/close_verdict_deflected.png"
+      },
+      "order": [
+       "idle",
+       "hit",
+       "refused",
+       "deflected"
+      ],
+      "overlay": {
+       "rect": {
+        "x": 816,
+        "y": 334,
+        "w": 221,
+        "h": 15
+       },
+       "style": "header",
+       "scroll": false
+      },
+      "hotspot": {
+       "x": 745,
+       "y": 374,
+       "w": 74,
+       "h": 191
+      }
+     }
+    }
+   }
+  }
+ },
+ "dressing_objects": 2961
+}

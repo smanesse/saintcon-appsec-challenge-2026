@@ -1,0 +1,35 @@
+{
+  "readme": "Authoritative allowlist of what a team may submit to the SAINTCON AppSec scoring harness. The bridge console (bridge/harness.py) packages a whole-repo snapshot that contains ONLY the source files matched here. Everything else is 'fixed infrastructure' the harness rebuilds from its own pristine baseline: you cannot add a new kind of file, change the Docker build, or install extra packages through a submission. Fix the vulns by editing the existing source in place. The scoring harness enforces the same allowlist on its side; this file is the shared contract.",
+  "version": 1,
+
+  "sourceExtensions": [
+    ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".hh",
+    ".java",
+    ".go",
+    ".scala", ".sc",
+    ".py",
+    ".js", ".mjs",
+    ".html", ".css"
+  ],
+  "sourceExtensionsNote": "Lowercase, dot-prefixed. C/C++ -> FMM, DNSM. Java -> IPM. Go -> KVS, OTA. Scala -> LOG. Python -> MQB, bridge, tooling. JS/HTML/CSS -> MTA and the console frontends. A file must match one of these (and live outside excludeDirs) to be included in the snapshot.",
+
+  "excludeDirs": [
+    ".git", "secrets", "vendor", "node_modules", "target", ".gradle",
+    "dist", "build", "__pycache__", ".pytest_cache", ".mypy_cache",
+    ".venv", "venv", ".idea", ".vscode"
+  ],
+  "excludeDirsNote": "Never walked. 'vendor' and 'node_modules' are the important ones for the allowlist: they hold third-party packages shipped as source, so without pruning them the .go/.js rule would sweep them back in. 'secrets' must never leave the deployment; the rest are VCS/build/cache noise.",
+
+  "fixedByBaseline": {
+    "note": "These are NOT part of a submission. The harness always uses its baseline copy, so editing them changes nothing about your score. Listed for clarity, not enforced by name -- the allowlist above is what decides.",
+    "examples": [
+      "Dockerfile", "*.dockerignore",
+      "*compose*.yml", "*.yml", "*.yaml",
+      "requirements.txt", "package.json", "package-lock.json",
+      "go.mod", "go.sum", "pom.xml", "build.sbt", "*.properties",
+      "Makefile", "*.sh",
+      "*.zone", "*.txt", "*.md", "*.json", "*.xml",
+      "vendor/**", "node_modules/**"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+$ORIGIN example.com.
+$TTL 300
+
+@        SOA  ns1.example.com. hostmaster.example.com. 2026072201 3600 600 1209600 300
+@        NS   ns1.example.com.
+@        NS   ns2.example.com.
+@        A    192.0.2.10
+@        MX   10 mail.example.com.
+@        TXT  "v=spf1 -all"
+
+ns1      A    192.0.2.2
+ns2      A    192.0.2.3
+www      A    192.0.2.10
+www      AAAA 2001:db8::10
+mail     A    192.0.2.20
+mail     AAAA 2001:db8::20
+ftp      CNAME www.example.com.
+info     TXT  "SAINTCON AppSec DNS module" "authoritative demo zone"
+
+
+loop1    CNAME loop2.example.com.
+loop2    CNAME loop1.example.com.

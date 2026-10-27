@@ -1,0 +1,145 @@
+/* MODULE HELP and the fleet Tutorial share one dialog (tutorial-dialog.js).
+ * The dialog is centered on the viewport. Its shade sits above the module
+ * Close and ? buttons. The loading card (z-index 32) and the leave card
+ * (z-index 34) stay above it, so Retry, Back, and Leave anyway remain usable. */
+
+/* The ? button: left of the Close X, same size and look, shown only in a settled
+ * close-up (not in the wide shot, not during the dive, not over the standings). */
+#bHelp{position:fixed;top:12px;right:58px;z-index:18;display:none;
+  width:38px;height:38px;padding:0;align-items:center;justify-content:center;
+  border-radius:50%;background:rgba(4,8,16,.86);border:1px solid #3d6a96;
+  color:#d8e8fa;font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:0;text-transform:none;
+  box-shadow:0 0 0 1px rgba(2,3,10,.6),0 2px 10px rgba(0,0,0,.5)}
+body.closeup:not(.moving) #bHelp{display:flex}
+#bHelp:hover{background:#131a26;border-color:#f2d67a;color:#fff}
+#bHelp[aria-expanded="true"]{border-color:#f2d67a;color:#f2d67a}
+#bHelp:focus-visible,.td-dialog button:focus-visible{
+  outline:3px solid #f2d67a;outline-offset:3px}
+
+.td-shade{position:fixed;inset:0;z-index:25;background:rgba(2,6,14,.62)}
+.td-shade[hidden]{display:none}
+.td-dialog{position:fixed;z-index:26;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(1180px,calc(100vw - 32px));
+  height:min(860px,calc(100vh - 32px));
+  display:flex;flex-direction:column;overflow:hidden;
+  padding:16px 20px 12px;background:rgba(4,8,16,.97);
+  border:1px solid #3d6a96;border-radius:4px;color:#d8e8fa;
+  font-size:16px;letter-spacing:.02em;text-align:left;
+  box-shadow:0 18px 60px rgba(0,0,0,.65)}
+.td-dialog[hidden]{display:none}
+.td-dialog .hp-head,.td-dialog .tu-head{display:flex;align-items:flex-start;gap:12px;flex:none}
+.td-dialog .hp-title,.td-dialog .tu-title{flex:1;min-width:0;font-size:20px;
+  letter-spacing:.06em;text-transform:uppercase;color:#f2d67a;line-height:1.3;
+  overflow-wrap:anywhere}
+.td-dialog button.hp-x,.td-dialog button.tu-x{width:32px;height:32px;padding:0;
+  display:flex;align-items:center;justify-content:center;border-radius:50%;
+  letter-spacing:0;line-height:1;flex:none}
+.td-dialog button.hp-x svg,.td-dialog button.tu-x svg{width:14px;height:14px;
+  display:block;pointer-events:none}
+.td-dialog .hp-progress{flex:none;margin:8px 0 0;color:#f2d67a;font-size:14px}
+.td-dialog .hp-body,.td-dialog .tu-body{margin-top:8px;flex:1;min-height:0;
+  overflow:hidden;display:grid;grid-template-rows:minmax(0,1fr) auto}
+.td-dialog .td-figure{min-height:0;overflow:hidden;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;margin:0 0 8px}
+.td-dialog .td-figure img{display:block;max-width:100%;max-height:100%;
+  width:auto;height:auto;object-fit:contain;background:#070b12;border:1px solid #3d6a96}
+.td-dialog .td-samples{min-height:0;overflow:hidden;display:flex;
+  align-items:center;justify-content:center;gap:56px;margin:0 0 8px}
+.td-dialog .td-sample{position:relative;display:flex;align-items:center;
+  justify-content:center;width:200px;height:200px;flex:none}
+.td-dialog .td-sample-perf{width:min(440px,100%);height:auto;flex-direction:column;
+  align-items:flex-start;gap:12px;pointer-events:none}
+.td-dialog .td-sample-person{width:220px;height:auto;flex-direction:column;
+  align-items:flex-start;gap:10px;pointer-events:none}
+.td-dialog .td-person-mark{position:relative;width:48px;height:48px;flex:none}
+.td-dialog .td-person-btn{position:relative;z-index:2;width:48px;height:48px;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:rgba(4,8,16,.92);border:1px solid #3d6a96;color:#d8e8fa}
+.td-dialog .td-person-btn svg{width:28px;height:28px;display:block}
+.td-dialog .td-person-menu{position:relative;z-index:2;min-width:168px;padding:8px;
+  background:rgba(4,8,16,.96);border:1px solid #3d6a96;border-radius:4px}
+.td-dialog .td-person-item{display:block;padding:4px 8px;color:#9fb6d0;font-size:14px;
+  letter-spacing:.03em;text-transform:none}
+.td-dialog .td-person-item[data-state="behind"]{color:#f2d67a}
+.td-dialog .td-sample-person .td-sample-rings{width:140px;height:140px}
+.td-dialog .td-perf-bar{display:flex;align-items:center;justify-content:flex-end;
+  height:38px;padding:0 10px;background:#0a0d14;border:1px solid #1d2836;border-radius:3px}
+.td-dialog .td-perf-btn,.td-dialog .td-perf-x,.td-dialog .td-perf-switch{
+  padding:5px 10px;border-radius:3px;font-size:14px;line-height:1;
+  letter-spacing:.04em;text-transform:none;white-space:nowrap}
+.td-dialog .td-perf-btn,.td-dialog .td-perf-x{background:#131a26;color:#9fb6d0;
+  border:1px solid #24405e}
+.td-dialog .td-perf-dialog{padding:16px 18px 14px;background:rgba(4,8,16,.97);
+  border:1px solid #3d6a96;border-radius:4px;color:#d8e8fa;text-align:left}
+.td-dialog .td-perf-head{display:flex;align-items:center;gap:12px}
+.td-dialog .td-perf-title{flex:1;margin:0;font-size:13px;font-weight:400;
+  letter-spacing:.12em;text-transform:uppercase;color:#f2d67a}
+.td-dialog .td-perf-row{display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-top:14px}
+.td-dialog .td-perf-name{text-transform:none;letter-spacing:.02em;color:#d8e8fa}
+.td-dialog .td-perf-switch{background:#c79a2e;color:#161208;border:1px solid #f2d67a}
+.td-dialog .td-sample-btn{position:relative;z-index:2;display:inline-flex;
+  align-items:center;gap:6px;padding:8px 12px;background:#131a26;color:#9fb6d0;
+  border:1px solid #24405e;border-radius:3px;font-size:14px;line-height:1;
+  letter-spacing:.04em;text-transform:none;white-space:nowrap}
+.td-dialog .td-sample-btn[data-state="behind"]{border-color:#877647;color:#f2d67a;
+  background:#1a1407}
+.td-dialog .td-sample-dot{width:9px;height:9px;border-radius:50%;flex:none;
+  background:#9fb6d0}
+.td-dialog .td-sample-btn[data-state="current"] .td-sample-dot{animation:none}
+.td-dialog .td-sample-btn[data-state="behind"] .td-sample-dot{background:#f2d67a;
+  box-shadow:0 0 6px #f2d67a;animation:tdSampleFlash 2.2s ease-in-out infinite}
+.td-dialog .td-sample-rings{position:absolute;left:50%;top:50%;z-index:1;
+  width:180px;height:180px;transform:translate(-50%,-50%);pointer-events:none}
+.td-dialog .td-sample-ring{position:absolute;left:50%;top:50%;width:100%;height:100%;
+  border-radius:50%;border:4px solid rgba(255,228,160,.42);
+  box-shadow:0 0 12px 2px rgba(242,214,122,.28);
+  transform:translate(-50%,-50%) scale(.12);opacity:0;
+  animation:tdSampleRipple 2.7s ease-out infinite}
+.td-dialog .td-sample-ring:nth-child(2){animation-delay:-.9s}
+.td-dialog .td-sample-ring:nth-child(3){animation-delay:-1.8s}
+@keyframes tdSampleFlash{0%,100%{opacity:1}50%{opacity:.28}}
+@keyframes tdSampleRipple{
+  0%{transform:translate(-50%,-50%) scale(.12);opacity:0}
+  14%{opacity:.46}
+  100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .td-dialog .td-sample-btn[data-state="behind"] .td-sample-dot{animation:none}
+  .td-dialog .td-sample-ring{animation:none;opacity:.34;
+    transform:translate(-50%,-50%) scale(.62)}
+  .td-dialog .td-sample-ring:nth-child(n+2){opacity:0}}
+.td-dialog .td-copy{min-height:0;max-height:min(18rem,50vh);overflow:auto}
+.td-dialog .td-copy-only{grid-row:1 / -1;max-height:none;align-self:start}
+.td-dialog .td-copy p{margin:0 0 8px;font-size:16px;line-height:1.45;color:#d5e4f4;
+  overflow-wrap:anywhere}
+.td-dialog .td-copy p:last-child{margin-bottom:0}
+.td-dialog .td-img-error{margin:8px 0 0;color:#ffb4b4;font-size:14px}
+.td-dialog .hp-actions,.td-dialog .tu-actions{margin-top:10px;display:flex;
+  justify-content:flex-end;gap:8px;flex:none}
+.td-dialog .hp-actions button,.td-dialog .tu-actions button,.td-dialog button.td-larger{
+  flex:none;width:auto;text-transform:none;letter-spacing:.04em}
+.td-dialog button[hidden]{display:none}
+.td-dialog .td-zoom{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;
+  gap:8px;padding:12px;background:rgba(4,8,16,.98)}
+.td-dialog .td-zoom[hidden]{display:none}
+.td-dialog .td-zoom-scroll{flex:1;min-height:0;overflow:auto;display:flex;
+  align-items:center;justify-content:center}
+.td-dialog .td-zoom-scroll img{display:block;object-fit:contain;background:#070b12;
+  border:1px solid #3d6a96}
+.td-dialog button.td-zoom-close{align-self:flex-end}
+@media (max-height:640px){
+  .td-dialog{padding:10px 12px 8px}
+  .td-dialog .hp-title,.td-dialog .tu-title{font-size:16px}
+  .td-dialog .td-copy{max-height:50vh}
+  .td-dialog .td-copy p{font-size:15px;line-height:1.4;margin-bottom:6px}
+}
+
+/* Reopened from the person menu, not a bottom-bar button. */
+#bTutorial{text-transform:none;letter-spacing:.04em}
+#closeTitle{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:18;
+  display:none;margin:0;max-width:min(72vw,760px);color:#f3ead7;text-align:center;
+  font:600 20px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.04em;text-shadow:0 1px 2px #000;pointer-events:none}
+body.closeup:not(.moving) #closeTitle{display:block}
+body.notext #closeTitle,body.notext #tutorialCard,body.notext #tutorialShade{visibility:hidden}

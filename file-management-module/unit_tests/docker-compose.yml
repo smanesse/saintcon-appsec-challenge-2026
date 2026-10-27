@@ -1,0 +1,54 @@
+# Runs the File Management Module and its unit tests entirely in containers,
+# so the deliberately-vulnerable server never listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# The `fmm` service is only reachable on the private compose network — it is
+# deliberately NOT published to the host. The `tests` service connects to it
+# by service name and drives the protocol over that network.
+
+services:
+  fmm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    # No `ports:` mapping on purpose: keep the vulnerable server off the host.
+    expose:
+      - "2121"
+    # Mirrors the resource envelope a real deployment/scoring harness would
+    # give this module, so the functional tests run under the same realistic
+    # CPU / memory / process-count profile the service is graded under.
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 200
+    environment:
+      # Unset here preserves the FLAG{local-dev-default} fallback baked into
+      # fmm.cpp (see write_flag_files() in main()) -- functional tests don't
+      # depend on its value, only that the server starts cleanly either way.
+      FMM_FLAG: ${FMM_FLAG:-}
+
+  tests:
+    image: python:3.12-slim
+    depends_on:
+      - fmm
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      FMM_HOST: fmm
+      FMM_PORT: "2121"
+      FMM_NO_LAUNCH: "1"   # connect to the fmm container; never launch locally
+    command: ["python3", "-m", "unittest", "test_fmm", "-v"]
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

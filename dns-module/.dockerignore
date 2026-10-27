@@ -1,0 +1,10 @@
+# Keep the build context lean. The image only needs dnsm.c, Makefile, zones/
+# and entrypoint.sh.
+dnsm
+*.o
+.git/
+.gitignore
+VULNS.md
+README.md
+vuln_tests/
+unit_tests/

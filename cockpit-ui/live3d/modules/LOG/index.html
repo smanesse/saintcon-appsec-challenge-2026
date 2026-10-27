@@ -1,0 +1,318 @@
+<!doctype html>
+<!-- SAINTCON 2026 — PER-MODULE CLOSE-UP TEMPLATE.
+
+     COPY THIS DIRECTORY to live3d/modules/<CODE>/ and edit module.js.
+     Do not edit live3d/app.js: eight agents editing one file is how the
+     convention drift in README section 7 happened.  The fleet integrator wires
+     the finished modules into app.js afterwards; your deliverable is a page
+     that stands alone and passes the checks.
+
+     SERVE FROM THE REPO ROOT:
+         cd /path/to/saintcon/2026
+         python3 -m http.server 8777
+         open http://localhost:8777/live3d/modules/<CODE>/
+
+     THE LAYER STACK BELOW IS THE OCCLUSION MECHANISM.  Do not reorder it, do
+     not add a layer between #css3d and #glFront, and do not put content text
+     anywhere but #css3d.  live3d/design/TEXT_OCCLUSION.md is the decision;
+     live3d/CONVERSION_BRIEF.md is the recipe. -->
+<meta charset="utf-8">
+<title>Black Box</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#02030a;overflow:hidden;color:#9fb6d0;
+    font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #viewport{position:fixed;left:0;right:0;top:0;bottom:0;overflow:hidden}
+  .stage{position:absolute;left:0;top:0;width:1280px;height:720px;
+    transform-origin:0 0}
+  .stage>*{position:absolute;left:0;top:0}
+  .layer{width:1280px;height:720px;pointer-events:none;user-select:none;
+    -webkit-user-drag:none}
+
+  /* ------------------------------------------------ THE SANDWICH, z 1..5
+     <img> baked plate                                 1
+     canvas #gl        everything BEHIND the readouts  2
+     div    #css3d     the DOM readouts                3
+     canvas #glFront   everything IN FRONT of them     4
+     div    #hots      pointer targets                 5                     */
+  #plate  {z-index:1}
+  #gl     {z-index:2}
+  #css3d  {z-index:3;pointer-events:none}
+  #glFront{z-index:4}
+  #hots   {z-index:5;width:1280px;height:720px}
+  .hot{position:absolute;cursor:pointer;border:1px solid transparent;
+    border-radius:3px;transition:background .12s,border-color .12s}
+  /* HOTSPOT HOVER = a soft edge glow, not a filled box (owner finding
+     f-mv6t5d1h).  No border colour, no fill: only a low-alpha, blurred
+     box-shadow, tinted to sit in the scene's light.  The element's box,
+     border width and radius are untouched, so the hotspot geometry the
+     occlusion split depends on does not move.  KEYBOARD FOCUS is a separate,
+     stronger cue -- a 2 px outline with a dark gap -- so focus and hover are
+     never confused. */
+  .hot{transition:box-shadow .15s ease,background .12s,border-color .12s}
+  .hot:hover{border-color:transparent;background:transparent;
+    box-shadow:0 0 0 1px rgba(140,195,255,.20),
+      0 0 14px 3px rgba(140,195,255,.26),
+      inset 0 0 12px rgba(140,195,255,.14)}
+  .hot:focus-visible{outline:2px solid #cfe9ff;outline-offset:3px;
+    border-color:transparent;background:transparent;
+    box-shadow:0 0 0 1px rgba(2,6,14,.9),0 0 16px 4px rgba(150,205,255,.38)}
+  .hot:focus:not(:focus-visible){outline:none}
+  body.debug .hot{border-color:rgba(63,224,255,.55);
+    background:rgba(63,224,255,.06)}
+
+  /* HELD PAPER.  The log sheet and the lens well are DOM placed in 3D on the
+     recorder's own face basis by a second CSS3D layer (#held).  At rest the
+     sheet is the tear-off tail hanging out of the slot; lifted, it comes toward
+     the camera in the panel's perspective.  The well rides the lens glass,
+     which is the frontmost thing on the panel.  Both are in front of every
+     piece of geometry, so #held sits above #hots and needs no occlusion split.
+     The host is pointer-events:none; only the paper and the well take the
+     pointer. */
+  #held{z-index:6;width:1280px;height:720px;pointer-events:none}
+  #logQ{pointer-events:auto;width:200px;height:52px;padding:0 12px;
+    background:rgba(236,226,206,.9);border:2px solid rgb(90,70,48);
+    border-radius:4px;outline:none;color:rgb(42,32,24);caret-color:rgb(42,32,24);
+    font:700 24px/48px "Courier Prime","Courier New",ui-monospace,monospace;
+    letter-spacing:0;box-shadow:none;appearance:none;-webkit-appearance:none;cursor:text}
+  #logQ::placeholder{color:rgba(42,32,24,.45)}
+  #logQ:focus{border-color:rgb(196,165,116);box-shadow:0 0 0 2px rgba(196,165,116,.6)}
+  #logQ[aria-invalid="true"]{border-color:#a4402c;background:rgba(233,207,195,.94)}
+  #logQ[hidden]{display:none}
+  .paper{pointer-events:auto;color:#2a2622;
+    border:1px solid #8d8368;border-radius:2px;display:flex;flex-direction:column;
+    font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    font-weight:700;font-size:15px;line-height:1.45;
+    box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.3)}
+  .paper[hidden]{display:none}
+  /* recorder paper: the tape's ruled ivory, and the torn edge along the top
+     where it came off the tail */
+  #sheet{width:540px;height:520px;padding:14px 16px 10px 16px;
+    background:repeating-linear-gradient(180deg,#ece6d6 0 26px,#e3dcc9 26px 27px)}
+  #sheet::before{content:"";position:absolute;left:0;right:0;top:-7px;height:8px;
+    background:radial-gradient(circle at 6px 8px,#ece6d6 5px,transparent 5.5px) 0 0/12px 8px repeat-x}
+  .paper .phd{display:flex;align-items:center;gap:10px;letter-spacing:.18em;
+    border-bottom:1px solid #8d8368;padding-bottom:5px;margin-bottom:8px;flex:none}
+  .paper .phd .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .paper .sz{font-weight:400;color:#6a6252;font-size:13px;letter-spacing:.04em;white-space:nowrap}
+  .paper .prow{display:flex;gap:7px;align-items:center;margin:0 0 6px;flex:none}
+  .paper .pk{color:#6a6252;letter-spacing:.1em;flex:none;width:44px}
+  .paper input{font:inherit;font-weight:700;letter-spacing:.04em;
+    background:#dcd5c3;color:#2a2622;border:1px solid #b3ab92;
+    border-radius:2px;padding:4px 7px;width:100%;min-width:0;flex:1}
+  .paper button{font:inherit;font-size:13px;font-weight:700;letter-spacing:.12em;
+    padding:5px 11px;border-radius:2px;cursor:pointer;text-transform:uppercase;
+    background:#c9bf9f;color:#2a2622;border:1px solid #8d8368;white-space:nowrap;flex:none}
+  .paper button:hover:not(:disabled){background:#d8cfb2;border-color:#5f5943}
+  .paper button:disabled{opacity:.45;cursor:default}
+  .paper button.go{background:#b8892f;border-color:#7a5a17;color:#1a1508}
+  .paper button.go:hover:not(:disabled){background:#c99a3c}
+  .paper button.sm{padding:3px 8px;font-size:12px;letter-spacing:.08em}
+  .paper .pclose{width:28px;height:28px;padding:0;display:flex;align-items:center;
+    justify-content:center;font-size:20px;line-height:1;letter-spacing:0;text-transform:none}
+  .paper button:focus-visible,.paper input:focus-visible{
+    outline:2px solid #1d4f8a;outline-offset:1px}
+  #sheetCard{display:flex;flex-direction:column;flex:1;min-height:0;outline:none}
+  #sheetLines{flex:1;min-height:0;overflow:auto;margin:0;padding:6px 8px;
+    background:rgba(250,247,238,.75);border:1px solid #b3ab92;border-radius:2px;
+    font:400 13.5px/1.4 "Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    white-space:pre-wrap;word-break:break-word;color:#2a2622}
+  #sheetLines .lv-WARN{color:#8a5a10}
+  #sheetLines .lv-ERROR{color:#a4402c}
+  #sheetLines .empty{color:#6a6252}
+  /* the STAMP strip at the foot of the sheet: the next line goes here */
+  .paper .stamp{display:flex;gap:6px;align-items:center;flex:none;margin-top:8px;
+    padding-top:8px;border-top:1px dashed #8d8368}
+  #logLevel{width:66px;padding:5px 0;text-align:center}
+  #logLevel[data-level="WARN"]{background:#d7b46a}
+  #logLevel[data-level="ERROR"]{background:#c9876f}
+  #logSrc{flex:0 0 84px;width:84px}
+  #logMsg{flex:1}
+  .paper .preply{flex:none;display:flex;align-items:center;gap:8px;margin-top:6px;
+    padding-top:4px;border-top:1px solid #c4bba3}
+  #sheetReply{flex:1;min-width:0;font-size:13px;font-weight:400;color:#3a352c;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.5em}
+  #sheetReply.err{white-space:normal;line-height:1.35;color:#a4402c}
+  #sheetReply.ok{color:#33572b}
+  #sheetReply.busy{color:#6a6252}
+  body.notext #held{visibility:hidden}
+
+  /* ---- DOM content text ----
+     Ink colour is measured off Blender's own render of your own type.  For KVS
+     that is rgb(122,113,107), a WARM grey, because albedo-neutral ink under six
+     warm area lights renders warm.  MEASURE YOUR MODULE'S; do not copy KVS's
+     and do not "fix" it to neutral.
+     TAKE THE MEDIAN OVER alpha > 0.5, WITH NO COLOUR TRANSFORM.  The recipe
+     this comment used to give -- "the most-common fully-opaque pixel" -- fails
+     twice and silently on small type: (a) nothing in MTA's type is fully
+     opaque, max alpha 224, so a >0.996 threshold returns an EMPTY set, and the
+     mode over the ~20 px that survive a lower one picked a specular highlight;
+     (b) bpy hands `image.pixels` back ALREADY display-encoded for an 8-bit sRGB
+     PNG, so applying an sRGB encode on top turned the true rgb(85,77,71) into a
+     wholly plausible rgb(157,150,146).  Cross-check against the PNG bytes read
+     with the stdlib decoder.  (Blender writes STRAIGHT alpha -- verified: mean
+     RGB is flat across every alpha bucket -- so a half-covered pixel still
+     carries the ink's own colour and belongs in the median.) */
+  /* ---- THE VENDORED FACE ----  FLEET RULE, decided once, see
+     CONVERSION_BRIEF.md section 7.6.  Every baked label in this project is
+     Courier New Bold (cockpit/modules/*/build.py's mono_font() loads
+     "/System/Library/Fonts/Supplemental/Courier New Bold.ttf"), which is a
+     Monotype face that may not be redistributed.  The Docker image has neither
+     it nor any guarantee of a mono face at all, so a face MUST be bundled --
+     and it is listed FIRST, ahead of Courier New, so that what is measured on
+     a developer's Mac is byte-for-byte what the container renders.  A stack
+     that resolves differently in the two places is how the Retina bug hid for
+     a week (README 16.5).
+     Courier Prime Bold, SIL OFL 1.1, is the chosen face; the measurement that
+     chose it is in the brief.  Do NOT swap in fonts/MatrixVCR5x7 -- it is a
+     5x7 pixel face and the engraved labels 3 mm away are Courier. */
+  .readout{overflow:hidden;color:rgb(122,113,107);
+    font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    font-weight:700;white-space:pre;letter-spacing:0}
+  .readout .lines{position:absolute}
+  body.notext .readout{visibility:hidden}
+
+  #bar{position:fixed;left:0;right:0;bottom:0;height:38px;display:none;
+    gap:8px;align-items:center;padding:0 10px;background:#0a0d14;
+    border-top:1px solid #1d2836;z-index:20}
+  /* white-space:nowrap and flex:none ARE NOT COSMETIC.  #bar is a 38 px flex
+     row; without them a long #note shrinks the buttons until their labels wrap
+     to two lines, the buttons grow to 45 px and OVERFLOW THE BAR UPWARDS by
+     3 px -- into the 1280x720 stage rect the capture harness clips.  Toggling
+     the split changes a button's colour, so the two screenshots then differ by
+     406 px outside the ground truth and check_occlusion.py's question 3 fails
+     for a toolbar.  getBoundingClientRect on #bar still says 720, so it looks
+     correct; only the button moves.  Every module writes a #note. */
+  button{font:inherit;letter-spacing:.12em;text-transform:uppercase;
+    white-space:nowrap;flex:none;
+    padding:5px 10px;background:#131a26;color:#9fb6d0;border:1px solid #24405e;
+    border-radius:3px;cursor:pointer}
+  button:hover{color:#d8e8fa;border-color:#3d6a96}
+  button.on{background:#c79a2e;color:#161208;border-color:#f2d67a}
+  #note{margin-left:auto;color:#5f7590;font-size:10.5px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #err{position:fixed;inset:auto 12px 48px 12px;z-index:40;display:none;
+    background:#2a0d0d;border:1px solid #a33;color:#ffb4b4;padding:10px 12px;
+    white-space:pre-wrap;font-size:12px}
+
+  /* ------------------------------------------------------------ EMBED MODE
+     `?embed=1` is how live3d/index.html -- the cockpit -- opens this page in an
+     iframe when the owner dives into this module.  Three declarations, and
+     each of them is load-bearing:
+
+       * TRANSPARENT BACKGROUND.  This module's plate.png is FILM-TRANSPARENT
+         (trap 20: OTA's is only 35% opaque) and is meant to composite over the
+         dimmed wide cockpit shot, which lives in the PARENT document.  An
+         opaque #02030a here would put black holes through the middle of the
+         close-up -- the exact bug README 16.2 records.
+       * NO TOOLBAR, and #viewport to the bottom edge, so the iframe is exactly
+         the 1280x720 stage and the cockpit's own transition can scale it as a
+         single rectangle.  The cockpit carries the equivalent buttons and
+         drives them through this page's own window.__occ.
+       * NOTHING ELSE.  The renderer, the split, the planes, the constants and
+         the session model are byte-identical in the two modes; embed mode
+         changes only what is around the stage.  Nothing the checkers measure
+         is inside a `.embed` rule -- the harness never sets it. */
+  html.embed,html.embed body{background:transparent}
+  html.embed #viewport{bottom:0}
+  html.embed #bar{display:none}
+  html.embed h1.module-title{display:none}
+
+  /* ---- DEV TOOLBAR GATE (owner finding f-mv6syyni 4.2) ----
+     The bottom #bar (dom text / occlusion split / show planes / show hotspots)
+     is a developer tool.  It is `display:none` above and `?dev=1` turns it on:
+     the head script adds class `dev` for ?dev=1 on this page's own URL or on the
+     cockpit page that embeds it.  Default off, never stored.  Standalone dev
+     gives the 38 px back to the bar; in an embed the bar overlays the bottom of
+     the 1280x720 stage instead, so the cockpit's transition rect is unchanged. */
+  html.dev #bar{display:flex}
+  html.dev:not(.embed) #viewport{bottom:38px}
+</style>
+<!-- The refit port's screen-space docket, and the telltale mast's screen-space
+     caption.  Both are CHROME, not instrument: siblings of the stage's own
+     layers, over the front canvas, in the page's own coordinates -- NOT
+     declared readout planes.  That is FIX_UPLOAD section 0 decision 2 and
+     STATUS_AT_A_GLANCE 6.5 item 1, and it is why LOG still reports EIGHT
+     readout planes and why check_text.py, verify_assets.py and
+     check_occlusion.py question 5 are NOT ENGAGED by either fitting.
+     Both files are shared by all nine modules and their font URLs resolve
+     from live3d/, so they are correct from this directory too. -->
+<link rel="stylesheet" href="../../refit.css">
+<link rel="stylesheet" href="../../mast.css">
+<link rel="stylesheet" href="../../service-rebuild.css">
+<script>
+/* Set BEFORE the body is laid out, so embed mode never flashes an opaque
+   background over the cockpit behind it.  No innerHTML, no markup assignment
+   -- one className on the root element. */
+(function () {
+  var c = [];
+  var flag = function (q) { return /(^|[?&])dev=1(&|$)/.test(String(q || '').replace(/^\?/, '')); };
+  if (location.search.indexOf('embed') >= 0) c.push('embed');
+  /* ?dev=1 -- developer toolbar.  Own URL, or the cockpit page's URL when this
+     page is the cockpit's iframe (same convention as app.js / FMM).  Never read
+     from storage, so it cannot stay on by accident. */
+  var dev = flag(location.search);
+  try {
+    if (!dev && window.parent && window.parent !== window) dev = flag(window.parent.location.search);
+  } catch (e) { /* cross-origin parent: no flag */ }
+  if (dev) c.push('dev');
+  if (c.length) document.documentElement.className = c.join(' ');
+})();
+</script>
+
+
+<div id="viewport">
+  <div class="stage" id="stage">
+    <img id="plate" class="layer" alt="">
+    <canvas id="gl" class="layer" width="1280" height="720"></canvas>
+    <div id="css3d"></div>
+    <canvas id="glFront" class="layer" width="1280" height="720"></canvas>
+    <div id="hots"></div>
+    <div id="held"></div>
+    <!-- THE LENS WELL.  module.js moves it into #held, onto the lens glass. -->
+    <input id="logQ" type="text" autocomplete="off" spellcheck="false"
+      placeholder="search" aria-label="Search the log"
+      title="Search the log: type a word, Enter to run it">
+    <!-- THE LOG SHEET.  Tears off the tail; module.js moves it into #held. -->
+    <div id="sheet" class="paper" hidden>
+      <div id="sheetCard" role="dialog" aria-label="Log sheet" tabindex="-1">
+        <div class="phd">
+          <span class="ttl" id="sheetTitle">Log sheet</span>
+          <span class="sz" id="sheetSize"></span>
+          <button type="button" class="pclose" id="sheetClose" aria-label="Close" title="Feed the sheet back into the slot (Esc)">&times;</button>
+        </div>
+        <div class="prow">
+          <span class="pk">FILE</span>
+          <input id="logDl" autocomplete="off" spellcheck="false" value="nav.log" aria-label="Log file name" title="Log file name, such as nav.log">
+          <button type="button" class="go" id="sheetOpen" title="Print this log file on the sheet">Open</button>
+          <button type="button" id="sheetSave" title="Save what is on the sheet to this computer">Save</button>
+        </div>
+        <pre id="sheetLines" aria-label="Log lines" tabindex="0"></pre>
+        <div class="stamp">
+          <button type="button" id="logLevel" data-level="INFO" title="Level: click for INFO, WARN, ERROR">INFO</button>
+          <input id="logSrc" autocomplete="off" spellcheck="false" value="misc" aria-label="Source" title="Source, such as nav or misc">
+          <input id="logMsg" autocomplete="off" spellcheck="false" placeholder="message" aria-label="Message" title="The line to add. Enter stamps it.">
+          <button type="button" class="go" id="logStamp" title="Add this line to the log">Stamp</button>
+        </div>
+        <div class="preply"><div id="sheetReply" role="status" aria-live="polite"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<h1 class="module-title" id="module-title">Black Box (LOG)</h1>
+<div id="err"></div>
+<div id="bar">
+  <button id="bOcc" class="on">occlusion split</button>
+  <button id="bText" class="on">dom text</button>
+  <button id="bPlanes">show planes</button>
+  <button id="bDbg">show hotspots</button>
+  <span id="note"></span>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"../../../three-exploration/vendor/three/build/three.module.min.js",
+  "three/addons/":"../../../three-exploration/vendor/three/examples/jsm/"
+}}
+</script>
+<script type="module" src="./module.js"></script>

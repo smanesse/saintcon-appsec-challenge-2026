@@ -1,0 +1,2940 @@
+{
+ "render": {
+  "w": 1280,
+  "h": 720
+ },
+ "camera": {
+  "lens_mm": 50.0,
+  "sensor_mm": 36.0,
+  "sensor_fit": "AUTO",
+  "angle_x_deg": 39.59775192067671,
+  "angle_y_deg_BLENDER_DO_NOT_USE": 26.991466429975517,
+  "fov_y_deg": 22.89519204617112,
+  "clip": [
+   0.10000000149011612,
+   1000.0
+  ],
+  "pos": [
+   0.5004746913909912,
+   1.438701868057251,
+   -0.982236921787262
+  ],
+  "forward": [
+   0.39316731691360474,
+   0.5000000596046448,
+   -0.7716342806816101
+  ],
+  "up": [
+   -0.22699527442455292,
+   0.8660253286361694,
+   0.4455033242702484
+  ]
+ },
+ "lights": [
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    2.140000104904175,
+    -1.2000000476837158
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 70.0,
+   "size": 2.4000000953674316,
+   "color": [
+    1.0,
+    0.8700000047683716,
+    0.6800000071525574
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    -1.7000000476837158,
+    2.140000104904175,
+    -0.0
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 40.0,
+   "size": 1.7999999523162842,
+   "color": [
+    1.0,
+    0.8199999928474426,
+    0.6000000238418579
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    1.7000000476837158,
+    2.140000104904175,
+    -0.0
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 40.0,
+   "size": 1.7999999523162842,
+   "color": [
+    1.0,
+    0.8199999928474426,
+    0.6000000238418579
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    2.140000104904175,
+    1.0
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 34.0,
+   "size": 2.0,
+   "color": [
+    1.0,
+    0.8399999737739563,
+    0.6200000047683716
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    1.4500000476837158,
+    -2.5
+   ],
+   "dir": [
+    0.0,
+    4.371138828673793e-08,
+    1.0
+   ],
+   "energy": 52.0,
+   "size": 2.4000000953674316,
+   "color": [
+    0.6000000238418579,
+    0.7599999904632568,
+    1.0
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    1.0199999809265137,
+    -0.550000011920929
+   ],
+   "dir": [
+    0.0,
+    -0.46947160363197327,
+    -0.882947564125061
+   ],
+   "energy": 26.0,
+   "size": 1.7999999523162842,
+   "color": [
+    1.0,
+    0.8799999952316284,
+    0.7200000286102295
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    1.2999999523162842,
+    -0.30000001192092896
+   ],
+   "dir": [
+    0.0,
+    1.0,
+    8.742277657347586e-08
+   ],
+   "energy": 34.0,
+   "size": 2.5999999046325684,
+   "color": [
+    1.0,
+    0.8600000143051147,
+    0.6600000262260437
+   ]
+  },
+  {
+   "tag": "close",
+   "type": "AREA",
+   "pos": [
+    0.44484061002731323,
+    1.9350498914718628,
+    -1.4572021961212158
+   ],
+   "dir": [
+    0.8327003717422485,
+    -0.09579260647296906,
+    -0.5453749299049377
+   ],
+   "energy": 1.4601600170135498,
+   "size": 0.30000001192092896,
+   "color": [
+    1.0,
+    0.8999999761581421,
+    0.7599999904632568
+   ]
+  },
+  {
+   "tag": "close",
+   "type": "AREA",
+   "pos": [
+    0.9777840375900269,
+    1.8326798677444458,
+    -1.2317702770233154
+   ],
+   "dir": [
+    -0.1711265742778778,
+    0.16131900250911713,
+    -0.9719525575637817
+   ],
+   "energy": 0.9125999808311462,
+   "size": 0.3199999928474426,
+   "color": [
+    0.7400000095367432,
+    0.8399999737739563,
+    1.0
+   ]
+  },
+  {
+   "tag": "close",
+   "type": "AREA",
+   "pos": [
+    0.8206180930137634,
+    1.5183299779891968,
+    -1.5761919021606445
+   ],
+   "dir": [
+    0.19192196428775787,
+    0.906248927116394,
+    -0.3766680359840393
+   ],
+   "energy": 0.7300800085067749,
+   "size": 0.25999999046325684,
+   "color": [
+    1.0,
+    0.8600000143051147,
+    0.6600000262260437
+   ]
+  },
+  {
+   "tag": "close",
+   "type": "AREA",
+   "pos": [
+    0.6307318806648254,
+    2.0493998527526855,
+    -1.4096908569335938
+   ],
+   "dir": [
+    0.6196703910827637,
+    -0.3291817605495453,
+    -0.7124942541122437
+   ],
+   "energy": 0.5475599765777588,
+   "size": 0.23999999463558197,
+   "color": [
+    1.0,
+    0.8399999737739563,
+    0.6399999856948853
+   ]
+  }
+ ],
+ "world_bg": [
+  0.00800000037997961,
+  0.012000000104308128,
+  0.029999999329447746,
+  1.0
+ ],
+ "colour": {
+  "view_transform": "AgX",
+  "look": "None",
+  "exposure": 0.0
+ },
+ "light_gain": 0.601,
+ "env_intensity": 0.0,
+ "raytrace": 1,
+ "scale": 0.78,
+ "rake_deg": 59.99999999999999,
+ "obliquity_deg": 0.0,
+ "px_per_m": 2072.0022152632846,
+ "ubias_m": 0.000292,
+ "ubias": {
+  "raw_min_m": 5.46e-05,
+  "eroded_min_m": 0.00041652,
+  "p1_m": 0.001248,
+  "median_m": 0.00343561,
+  "n_raw": 68341,
+  "n_inner": 64591,
+  "plateau": 261,
+  "plateau_frac": 0.00404,
+  "emerging": true
+ },
+ "tris": {
+  "all": 521636,
+  "static": 108508,
+  "live": 5488,
+  "content": 407640
+ },
+ "depth": {
+  "file": "depth.bin",
+  "format": "float32-le",
+  "layout": "top-down rows, 1 value per pixel",
+  "meaning": "linear view depth in metres along -Z_cam",
+  "background": 10000000000.0
+ },
+ "panel": {
+  "u": [
+   0.8910064697265625,
+   0.0,
+   0.45399048924446106
+  ],
+  "v": [
+   -0.2269953042268753,
+   0.8660253286361694,
+   0.4455033540725708
+  ],
+  "n": [
+   -0.39316731691360474,
+   -0.5000001192092896,
+   0.7716342806816101
+  ],
+  "origin": [
+   0.8839194774627686,
+   1.9199999570846558,
+   -1.7347897291183472
+  ]
+ },
+ "props": {
+  "sweep": {
+   "glb": "sweep.glb",
+   "kind": "rotate",
+   "label": "BEACON SWEEP",
+   "hub": [
+    0.7687705159187317,
+    1.8703199625015259,
+    -1.6565535068511963
+   ],
+   "axis": [
+    0.39316731691360474,
+    0.5000001192092896,
+    -0.7716342806816101
+   ],
+   "pivot_px": {
+    "x": 498.3051300048828,
+    "y": 333.6381769180298
+   },
+   "range": [
+    -180.0,
+    180.0
+   ],
+   "spin_deg_s": 96.0,
+   "hotspot": {
+    "x": 289,
+    "y": 124,
+    "w": 419,
+    "h": 419
+   }
+  },
+  "qtype": {
+   "glb": "qtype.glb",
+   "kind": "states",
+   "label": "QUERY TYPE",
+   "states": [
+    "A",
+    "AAAA",
+    "CNAME",
+    "TXT",
+    "MX",
+    "NS",
+    "AXFR",
+    "NX"
+   ],
+   "labels": [
+    "A",
+    "AAAA",
+    "CNAME",
+    "TXT",
+    "MX",
+    "NS",
+    "AXFR",
+    "NXDOM"
+   ],
+   "readouts": {
+    "A": "QT A      192.0.2.10",
+    "AAAA": "QT AAAA   2001:DB8::10",
+    "CNAME": "QT CNAME  FTP > WWW",
+    "TXT": "QT TXT    2 STRINGS",
+    "MX": "QT MX     10 MAIL",
+    "NS": "QT NS     NS1 . NS2",
+    "AXFR": "AXFR TCP  ZONE 23 RR",
+    "NX": "NXDOMAIN  RCODE 3"
+   },
+   "blips": {
+    "A": [
+     "dnsm_blip_a_0"
+    ],
+    "AAAA": [
+     "dnsm_blip_aaaa_0",
+     "dnsm_blip_aaaa_1"
+    ],
+    "CNAME": [
+     "dnsm_blip_cname_0",
+     "dnsm_blip_cname_1"
+    ],
+    "TXT": [
+     "dnsm_blip_txt_0",
+     "dnsm_blip_txt_1",
+     "dnsm_blip_txt_2"
+    ],
+    "MX": [
+     "dnsm_blip_mx_0",
+     "dnsm_blip_mx_1"
+    ],
+    "NS": [
+     "dnsm_blip_ns_0",
+     "dnsm_blip_ns_1"
+    ],
+    "AXFR": [
+     "dnsm_blip_axfr_0",
+     "dnsm_blip_axfr_1",
+     "dnsm_blip_axfr_2",
+     "dnsm_blip_axfr_3",
+     "dnsm_blip_axfr_4",
+     "dnsm_blip_axfr_5",
+     "dnsm_blip_axfr_6",
+     "dnsm_blip_axfr_7",
+     "dnsm_blip_axfr_8",
+     "dnsm_blip_axfr_9",
+     "dnsm_blip_axfr_10",
+     "dnsm_blip_axfr_11",
+     "dnsm_blip_axfr_12",
+     "dnsm_blip_axfr_13",
+     "dnsm_blip_axfr_14",
+     "dnsm_blip_axfr_15",
+     "dnsm_blip_axfr_16",
+     "dnsm_blip_axfr_17",
+     "dnsm_blip_axfr_18",
+     "dnsm_blip_axfr_19",
+     "dnsm_blip_axfr_20",
+     "dnsm_blip_axfr_21",
+     "dnsm_blip_axfr_22"
+    ],
+    "NX": []
+   },
+   "domes": [
+    "dnsm_lamp_dome_0",
+    "dnsm_lamp_dome_1",
+    "dnsm_lamp_dome_2",
+    "dnsm_lamp_dome_3",
+    "dnsm_lamp_dome_4",
+    "dnsm_lamp_dome_5",
+    "dnsm_lamp_dome_6",
+    "dnsm_lamp_dome_7"
+   ],
+   "lit": {
+    "A": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "AAAA": [
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "CNAME": [
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "TXT": [
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0
+    ],
+    "MX": [
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0
+    ],
+    "NS": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0
+    ],
+    "AXFR": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0
+    ],
+    "NX": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1
+    ]
+   },
+   "lamp_mat": {
+    "A": "on",
+    "AAAA": "on",
+    "CNAME": "on",
+    "TXT": "on",
+    "MX": "on",
+    "NS": "on",
+    "AXFR": "amber",
+    "NX": "red"
+   },
+   "mats": {
+    "off": "dnsm_lamp_off",
+    "on": "dnsm_lamp_on",
+    "amber": "dnsm_lamp_amber",
+    "red": "dnsm_lamp_red"
+   },
+   "hotspot": {
+    "x": 262,
+    "y": 552,
+    "w": 756,
+    "h": 81
+   }
+  },
+  "chart": {
+   "glb": "chart.glb",
+   "kind": "rotate",
+   "label": "STAR CHART",
+   "facets": 6,
+   "deg_per_facet": 60.0,
+   "hub": [
+    0.9477671980857849,
+    1.9432759284973145,
+    -1.6161280870437622
+   ],
+   "axis": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "pages": [
+    [
+     "@     SOA  NS1 2026072201",
+     "@     NS   NS1.EXAMPLE.",
+     "@     A    192.0.2.10"
+    ],
+    [
+     "WWW   A    192.0.2.10",
+     "WWW   AAAA 2001:DB8::10",
+     "FTP   CNAME WWW.EXAMPLE."
+    ],
+    [
+     "@     MX   10 MAIL.EXAM.",
+     "MAIL  A    192.0.2.25",
+     "INFO  TXT  SECTOR 7G"
+    ],
+    [
+     "NS1   A    192.0.2.53",
+     "NS2   A    192.0.2.54",
+     "BEACON A   192.0.2.99"
+    ],
+    [
+     "PLOT  A    192.0.2.71",
+     "DOCK  CNAME WWW.EXAMPLE.",
+     "CHART TXT  GRID 44-12"
+    ],
+    [
+     "-- AXFR 23 RR END --",
+     "SOA SERIAL 2026072201",
+     "TTL 300   AA=1"
+    ]
+   ],
+   "hotspot": {
+    "x": 736,
+    "y": 201,
+    "w": 267,
+    "h": 99
+   }
+  },
+  "courier": {
+   "glb": "courier.glb",
+   "kind": "states",
+   "label": "CHART COURIER",
+   "states": [
+    "chart",
+    "import",
+    "empty"
+   ],
+   "card": [
+    "dnsm_card",
+    "dnsm_card_edge",
+    "dnsm_card_txt_0",
+    "dnsm_card_txt_1",
+    "dnsm_card_txt_2",
+    "dnsm_card_punch_0",
+    "dnsm_card_punch_1",
+    "dnsm_card_punch_2"
+   ],
+   "dome": "dnsm_courier_dome",
+   "up_axis": [
+    -0.2269953042268753,
+    0.8660253286361694,
+    0.4455033540725708
+   ],
+   "slide_m": {
+    "chart": 0.0,
+    "import": -0.03744,
+    "empty": null
+   },
+   "lamp_mat": {
+    "chart": "off",
+    "import": "amber",
+    "empty": "off"
+   },
+   "mats": {
+    "off": "dnsm_lamp_off",
+    "on": "dnsm_lamp_amber"
+   },
+   "head": "CHART 44-12",
+   "hotspot": {
+    "x": 718,
+    "y": 337,
+    "w": 305,
+    "h": 182
+   }
+  }
+ },
+ "text_planes": [
+  {
+   "name": "query",
+   "carrier": "face plate (h 0.006) + 1.0 mm",
+   "origin": [
+    0.942898690700531,
+    1.966296911239624,
+    -1.519791841506958
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    -0.2269953042268753,
+    0.8660253286361694,
+    0.4455033540725708
+   ],
+   "n": [
+    -0.39316731691360474,
+    -0.5000001192092896,
+    0.7716342806816101
+   ],
+   "half_w": 0.027682153736650946,
+   "half_h": 0.00468,
+   "type": {
+    "adv_m": 0.0023747412487864494,
+    "lead_m": 0.007488000000000001,
+    "left_m": -0.026122153736650944,
+    "top_m": 0.0,
+    "base_m": -0.0010530787543393673,
+    "cap_m": 0.0023438251367770137,
+    "base_adj": 0.0,
+    "n_lines": 1,
+    "size_m": 0.0098,
+    "align": "left",
+    "n_cols": 22
+   },
+   "local": [
+    0.19251005351543427,
+    0.21126732230186462,
+    -0.05935508757829666
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 895.3951263427734,
+     "y": 106.26388549804688
+    },
+    "tr": {
+     "x": 1010.8448028564453,
+     "y": 106.26401424407959
+    },
+    "bl": {
+     "x": 895.3951263427734,
+     "y": 125.7821273803711
+    },
+    "br": {
+     "x": 1010.8448028564453,
+     "y": 125.78225612640381
+    }
+   },
+   "ink": [
+    222,
+    236,
+    224
+   ]
+  },
+  {
+   "name": "chart0",
+   "facet": 0,
+   "carrier": "drum facet 0 paper page + 1.0 mm (tangent)",
+   "origin": [
+    0.9011298418045044,
+    1.918705940246582,
+    -1.5921287536621094
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    -0.22699527442455292,
+    0.8660253286361694,
+    0.4455033242702484
+   ],
+   "n": [
+    -0.39316731691360474,
+    -0.5000000596046448,
+    0.7716342806816101
+   ],
+   "half_w": 0.025501267663612964,
+   "half_h": 0.01677,
+   "type": {
+    "adv_m": 0.001841635974124074,
+    "lead_m": 0.01443,
+    "left_m": -0.023941267663612962,
+    "top_m": 0.01443,
+    "base_m": -0.0008166733919642866,
+    "cap_m": 0.0018176603713072838,
+    "base_adj": 0.0,
+    "n_lines": 3,
+    "size_m": 0.0076,
+    "align": "left",
+    "n_cols": 26
+   },
+   "rest_local": [
+    [
+     -0.03930606693029404,
+     0.0,
+     0.06300000101327896
+    ],
+    [
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     -0.0,
+     1.0
+    ]
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 751.8099212646484,
+     "y": 217.04302310943604
+    },
+    "tr": {
+     "x": 856.2528991699219,
+     "y": 217.0429801940918
+    },
+    "bl": {
+     "x": 751.8099212646484,
+     "y": 285.7264566421509
+    },
+    "br": {
+     "x": 856.2530517578125,
+     "y": 285.7262849807739
+    }
+   },
+   "ink": [
+    123,
+    116,
+    106
+   ]
+  },
+  {
+   "name": "chart1",
+   "facet": 1,
+   "carrier": "drum facet 1 paper page + 1.0 mm (tangent)",
+   "origin": [
+    0.9204500913619995,
+    1.8941359519958496,
+    -1.6300468444824219
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    -0.45399048924446106,
+    -7.641620669573967e-08,
+    0.8910064697265625
+   ],
+   "n": [
+    1.9104055226648597e-08,
+    -1.0,
+    -3.8208110453297195e-08
+   ],
+   "half_w": 0.025501267663612964,
+   "half_h": 0.01677,
+   "type": {
+    "adv_m": 0.001841635974124074,
+    "lead_m": 0.01443,
+    "left_m": -0.023941267663612962,
+    "top_m": 0.01443,
+    "base_m": -0.0008166733919642866,
+    "cap_m": 0.0018176603713072838,
+    "base_adj": 0.0,
+    "n_lines": 3,
+    "size_m": 0.0076,
+    "align": "left",
+    "n_cols": 26
+   },
+   "rest_local": [
+    [
+     -0.03930606693029404,
+     -0.05455959960818291,
+     0.03150000050663948
+    ],
+    [
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.5000000000000001,
+     0.8660254037844386
+    ],
+    [
+     0.0,
+     -0.8660254037844386,
+     0.5000000000000001
+    ]
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 750.5309295654297,
+     "y": 321.803240776062
+    },
+    "tr": {
+     "x": 853.7789154052734,
+     "y": 321.8031120300293
+    },
+    "bl": {
+     "x": 746.9921112060547,
+     "y": 355.88789463043213
+    },
+    "br": {
+     "x": 846.9344329833984,
+     "y": 355.88789463043213
+    }
+   },
+   "ink": [
+    123,
+    116,
+    106
+   ]
+  },
+  {
+   "name": "chart2",
+   "facet": 2,
+   "carrier": "drum facet 2 paper page + 1.0 mm (tangent)",
+   "origin": [
+    0.9397702813148499,
+    1.918705940246582,
+    -1.6679649353027344
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    -0.22699524462223053,
+    -0.8660253882408142,
+    0.44550323486328125
+   ],
+   "n": [
+    0.3931673467159271,
+    -0.4999999701976776,
+    -0.7716343402862549
+   ],
+   "half_w": 0.025501267663612964,
+   "half_h": 0.01677,
+   "type": {
+    "adv_m": 0.001841635974124074,
+    "lead_m": 0.01443,
+    "left_m": -0.023941267663612962,
+    "top_m": 0.01443,
+    "base_m": -0.0008166733919642866,
+    "cap_m": 0.0018176603713072838,
+    "base_adj": 0.0,
+    "n_lines": 3,
+    "size_m": 0.0076,
+    "align": "left",
+    "n_cols": 26
+   },
+   "rest_local": [
+    [
+     -0.03930606693029404,
+     -0.05455959960818291,
+     -0.03150000050663948
+    ],
+    [
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     -0.49999999999999983,
+     0.8660254037844387
+    ],
+    [
+     0.0,
+     -0.8660254037844387,
+     -0.49999999999999983
+    ]
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 744.6736907958984,
+     "y": 355.97702980041504
+    },
+    "tr": {
+     "x": 842.4505615234375,
+     "y": 355.9769868850708
+    },
+    "bl": {
+     "x": 741.4945983886719,
+     "y": 324.9257183074951
+    },
+    "br": {
+     "x": 836.3018035888672,
+     "y": 324.9257183074951
+    }
+   },
+   "ink": [
+    123,
+    116,
+    106
+   ]
+  },
+  {
+   "name": "chart3",
+   "facet": 3,
+   "carrier": "drum facet 3 paper page + 1.0 mm (tangent)",
+   "origin": [
+    0.9397702813148499,
+    1.9678459167480469,
+    -1.6679649353027344
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    0.22699527442455292,
+    -0.8660253286361694,
+    -0.4455033242702484
+   ],
+   "n": [
+    0.39316731691360474,
+    0.5000000596046448,
+    -0.7716342806816101
+   ],
+   "half_w": 0.025501267663612964,
+   "half_h": 0.01677,
+   "type": {
+    "adv_m": 0.001841635974124074,
+    "lead_m": 0.01443,
+    "left_m": -0.023941267663612962,
+    "top_m": 0.01443,
+    "base_m": -0.0008166733919642866,
+    "cap_m": 0.0018176603713072838,
+    "base_adj": 0.0,
+    "n_lines": 3,
+    "size_m": 0.0076,
+    "align": "left",
+    "n_cols": 26
+   },
+   "rest_local": [
+    [
+     -0.03930606693029404,
+     -7.715274873501537e-18,
+     -0.06300000101327896
+    ],
+    [
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     -1.0,
+     1.2246467991473532e-16
+    ],
+    [
+     0.0,
+     -1.2246467991473532e-16,
+     -1.0
+    ]
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 740.439453125,
+     "y": 293.2794713973999
+    },
+    "tr": {
+     "x": 834.2610931396484,
+     "y": 293.2794713973999
+    },
+    "bl": {
+     "x": 740.439453125,
+     "y": 231.58093929290771
+    },
+    "br": {
+     "x": 834.2610931396484,
+     "y": 231.58089637756348
+    }
+   },
+   "ink": [
+    123,
+    116,
+    106
+   ]
+  },
+  {
+   "name": "chart4",
+   "facet": 4,
+   "carrier": "drum facet 4 paper page + 1.0 mm (tangent)",
+   "origin": [
+    0.9204500913619995,
+    1.9924159049987793,
+    -1.6300468444824219
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    0.45399048924446106,
+    7.641620669573967e-08,
+    -0.8910064697265625
+   ],
+   "n": [
+    -1.9104055226648597e-08,
+    1.0,
+    3.8208110453297195e-08
+   ],
+   "half_w": 0.025501267663612964,
+   "half_h": 0.01677,
+   "type": {
+    "adv_m": 0.001841635974124074,
+    "lead_m": 0.01443,
+    "left_m": -0.023941267663612962,
+    "top_m": 0.01443,
+    "base_m": -0.0008166733919642866,
+    "cap_m": 0.0018176603713072838,
+    "base_adj": 0.0,
+    "n_lines": 3,
+    "size_m": 0.0076,
+    "align": "left",
+    "n_cols": 26
+   },
+   "rest_local": [
+    [
+     -0.03930606693029404,
+     0.05455959960818291,
+     -0.03150000050663948
+    ],
+    [
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     -0.5000000000000004,
+     -0.8660254037844384
+    ],
+    [
+     0.0,
+     0.8660254037844384,
+     -0.5000000000000004
+    ]
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 741.4946746826172,
+     "y": 197.88492679595947
+    },
+    "tr": {
+     "x": 836.3018035888672,
+     "y": 197.88492679595947
+    },
+    "bl": {
+     "x": 744.6737670898438,
+     "y": 160.6573247909546
+    },
+    "br": {
+     "x": 842.4505615234375,
+     "y": 160.65719604492188
+    }
+   },
+   "ink": [
+    123,
+    116,
+    106
+   ]
+  },
+  {
+   "name": "chart5",
+   "facet": 5,
+   "carrier": "drum facet 5 paper page + 1.0 mm (tangent)",
+   "origin": [
+    0.9011298418045044,
+    1.9678459167480469,
+    -1.5921287536621094
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    0.22699524462223053,
+    0.8660253882408142,
+    -0.44550323486328125
+   ],
+   "n": [
+    -0.3931673467159271,
+    0.4999999701976776,
+    0.7716343402862549
+   ],
+   "half_w": 0.025501267663612964,
+   "half_h": 0.01677,
+   "type": {
+    "adv_m": 0.001841635974124074,
+    "lead_m": 0.01443,
+    "left_m": -0.023941267663612962,
+    "top_m": 0.01443,
+    "base_m": -0.0008166733919642866,
+    "cap_m": 0.0018176603713072838,
+    "base_adj": 0.0,
+    "n_lines": 3,
+    "size_m": 0.0076,
+    "align": "left",
+    "n_cols": 26
+   },
+   "rest_local": [
+    [
+     -0.03930606693029404,
+     0.05455959960818291,
+     0.03150000050663948
+    ],
+    [
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.5000000000000001,
+     -0.8660254037844386
+    ],
+    [
+     0.0,
+     0.8660254037844386,
+     0.5000000000000001
+    ]
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 746.9919586181641,
+     "y": 156.24202251434326
+    },
+    "tr": {
+     "x": 846.9345855712891,
+     "y": 156.24189376831055
+    },
+    "bl": {
+     "x": 750.5307769775391,
+     "y": 183.45146656036377
+    },
+    "br": {
+     "x": 853.7789154052734,
+     "y": 183.4513807296753
+    }
+   },
+   "ink": [
+    123,
+    116,
+    106
+   ]
+  },
+  {
+   "name": "courier",
+   "carrier": "chart card face (local z 0.0016) + 0.6 mm",
+   "origin": [
+    0.9034920930862427,
+    1.854371428489685,
+    -1.611182451248169
+   ],
+   "u": [
+    0.8910064697265625,
+    0.0,
+    0.45399048924446106
+   ],
+   "v": [
+    -0.22699527442455292,
+    0.8660253286361694,
+    0.4455033242702484
+   ],
+   "n": [
+    -0.39316731691360474,
+    -0.5000000596046448,
+    0.7716342806816101
+   ],
+   "half_w": 0.011155893127843737,
+   "half_h": 0.0039000000000000003,
+   "type": {
+    "adv_m": 0.0017447078414261341,
+    "lead_m": 0.005616,
+    "left_m": -0.009595893127843739,
+    "top_m": 0.0,
+    "base_m": -0.0007736905245110393,
+    "cap_m": 0.0017219939595088363,
+    "base_adj": 0.0,
+    "n_lines": 1,
+    "size_m": 0.0072,
+    "align": "left",
+    "n_cols": 11
+   },
+   "card_local": [
+    -0.04769757291302085,
+    0.017,
+    0.0022
+   ],
+   "corners_px": {
+    "tl": {
+     "x": 770.2638244628906,
+     "y": 376.28304719924927
+    },
+    "tr": {
+     "x": 816.8413543701172,
+     "y": 376.28289699554443
+    },
+    "bl": {
+     "x": 770.2638244628906,
+     "y": 392.5662875175476
+    },
+    "br": {
+     "x": 816.8413543701172,
+     "y": 392.5661373138428
+    }
+   },
+   "ink": [
+    124,
+    116,
+    105
+   ]
+  }
+ ],
+ "ink": {
+  "query": [
+   222,
+   236,
+   224
+  ],
+  "chart0": [
+   123,
+   116,
+   106
+  ],
+  "courier": [
+   124,
+   116,
+   105
+  ],
+  "chart1": [
+   123,
+   116,
+   106
+  ],
+  "chart2": [
+   123,
+   116,
+   106
+  ],
+  "chart3": [
+   123,
+   116,
+   106
+  ],
+  "chart4": [
+   123,
+   116,
+   106
+  ],
+  "chart5": [
+   123,
+   116,
+   106
+  ]
+ },
+ "pose": {
+  "qtype": "AXFR",
+  "chart_deg": 0.0,
+  "courier": "chart",
+  "sweep_deg": 0.0
+ },
+ "readout_text": [
+  [
+   "  AXFR TCP  ZONE 23 RR"
+  ],
+  [
+   "@     SOA  NS1 2026072201",
+   "@     NS   NS1.EXAMPLE.",
+   "@     A    192.0.2.10"
+  ],
+  [
+   "WWW   A    192.0.2.10",
+   "WWW   AAAA 2001:DB8::10",
+   "FTP   CNAME WWW.EXAMPLE."
+  ],
+  [
+   "@     MX   10 MAIL.EXAM.",
+   "MAIL  A    192.0.2.25",
+   "INFO  TXT  SECTOR 7G"
+  ],
+  [
+   "NS1   A    192.0.2.53",
+   "NS2   A    192.0.2.54",
+   "BEACON A   192.0.2.99"
+  ],
+  [
+   "PLOT  A    192.0.2.71",
+   "DOCK  CNAME WWW.EXAMPLE.",
+   "CHART TXT  GRID 44-12"
+  ],
+  [
+   "-- AXFR 23 RR END --",
+   "SOA SERIAL 2026072201",
+   "TTL 300   AA=1"
+  ],
+  [
+   "CHART 44-12"
+  ]
+ ],
+ "visible_at_pose": [
+  "query",
+  "chart0",
+  "courier"
+ ],
+ "visible_lines": {
+  "query": [
+   "dnsm_dom_query"
+  ],
+  "chart0": [
+   "dnsm_chart_txt_0_0",
+   "dnsm_chart_txt_0_1",
+   "dnsm_chart_txt_0_2"
+  ],
+  "courier": [
+   "dnsm_card_head"
+  ]
+ },
+ "hidden_lines": {
+  "chart1": [
+   [
+    "dnsm_chart_txt_1_0",
+    "dnsm_face_under"
+   ],
+   [
+    "dnsm_chart_txt_1_1",
+    "dnsm_face_under"
+   ],
+   [
+    "dnsm_chart_txt_1_2",
+    "dnsm_face_under"
+   ]
+  ],
+  "chart2": [
+   [
+    "dnsm_chart_txt_2_0",
+    "back-facing"
+   ],
+   [
+    "dnsm_chart_txt_2_1",
+    "back-facing"
+   ],
+   [
+    "dnsm_chart_txt_2_2",
+    "back-facing"
+   ]
+  ],
+  "chart3": [
+   [
+    "dnsm_chart_txt_3_0",
+    "back-facing"
+   ],
+   [
+    "dnsm_chart_txt_3_1",
+    "back-facing"
+   ],
+   [
+    "dnsm_chart_txt_3_2",
+    "back-facing"
+   ]
+  ],
+  "chart4": [
+   [
+    "dnsm_chart_txt_4_0",
+    "back-facing"
+   ],
+   [
+    "dnsm_chart_txt_4_1",
+    "back-facing"
+   ],
+   [
+    "dnsm_chart_txt_4_2",
+    "back-facing"
+   ]
+  ],
+  "chart5": [
+   [
+    "dnsm_chart_txt_5_0",
+    "dnsm_face_over"
+   ],
+   [
+    "dnsm_chart_txt_5_1",
+    "dnsm_face_over"
+   ],
+   [
+    "dnsm_chart_txt_5_2",
+    "dnsm_face_over"
+   ]
+  ]
+ },
+ "depth_verify": [
+  {
+   "name": "face under front",
+   "analytic": 0.8533199727535248,
+   "baked": 0.8533201217651367,
+   "err": 1.4901161193847656e-07
+  },
+  {
+   "name": "face left front",
+   "analytic": 0.8533199727535248,
+   "baked": 0.8533197045326233,
+   "err": -2.682209014892578e-07
+  },
+  {
+   "name": "window trim top",
+   "analytic": 0.8478599935770035,
+   "baked": 0.8478599190711975,
+   "err": -7.450580596923828e-08
+  },
+  {
+   "name": "courier slot lip",
+   "analytic": 0.8346000611782074,
+   "baked": 0.8345997333526611,
+   "err": -3.2782554626464844e-07
+  }
+ ],
+ "probe": {
+  "query": {
+   "covered": 3,
+   "of": 121,
+   "live": 0,
+   "front_facing": true,
+   "by": {
+    "baked dnsm_screw_1": 3
+   }
+  },
+  "chart0": {
+   "covered": 0,
+   "of": 121,
+   "live": 0,
+   "front_facing": true,
+   "by": {}
+  },
+  "chart1": {
+   "covered": 121,
+   "of": 121,
+   "live": 0,
+   "front_facing": true,
+   "by": {
+    "baked dnsm_face_under": 121
+   }
+  },
+  "chart2": {
+   "covered": 121,
+   "of": 121,
+   "live": 0,
+   "front_facing": false,
+   "by": {
+    "baked dnsm_face_under": 121
+   }
+  },
+  "chart3": {
+   "covered": 119,
+   "of": 121,
+   "live": 108,
+   "front_facing": false,
+   "by": {
+    "LIVE dnsm_chart_page_0": 108,
+    "baked dnsm_win_trim_2": 11
+   }
+  },
+  "chart4": {
+   "covered": 121,
+   "of": 121,
+   "live": 0,
+   "front_facing": false,
+   "by": {
+    "baked dnsm_face_over": 76,
+    "baked dnsm_win_trim_0": 44,
+    "baked dnsm_win_label": 1
+   }
+  },
+  "chart5": {
+   "covered": 121,
+   "of": 121,
+   "live": 0,
+   "front_facing": true,
+   "by": {
+    "baked dnsm_face_over": 109,
+    "baked dnsm_win_trim_0": 11,
+    "baked dnsm_win_label": 1
+   }
+  },
+  "courier": {
+   "covered": 0,
+   "of": 121,
+   "live": 0,
+   "front_facing": true,
+   "by": {}
+  }
+ },
+ "probe_live_hits": 0,
+ "probe_spin": [
+  {
+   "deg": -0.0,
+   "facets": {
+    "chart0": {
+     "covered": 0,
+     "of": 81,
+     "live": 0,
+     "by": {}
+    },
+    "chart1": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    },
+    "chart5": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 71,
+      "baked dnsm_win_trim_0": 9,
+      "baked dnsm_win_label": 1
+     }
+    }
+   }
+  },
+  {
+   "deg": -15.0,
+   "facets": {
+    "chart0": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_win_trim_0": 18
+     }
+    },
+    "chart1": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 54,
+      "baked dnsm_win_trim_1": 27
+     }
+    },
+    "chart5": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 80,
+      "baked dnsm_win_label": 1
+     }
+    }
+   }
+  },
+  {
+   "deg": -30.0,
+   "facets": {
+    "chart0": {
+     "covered": 63,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_0": 27,
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_face_over": 18
+     }
+    },
+    "chart1": {
+     "covered": 63,
+     "of": 81,
+     "live": 9,
+     "by": {
+      "baked dnsm_face_under": 27,
+      "baked dnsm_win_trim_1": 27,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart2": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -45.0,
+   "facets": {
+    "chart0": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 54,
+      "baked dnsm_win_trim_0": 27
+     }
+    },
+    "chart1": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_1": 18,
+      "LIVE dnsm_chart_rule_0": 9,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart2": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -60.0,
+   "facets": {
+    "chart0": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 71,
+      "baked dnsm_win_trim_0": 9,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart1": {
+     "covered": 0,
+     "of": 81,
+     "live": 0,
+     "by": {}
+    },
+    "chart2": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -75.0,
+   "facets": {
+    "chart0": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 80,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart1": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_win_trim_0": 18
+     }
+    },
+    "chart2": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 54,
+      "baked dnsm_win_trim_1": 27
+     }
+    }
+   }
+  },
+  {
+   "deg": -90.0,
+   "facets": {
+    "chart1": {
+     "covered": 63,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_0": 27,
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_face_over": 18
+     }
+    },
+    "chart2": {
+     "covered": 63,
+     "of": 81,
+     "live": 9,
+     "by": {
+      "baked dnsm_face_under": 27,
+      "baked dnsm_win_trim_1": 27,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart3": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -105.0,
+   "facets": {
+    "chart1": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 54,
+      "baked dnsm_win_trim_0": 27
+     }
+    },
+    "chart2": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_1": 18,
+      "LIVE dnsm_chart_rule_0": 9,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart3": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -120.0,
+   "facets": {
+    "chart1": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 71,
+      "baked dnsm_win_trim_0": 9,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart2": {
+     "covered": 0,
+     "of": 81,
+     "live": 0,
+     "by": {}
+    },
+    "chart3": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -135.0,
+   "facets": {
+    "chart1": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 80,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart2": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_win_trim_0": 18
+     }
+    },
+    "chart3": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 54,
+      "baked dnsm_win_trim_1": 27
+     }
+    }
+   }
+  },
+  {
+   "deg": -150.0,
+   "facets": {
+    "chart2": {
+     "covered": 63,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_0": 27,
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_face_over": 18
+     }
+    },
+    "chart3": {
+     "covered": 63,
+     "of": 81,
+     "live": 9,
+     "by": {
+      "baked dnsm_face_under": 27,
+      "baked dnsm_win_trim_1": 27,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart4": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -165.0,
+   "facets": {
+    "chart2": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 54,
+      "baked dnsm_win_trim_0": 27
+     }
+    },
+    "chart3": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_1": 18,
+      "LIVE dnsm_chart_rule_0": 9,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart4": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -180.0,
+   "facets": {
+    "chart2": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 71,
+      "baked dnsm_win_trim_0": 9,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart3": {
+     "covered": 0,
+     "of": 81,
+     "live": 0,
+     "by": {}
+    },
+    "chart4": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -195.0,
+   "facets": {
+    "chart2": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 80,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart3": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_win_trim_0": 18
+     }
+    },
+    "chart4": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 54,
+      "baked dnsm_win_trim_1": 27
+     }
+    }
+   }
+  },
+  {
+   "deg": -210.0,
+   "facets": {
+    "chart3": {
+     "covered": 63,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_0": 27,
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_face_over": 18
+     }
+    },
+    "chart4": {
+     "covered": 63,
+     "of": 81,
+     "live": 9,
+     "by": {
+      "baked dnsm_face_under": 27,
+      "baked dnsm_win_trim_1": 27,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart5": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -225.0,
+   "facets": {
+    "chart3": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 54,
+      "baked dnsm_win_trim_0": 27
+     }
+    },
+    "chart4": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_1": 18,
+      "LIVE dnsm_chart_rule_0": 9,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart5": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -240.0,
+   "facets": {
+    "chart3": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 71,
+      "baked dnsm_win_trim_0": 9,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart4": {
+     "covered": 0,
+     "of": 81,
+     "live": 0,
+     "by": {}
+    },
+    "chart5": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    }
+   }
+  },
+  {
+   "deg": -255.0,
+   "facets": {
+    "chart3": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 80,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart4": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_win_trim_0": 18
+     }
+    },
+    "chart5": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 54,
+      "baked dnsm_win_trim_1": 27
+     }
+    }
+   }
+  },
+  {
+   "deg": -270.0,
+   "facets": {
+    "chart0": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    },
+    "chart4": {
+     "covered": 63,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_0": 27,
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_face_over": 18
+     }
+    },
+    "chart5": {
+     "covered": 63,
+     "of": 81,
+     "live": 9,
+     "by": {
+      "baked dnsm_face_under": 27,
+      "baked dnsm_win_trim_1": 27,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    }
+   }
+  },
+  {
+   "deg": -285.0,
+   "facets": {
+    "chart0": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    },
+    "chart4": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 54,
+      "baked dnsm_win_trim_0": 27
+     }
+    },
+    "chart5": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_1": 18,
+      "LIVE dnsm_chart_rule_0": 9,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    }
+   }
+  },
+  {
+   "deg": -300.0,
+   "facets": {
+    "chart0": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    },
+    "chart4": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 71,
+      "baked dnsm_win_trim_0": 9,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart5": {
+     "covered": 0,
+     "of": 81,
+     "live": 0,
+     "by": {}
+    }
+   }
+  },
+  {
+   "deg": -315.0,
+   "facets": {
+    "chart0": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 54,
+      "baked dnsm_win_trim_1": 27
+     }
+    },
+    "chart4": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 80,
+      "baked dnsm_win_label": 1
+     }
+    },
+    "chart5": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_win_trim_0": 18
+     }
+    }
+   }
+  },
+  {
+   "deg": -330.0,
+   "facets": {
+    "chart0": {
+     "covered": 63,
+     "of": 81,
+     "live": 9,
+     "by": {
+      "baked dnsm_face_under": 27,
+      "baked dnsm_win_trim_1": 27,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart1": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    },
+    "chart5": {
+     "covered": 63,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_0": 27,
+      "LIVE dnsm_chart_page_0": 18,
+      "baked dnsm_face_over": 18
+     }
+    }
+   }
+  },
+  {
+   "deg": -345.0,
+   "facets": {
+    "chart0": {
+     "covered": 36,
+     "of": 81,
+     "live": 18,
+     "by": {
+      "baked dnsm_win_trim_1": 18,
+      "LIVE dnsm_chart_rule_0": 9,
+      "LIVE dnsm_chart_page_0": 9
+     }
+    },
+    "chart1": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_under": 81
+     }
+    },
+    "chart5": {
+     "covered": 81,
+     "of": 81,
+     "live": 0,
+     "by": {
+      "baked dnsm_face_over": 54,
+      "baked dnsm_win_trim_0": 27
+     }
+    }
+   }
+  }
+ ],
+ "probe_spin_worst_live": 18,
+ "refit": {
+  "glb": "refit.glb",
+  "label": "REFIT",
+  "kind": "iris_port",
+  "code": "DNSM",
+  "anchor_px": [
+   170,
+   690
+  ],
+  "port_px": 56,
+  "W_m": 0.03358823,
+  "seat_m": 0.000872232,
+  "spin_deg": 5.0,
+  "root_scale": 1.0,
+  "frame": {
+   "origin": [
+    0.718118045,
+    1.808949668,
+    -2.044841442
+   ],
+   "u": [
+    0.913129452,
+    0.030203496,
+    0.406549324
+   ],
+   "v": [
+    -0.027590102,
+    0.99954377,
+    -0.012289729
+   ],
+   "n": [
+    -0.406735037,
+    5.376e-06,
+    0.913546173
+   ]
+  },
+  "centre": [
+   0.715604759,
+   1.808949701,
+   -2.039196483
+  ],
+  "axis": [
+   -0.406735037,
+   5.376e-06,
+   0.913546173
+  ],
+  "hotspot": {
+   "x": 128.86,
+   "y": 652.87,
+   "w": 81.32,
+   "h": 67.13
+  },
+  "parts": {
+   "frame": "dnsm_refit_frame",
+   "throat": "dnsm_refit_throat",
+   "glow": "dnsm_refit_glow",
+   "guides": 2,
+   "leaves": [
+    "dnsm_refit_leaf_0",
+    "dnsm_refit_leaf_1",
+    "dnsm_refit_leaf_2",
+    "dnsm_refit_leaf_3",
+    "dnsm_refit_leaf_4",
+    "dnsm_refit_leaf_5"
+   ],
+   "ratchet": [
+    "dnsm_refit_detent"
+   ],
+   "jewel": "dnsm_refit_jewel",
+   "tally": "dnsm_refit_tally",
+   "tally_hinge": [
+    0.011084115905474003,
+    -0.011084115905474003
+   ],
+   "service_rail": "dnsm_refit_srail",
+   "label": "REFIT"
+  },
+  "leaves": [
+   {
+    "node": "dnsm_refit_leaf_0",
+    "pivot": [
+     0.728846855,
+     1.810610981,
+     -2.034330231
+    ]
+   },
+   {
+    "node": "dnsm_refit_leaf_1",
+    "pivot": [
+     0.721102763,
+     1.821970981,
+     -2.037778174
+    ]
+   },
+   {
+    "node": "dnsm_refit_leaf_2",
+    "pivot": [
+     0.708243189,
+     1.820309696,
+     -2.043503589
+    ]
+   },
+   {
+    "node": "dnsm_refit_leaf_3",
+    "pivot": [
+     0.703127707,
+     1.807288412,
+     -2.04578106
+    ]
+   },
+   {
+    "node": "dnsm_refit_leaf_4",
+    "pivot": [
+     0.7108718,
+     1.795928411,
+     -2.042333118
+    ]
+   },
+   {
+    "node": "dnsm_refit_leaf_5",
+    "pivot": [
+     0.723731374,
+     1.797589696,
+     -2.036607703
+    ]
+   }
+  ],
+  "open": {
+   "deg": -60.0,
+   "scale": 0.36,
+   "ms": 420,
+   "close_ms": 160
+  },
+  "ratchet": {
+   "pivot": [
+    0.71697091,
+    1.808949683,
+    -2.042264923
+   ],
+   "step_deg": 60.0,
+   "phases": 6
+  },
+  "tally": {
+   "hinge": [
+    0.726031803,
+    1.798205421,
+    -2.034554022
+   ],
+   "axis": [
+    0.913129452,
+    0.030203496,
+    0.406549324
+   ],
+   "up_deg": 78.0
+  },
+  "service_rail": {
+   "origin": [
+    0.718118045,
+    1.808949668,
+    -2.044841442
+   ],
+   "dir": [
+    0.913129452,
+    0.030203496,
+    0.406549324
+   ],
+   "claimed_half_m": 0.02183235,
+   "thick_m": 0.005038235,
+   "proud_m": 0.001812703,
+   "free_from_m": 0.050382345
+  },
+  "evidence": {
+   "tris": 1376,
+   "bbox_px": [
+    132.856,
+    206.172,
+    656.873,
+    717.372
+   ],
+   "projected_px": [
+    64.66,
+    55.39
+   ],
+   "carrier_solid_pct": 100.0,
+   "carrier_depth_m": [
+    1.08156,
+    1.1033
+   ],
+   "carrier_resid_max_m": 0.0,
+   "obliq_carrier_deg": 30.136,
+   "obliq_declared_face_deg": 0.0,
+   "normal_used": "carrier",
+   "seat_over_ubias": 2.99,
+   "carrier_grad_m_per_px": 0.000309944,
+   "seat_margin_px_of_gradient": 2.355,
+   "clearances": [
+    {
+     "what": "hotspot sweep",
+     "overlap_px2": 0.0,
+     "gap_px": 109.87313276298505
+    },
+    {
+     "what": "hotspot qtype",
+     "overlap_px2": 0.0,
+     "gap_px": 51.827938290475714
+    },
+    {
+     "what": "hotspot chart",
+     "overlap_px2": 0.0,
+     "gap_px": 525.8279382904757
+    },
+    {
+     "what": "hotspot courier",
+     "overlap_px2": 0.0,
+     "gap_px": 507.8279382904757
+    },
+    {
+     "what": "readout 0",
+     "overlap_px2": 0.0,
+     "gap_px": 685.2230646332491
+    },
+    {
+     "what": "readout 1",
+     "overlap_px2": 0.0,
+     "gap_px": 541.6378595551241
+    },
+    {
+     "what": "readout 2",
+     "overlap_px2": 0.0,
+     "gap_px": 536.8200494965304
+    },
+    {
+     "what": "readout 3",
+     "overlap_px2": 0.0,
+     "gap_px": 531.3225366791476
+    },
+    {
+     "what": "readout 4",
+     "overlap_px2": 0.0,
+     "gap_px": 530.2673914154757
+    },
+    {
+     "what": "readout 5",
+     "overlap_px2": 0.0,
+     "gap_px": 531.3226129730929
+    },
+    {
+     "what": "readout 6",
+     "overlap_px2": 0.0,
+     "gap_px": 536.8198969086397
+    },
+    {
+     "what": "readout 7",
+     "overlap_px2": 0.0,
+     "gap_px": 560.0917627533663
+    }
+   ]
+  }
+ },
+ "mast": {
+  "glb": "mast.glb",
+  "kind": "telltale_mast",
+  "code": "DNSM",
+  "variant": "defensive",
+  "mount": "measured carrier at (240, 710)",
+  "m": 6,
+  "L_m": 0.072835071,
+  "mast_px": 120,
+  "rake_deg": 0.0,
+  "rail_ramp_m": null,
+  "lift_m": 0.000876,
+  "start_m": 0.0,
+  "root_scale": 1.0,
+  "frame": {
+   "origin": [
+    0.75824814,
+    1.797004584,
+    -2.026970247
+   ],
+   "u": [
+    0.91312938,
+    0.030203389,
+    0.406549494
+   ],
+   "v": [
+    -0.027590295,
+    0.999543774,
+    -0.012289035
+   ],
+   "n": [
+    -0.406735186,
+    4.659e-06,
+    0.913546106
+   ]
+  },
+  "carrier": {
+   "origin": [
+    0.75860444,
+    1.79700458,
+    -2.027770513
+   ],
+   "u": [
+    0.91312938,
+    0.030203389,
+    0.406549494
+   ],
+   "v": [
+    -0.027590295,
+    0.999543774,
+    -0.012289035
+   ],
+   "n": [
+    -0.406735186,
+    4.659e-06,
+    0.913546106
+   ]
+  },
+  "axis_a": [
+   0.91312938,
+   0.030203389,
+   0.406549494
+  ],
+  "axis_b": [
+   -0.027590295,
+   0.999543774,
+   -0.012289035
+  ],
+  "axis_c": [
+   -0.406735186,
+   4.659e-06,
+   0.913546106
+  ],
+  "centre": [
+   0.789242781,
+   1.798132711,
+   -2.004799184
+  ],
+  "hotspot": {
+   "x": 231.73,
+   "y": 678.28,
+   "w": 144.73,
+   "h": 41.72
+  },
+  "parts": {
+   "foot": "dnsm_mast_foot",
+   "foot_top_m": 0.0008760000000003065,
+   "foot_u_m": [
+    -0.0021850521421554066,
+    0.013838663566985935
+   ],
+   "collar": "dnsm_mast_collar",
+   "rod": "dnsm_mast_rod",
+   "knob": "dnsm_mast_knob",
+   "bezel": [
+    "dnsm_mast_bezel_t",
+    "dnsm_mast_bezel_b",
+    "dnsm_mast_bezel_l",
+    "dnsm_mast_bezel_r"
+   ],
+   "bore": "dnsm_mast_bore",
+   "segments": [
+    "dnsm_mast_seg_0",
+    "dnsm_mast_seg_1",
+    "dnsm_mast_seg_2",
+    "dnsm_mast_seg_3",
+    "dnsm_mast_seg_4",
+    "dnsm_mast_seg_5"
+   ],
+   "hatch": [
+    "dnsm_mast_hatch_0",
+    "dnsm_mast_hatch_1",
+    "dnsm_mast_hatch_2",
+    "dnsm_mast_hatch_3",
+    "dnsm_mast_hatch_4",
+    "dnsm_mast_hatch_5"
+   ],
+   "grads": [
+    "dnsm_mast_grad_1",
+    "dnsm_mast_grad_2",
+    "dnsm_mast_grad_3",
+    "dnsm_mast_grad_4",
+    "dnsm_mast_grad_5"
+   ],
+   "sweep": "dnsm_mast_sweep",
+   "sweep_travel_m": 0.03380275663914772,
+   "hazard": [
+    "dnsm_mast_haz_0_0",
+    "dnsm_mast_haz_0_1",
+    "dnsm_mast_haz_1_0",
+    "dnsm_mast_haz_1_1",
+    "dnsm_mast_haz_2_0",
+    "dnsm_mast_haz_2_1",
+    "dnsm_mast_haz_3_0",
+    "dnsm_mast_haz_3_1",
+    "dnsm_mast_haz_4_0",
+    "dnsm_mast_haz_4_1",
+    "dnsm_mast_haz_5_0",
+    "dnsm_mast_haz_5_1",
+    "dnsm_mast_haz_6_0",
+    "dnsm_mast_haz_6_1"
+   ],
+   "lampbar": "dnsm_mast_lampbar",
+   "lamps": [
+    "dnsm_mast_lamp_0",
+    "dnsm_mast_lamp_1",
+    "dnsm_mast_lamp_2",
+    "dnsm_mast_lamp_3",
+    "dnsm_mast_lamp_4",
+    "dnsm_mast_lamp_5"
+   ],
+   "vane": "dnsm_mast_vane",
+   "vane_pivot_ab": [
+    0.06536219307901563,
+    0.0
+   ],
+   "vane_pivot_c": 0.003641753570259396,
+   "cap": "dnsm_mast_cap",
+   "cap_ring": "dnsm_mast_capring",
+   "cap_stripes": [
+    "dnsm_mast_capstripe_0",
+    "dnsm_mast_capstripe_1",
+    "dnsm_mast_capstripe_2"
+   ],
+   "cap_cross": [
+    "dnsm_mast_capcross_0",
+    "dnsm_mast_capcross_1"
+   ],
+   "scrim": [
+    "dnsm_mast_scrim_0",
+    "dnsm_mast_scrim_1",
+    "dnsm_mast_scrim_2",
+    "dnsm_mast_scrim_3",
+    "dnsm_mast_scrim_4"
+   ]
+  },
+  "sweep": {
+   "node": "dnsm_mast_sweep",
+   "travel_m": 0.033802757,
+   "ms": 1400
+  },
+  "vane": {
+   "node": "dnsm_mast_vane",
+   "pivot": [
+    0.81645105,
+    1.79897876,
+    -1.99707037
+   ],
+   "axis": [
+    -0.406735186,
+    4.659e-06,
+    0.913546106
+   ],
+   "flying_deg": 0.0,
+   "half_deg": -45.0,
+   "furled_deg": -90.0
+  },
+  "evidence": {
+   "tris": 1056,
+   "bbox_px": [
+    235.733,
+    372.466,
+    682.278,
+    718.09
+   ],
+   "envelope_px": [
+    136.73,
+    35.81
+   ],
+   "rail_bbox_px": null,
+   "grad_px": 11.33,
+   "obliq_face_deg": 30.136,
+   "obliq_carrier_deg": 30.136,
+   "px_per_m": [
+    1655.3,
+    1582.8
+   ],
+   "px_per_m_carrier": [
+    1582.8,
+    587.4
+   ],
+   "carrier_grad_m_per_px": 0.000310183,
+   "lift_margin_px_of_gradient": 2.353,
+   "carrier_solid_pct": 100.0,
+   "carrier_depth_m": [
+    1.08461,
+    1.10053
+   ],
+   "lift_over_ubias": 3.0,
+   "clearances": [
+    {
+     "what": "hotspot sweep",
+     "overlap_px2": 0.0,
+     "gap_px": 135.2784601258138
+    },
+    {
+     "what": "hotspot qtype",
+     "overlap_px2": 0.0,
+     "gap_px": 45.27846012581381
+    },
+    {
+     "what": "hotspot chart",
+     "overlap_px2": 0.0,
+     "gap_px": 378.2784601258138
+    },
+    {
+     "what": "hotspot courier",
+     "overlap_px2": 0.0,
+     "gap_px": 341.53395033193567
+    },
+    {
+     "what": "readout 0",
+     "overlap_px2": 0.0,
+     "gap_px": 552.49620399941
+    },
+    {
+     "what": "readout 1",
+     "overlap_px2": 0.0,
+     "gap_px": 392.55200348366293
+    },
+    {
+     "what": "readout 2",
+     "overlap_px2": 0.0,
+     "gap_px": 370.52606153799036
+    },
+    {
+     "what": "readout 3",
+     "overlap_px2": 0.0,
+     "gap_px": 365.02854872060755
+    },
+    {
+     "what": "readout 4",
+     "overlap_px2": 0.0,
+     "gap_px": 384.9989887284139
+    },
+    {
+     "what": "readout 5",
+     "overlap_px2": 0.0,
+     "gap_px": 480.39353332985434
+    },
+    {
+     "what": "readout 6",
+     "overlap_px2": 0.0,
+     "gap_px": 494.82699356545004
+    },
+    {
+     "what": "readout 7",
+     "overlap_px2": 0.0,
+     "gap_px": 393.7977747948263
+    },
+    {
+     "what": "refit port",
+     "overlap_px2": 0.0,
+     "gap_px": 21.552777761110065
+    }
+   ],
+   "rakes": [
+    {
+     "rake_deg": 0.0,
+     "obliq_deg": 30.14
+    },
+    {
+     "rake_deg": 15.0,
+     "obliq_deg": 15.34
+    },
+    {
+     "rake_deg": 30.0,
+     "obliq_deg": 3.46
+    },
+    {
+     "rake_deg": 45.0,
+     "obliq_deg": 15.43
+    },
+    {
+     "rake_deg": 57.0,
+     "obliq_deg": 27.25
+    },
+    {
+     "rake_deg": 60.0,
+     "obliq_deg": 30.23
+    },
+    {
+     "rake_deg": 75.0,
+     "obliq_deg": 45.15
+    },
+    {
+     "rake_deg": 90.0,
+     "obliq_deg": 60.11
+    }
+   ]
+  }
+ }
+}

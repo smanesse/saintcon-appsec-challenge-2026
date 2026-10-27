@@ -1,0 +1,14 @@
+# A.L.I.E.N. exploit grading runtime — third-party package allowlist.
+#
+# Single source of truth for the packages an exploit.py may import beyond the
+# Python 3.12 standard library. Both the remote grading harness and the local
+# test runner (bridge/alien_local.py builds an `alien-grader:local` image from
+# this list) install exactly these, so a local pass predicts a remote pass.
+# Keep this in sync with the table in aliens/GRADING.md.
+#
+# The grading network has no internet: the exploit itself can never pip-install.
+requests
+pycryptodome
+beautifulsoup4
+lxml
+PyYAML

@@ -1,0 +1,140 @@
+{
+  "schema": "saintcon.status/1",
+  "generated_at": null,
+  "note": "Blank first-open record: nothing has been tested yet, so every module reads as not tested. Real results replace this file (pipeline/make_status.py). The recorded sample run is demo/status.demo.json, shown only with ?demo=1 and labelled DEMO DATA.",
+  "fleet": {
+    "modules": [
+      "DNSM",
+      "FMM",
+      "IPM",
+      "KVS",
+      "LOG",
+      "MQB",
+      "MTA",
+      "OTA"
+    ]
+  },
+  "warnings": [],
+  "modules": {
+    "DNSM": {
+      "code": "DNSM",
+      "kind": "defensive",
+      "repo_dir": "dns-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "FMM": {
+      "code": "FMM",
+      "kind": "defensive",
+      "repo_dir": "file-management-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "IPM": {
+      "code": "IPM",
+      "kind": "defensive",
+      "repo_dir": "image-processing-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "KVS": {
+      "code": "KVS",
+      "kind": "defensive",
+      "repo_dir": "keystore-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "LOG": {
+      "code": "LOG",
+      "kind": "defensive",
+      "repo_dir": "log-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "MQB": {
+      "code": "MQB",
+      "kind": "defensive",
+      "repo_dir": "mqtt-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "MTA": {
+      "code": "MTA",
+      "kind": "defensive",
+      "repo_dir": "mail-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "OTA": {
+      "code": "OTA",
+      "kind": "defensive",
+      "repo_dir": "ota-module",
+      "run": {
+        "state": "idle"
+      },
+      "unit": {
+        "state": "untested"
+      },
+      "vulns": {
+        "state": "untested"
+      }
+    },
+    "PKT": {
+      "code": "PKT",
+      "kind": "offensive",
+      "arm": "safe",
+      "run": {
+        "state": "idle"
+      }
+    }
+  }
+}

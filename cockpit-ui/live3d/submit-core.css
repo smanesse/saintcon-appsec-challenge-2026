@@ -1,0 +1,36 @@
+/* Shared live "being scored" indicator — the phase stepper and per-item chips
+ * rendered by submit-core.js renderProgress(). Mirrors the harness's own
+ * scoring view. Included by both the cockpit (grade panel) and the weapons
+ * console (PKT). Colours match the fleet HUD palette. No counts, by design. */
+.sp-progress{font-size:13px;line-height:1.4}
+.sp-progress[hidden]{display:none}
+.sp-head{margin:0 0 8px;color:#f2d67a;letter-spacing:.04em;overflow-wrap:anywhere}
+.sp-steps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;
+  letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:#6f8099}
+.sp-step{color:#6f8099}
+.sp-step.is-current{color:#f2d67a}
+.sp-step.is-done{color:#8fe0a0}
+.sp-sep{color:#3d4a5a}
+.sp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;
+  max-height:9em;overflow:auto;overscroll-behavior:contain}
+.sp-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;
+  border:1px solid #243044;border-radius:2px;background:#0d1520;color:#9fb6d0;
+  font-size:12px;letter-spacing:.04em;overflow-wrap:anywhere}
+.sp-chip-glyph{font-size:13px;line-height:1}
+.sp-chip.is-running{color:#f2d67a;border-color:#877647;
+  animation:spChipPulse 1.1s ease-in-out infinite}
+.sp-chip.is-pass,.sp-chip.is-solved,.sp-chip.is-done{color:#8fe0a0;border-color:#2f5a3a}
+.sp-chip.is-fail,.sp-chip.is-missed,.sp-chip.is-error{color:#e59a9a;border-color:#6a2f2f}
+.sp-chip.is-skipped,.sp-chip.is-not-attempted{color:#6f8099;opacity:.7}
+@keyframes spChipPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){
+  .sp-chip.is-running{animation:none}
+}
+/* Submissions-left line beside a submit action. Empty words, not a count. */
+.sl-inline{display:inline-flex;align-items:center;gap:8px;margin:0;
+  min-height:40px;padding:0 2px;color:#9fb6d0;font-size:12px;line-height:1.3;
+  letter-spacing:.06em;text-transform:uppercase}
+.sl-inline .sl-v{flex:none;color:#5f7590;letter-spacing:.02em;text-transform:none}
+.sl-inline .sl-v.known{color:#f2d67a}
+.sl-inline .sl-note{flex:none;color:#5f7590;letter-spacing:.02em;text-transform:none;
+  font-size:11px}

@@ -1,0 +1,1074 @@
+{
+ "render": {
+  "w": 1280,
+  "h": 720
+ },
+ "camera": {
+  "lens_mm": 50.0,
+  "sensor_mm": 36.0,
+  "sensor_fit": "AUTO",
+  "angle_x_deg": 39.59775192067671,
+  "angle_y_deg_BLENDER_DO_NOT_USE": 26.991466429975517,
+  "fov_y_deg": 22.89519204617112,
+  "clip": [
+   0.10000000149011612,
+   1000.0
+  ],
+  "pos": [
+   0.8547620177268982,
+   1.1260409355163574,
+   -1.2299306392669678
+  ],
+  "forward": [
+   0.5382190346717834,
+   -0.11393021792173386,
+   -0.835068941116333
+  ],
+  "up": [
+   0.0617213100194931,
+   0.9934887290000916,
+   -0.09576311707496643
+  ]
+ },
+ "lights": [
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    2.140000104904175,
+    -1.2000000476837158
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 70.0,
+   "size": 2.4000000953674316,
+   "color": [
+    1.0,
+    0.8700000047683716,
+    0.6800000071525574
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    -1.7000000476837158,
+    2.140000104904175,
+    -0.0
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 40.0,
+   "size": 1.7999999523162842,
+   "color": [
+    1.0,
+    0.8199999928474426,
+    0.6000000238418579
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    1.7000000476837158,
+    2.140000104904175,
+    -0.0
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 40.0,
+   "size": 1.7999999523162842,
+   "color": [
+    1.0,
+    0.8199999928474426,
+    0.6000000238418579
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    2.140000104904175,
+    1.0
+   ],
+   "dir": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "energy": 34.0,
+   "size": 2.0,
+   "color": [
+    1.0,
+    0.8399999737739563,
+    0.6200000047683716
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    1.4500000476837158,
+    -2.5
+   ],
+   "dir": [
+    0.0,
+    4.371138828673793e-08,
+    1.0
+   ],
+   "energy": 52.0,
+   "size": 2.4000000953674316,
+   "color": [
+    0.6000000238418579,
+    0.7599999904632568,
+    1.0
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    1.0199999809265137,
+    -0.550000011920929
+   ],
+   "dir": [
+    0.0,
+    -0.46947160363197327,
+    -0.882947564125061
+   ],
+   "energy": 26.0,
+   "size": 1.7999999523162842,
+   "color": [
+    1.0,
+    0.8799999952316284,
+    0.7200000286102295
+   ]
+  },
+  {
+   "tag": "shell",
+   "type": "AREA",
+   "pos": [
+    0.0,
+    1.2999999523162842,
+    -0.30000001192092896
+   ],
+   "dir": [
+    0.0,
+    1.0,
+    8.742277657347586e-08
+   ],
+   "energy": 34.0,
+   "size": 2.5999999046325684,
+   "color": [
+    1.0,
+    0.8600000143051147,
+    0.6600000262260437
+   ]
+  },
+  {
+   "tag": "close",
+   "type": "AREA",
+   "pos": [
+    0.7146286964416504,
+    1.4463255405426025,
+    -1.9801323413848877
+   ],
+   "dir": [
+    0.8381263613700867,
+    -0.5093477964401245,
+    -0.1952153444290161
+   ],
+   "energy": 3.0,
+   "size": 0.550000011920929,
+   "color": [
+    1.0,
+    0.8799999952316284,
+    0.699999988079071
+   ]
+  },
+  {
+   "tag": "close",
+   "type": "AREA",
+   "pos": [
+    1.667919635772705,
+    1.2701603174209595,
+    -1.3881969451904297
+   ],
+   "dir": [
+    -0.26178207993507385,
+    -0.32179391384124756,
+    -0.909900426864624
+   ],
+   "energy": 1.600000023841858,
+   "size": 0.699999988079071,
+   "color": [
+    0.6600000262260437,
+    0.7900000214576721,
+    1.0
+   ]
+  },
+  {
+   "tag": "close",
+   "type": "AREA",
+   "pos": [
+    1.178269863128662,
+    1.3563207387924194,
+    -1.626902461051941
+   ],
+   "dir": [
+    0.3922457695007324,
+    -0.5167790055274963,
+    -0.7609748244285583
+   ],
+   "energy": 0.8999999761581421,
+   "size": 0.5,
+   "color": [
+    1.0,
+    0.9300000071525574,
+    0.800000011920929
+   ]
+  }
+ ],
+ "world_bg": [
+  0.00800000037997961,
+  0.012000000104308128,
+  0.029999999329447746,
+  1.0
+ ],
+ "colour": {
+  "view_transform": "AgX",
+  "look": "None",
+  "exposure": 0.0
+ },
+ "light_gain": 0.618,
+ "ubias_m": 0.000565,
+ "env_intensity": 0.0,
+ "raytrace": 1,
+ "depth": {
+  "file": "depth.bin",
+  "format": "float32-le",
+  "layout": "top-down rows, 1 value per pixel",
+  "meaning": "linear view depth in metres along -Z_cam",
+  "background": 10000000000.0
+ },
+ "props": {
+  "reel": {
+   "glb": "reel.glb",
+   "kind": "rotate",
+   "label": "PUNCHED TAPE (EVAL)",
+   "hub": [
+    1.2694286108016968,
+    0.912185549736023,
+    -2.1502490043640137
+   ],
+   "axis": [
+    -0.5292384624481201,
+    0.3229006230831146,
+    0.7846284508705139
+   ],
+   "pivot_px": {
+    "x": 377.4919128417969,
+    "y": 532.7545595169067
+   },
+   "hotspot": {
+    "x": 300,
+    "y": 457,
+    "w": 154,
+    "h": 150
+   }
+  },
+  "key": {
+   "glb": "key.glb",
+   "kind": "hinge",
+   "label": "TELEGRAPH KEY",
+   "hinge": [
+    1.5074251890182495,
+    0.927191972732544,
+    -2.0238311290740967
+   ],
+   "axis": [
+    0.829037606716156,
+    0.0,
+    0.5591928958892822
+   ],
+   "angles": {
+    "up": -6.0,
+    "down": 9.0
+   },
+   "hotspot": {
+    "x": 790,
+    "y": 477,
+    "w": 115,
+    "h": 130
+   }
+  },
+  "lamps": {
+   "glb": "lamps.glb",
+   "kind": "emissive",
+   "label": "MEMORY BANK",
+   "order": [
+    "idle",
+    "read",
+    "write",
+    "eval",
+    "fault"
+   ],
+   "patterns": {
+    "idle": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "read": [
+     1,
+     1,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0
+    ],
+    "write": [
+     1,
+     1,
+     1,
+     0,
+     0,
+     1,
+     0,
+     0
+    ],
+    "eval": [
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     1,
+     0
+    ],
+    "fault": [
+     1,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     1
+    ]
+   },
+   "domes": [
+    {
+     "node": "kvs_lamp_0",
+     "off": "kvs_green_off",
+     "on": "kvs_green_on",
+     "label": "AUTH"
+    },
+    {
+     "node": "kvs_lamp_1",
+     "off": "kvs_amber_off",
+     "on": "kvs_amber_on",
+     "label": "CORE"
+    },
+    {
+     "node": "kvs_lamp_2",
+     "off": "kvs_amber_off",
+     "on": "kvs_amber_on",
+     "label": "RELAY"
+    },
+    {
+     "node": "kvs_lamp_3",
+     "off": "kvs_amber_off",
+     "on": "kvs_amber_on",
+     "label": "TTL"
+    },
+    {
+     "node": "kvs_lamp_4",
+     "off": "kvs_amber_off",
+     "on": "kvs_amber_on",
+     "label": "SCAN"
+    },
+    {
+     "node": "kvs_lamp_5",
+     "off": "kvs_amber_off",
+     "on": "kvs_amber_on",
+     "label": "SAVE"
+    },
+    {
+     "node": "kvs_lamp_6",
+     "off": "kvs_amber_off",
+     "on": "kvs_amber_on",
+     "label": "EVAL"
+    },
+    {
+     "node": "kvs_lamp_7",
+     "off": "kvs_red_off",
+     "on": "kvs_red_on",
+     "label": "FAULT"
+    }
+   ],
+   "hotspot": {
+    "x": 396,
+    "y": 220,
+    "w": 497,
+    "h": 75
+   }
+  }
+ },
+ "text_plane": {
+  "origin": [
+   1.452345371246338,
+   0.9841138124465942,
+   -2.1531906127929688
+  ],
+  "u": [
+   0.829037606716156,
+   0.0,
+   0.5591928958892822
+  ],
+  "v": [
+   0.18056373298168182,
+   0.9464329481124878,
+   -0.2676968276500702
+  ],
+  "n": [
+   -0.5292384624481201,
+   0.3229006230831146,
+   0.7846284508705139
+  ],
+  "half_w": 0.158,
+  "half_h": 0.049,
+  "type": {
+   "size_m": 0.031,
+   "lead_m": 0.0205,
+   "left_m": -0.145,
+   "top_m": 0.040999999999999995,
+   "n_lines": 5,
+   "adv_m": 0.009630686603486538,
+   "base_m": -0.004270727746188641,
+   "cap_m": 0.009505308698862791,
+   "base_adj": 0.0,
+   "align": "left"
+  },
+  "rake_deg": {
+   "dash_face": 26.161566442019232,
+   "slot_normal_elev": 63.83843505773542,
+   "console_face_normal_elev": 18.838433287392224,
+   "console_face_from_horizontal": 71.16156671260778,
+   "obliquity_to_close_cam": 12.351634726130008
+  },
+  "corners_px": {
+   "tl": {
+    "x": 393.7022399902344,
+    "y": 308.4538221359253
+   },
+   "tr": {
+    "x": 895.5574035644531,
+    "y": 309.34929370880127
+   },
+   "bl": {
+    "x": 387.97027587890625,
+    "y": 461.99689865112305
+   },
+   "br": {
+    "x": 899.3527984619141,
+    "y": 463.8292980194092
+   }
+  }
+ },
+ "platen_text": [
+  [
+   "KVS CORE BANK  RESP2 RDY",
+   "> PING",
+   "+PONG",
+   "> AUTH **********",
+   "+OK"
+  ],
+  [
+   "> SET hull.integrity 97",
+   "+OK",
+   "> TYPE hull.integrity",
+   "+string",
+   "> TTL hull.integrity"
+  ],
+  [
+   ":-1",
+   "> INCR nav.fixcount",
+   ":14",
+   "> KEYS hull.*",
+   "1) \"hull.integrity\""
+  ],
+  [
+   "> EVAL \"return 6*7\" 0",
+   ":42",
+   "> SAVE",
+   "+OK  dump.kvs  812 B",
+   "> _"
+  ]
+ ],
+ "depth_verify": [
+  {
+   "name": "reel hub",
+   "analytic": 1.0160753428936005,
+   "baked": 1.0010305643081665,
+   "err": -0.01504477858543396
+  },
+  {
+   "name": "panel centre",
+   "analytic": 1.103047694079578,
+   "baked": 1.1125946044921875,
+   "err": 0.009546910412609577
+  },
+  {
+   "name": "text plane origin",
+   "analytic": 1.1087862569838762,
+   "baked": 1.1091554164886475,
+   "err": 0.0003691595047712326
+  }
+ ],
+ "refit": {
+  "glb": "refit.glb",
+  "label": "REFIT",
+  "kind": "iris_port",
+  "code": "KVS",
+  "anchor_px": [
+   364,
+   700
+  ],
+  "port_px": 56,
+  "W_m": 0.030437509,
+  "seat_m": 0.001707982,
+  "spin_deg": 15.0,
+  "root_scale": 1.0,
+  "frame": {
+   "origin": [
+    1.236631485,
+    0.834135939,
+    -2.099026966
+   ],
+   "u": [
+    0.860692687,
+    -0.004398156,
+    0.509105838
+   ],
+   "v": [
+    0.458647076,
+    0.440804322,
+    -0.771579166
+   ],
+   "n": [
+    -0.221022528,
+    0.89759245,
+    0.381414257
+   ]
+  },
+  "centre": [
+   1.235191057,
+   0.839985646,
+   -2.096541248
+  ],
+  "axis": [
+   -0.221022528,
+   0.89759245,
+   0.381414257
+  ],
+  "hotspot": {
+   "x": 322.51,
+   "y": 660.74,
+   "w": 82.26,
+   "h": 59.26
+  },
+  "parts": {
+   "frame": "kvs_refit_frame",
+   "throat": "kvs_refit_throat",
+   "glow": "kvs_refit_glow",
+   "guides": 2,
+   "leaves": [
+    "kvs_refit_leaf_0",
+    "kvs_refit_leaf_1",
+    "kvs_refit_leaf_2",
+    "kvs_refit_leaf_3",
+    "kvs_refit_leaf_4",
+    "kvs_refit_leaf_5"
+   ],
+   "ratchet": [
+    "kvs_refit_detent"
+   ],
+   "jewel": "kvs_refit_jewel",
+   "tally": "kvs_refit_tally",
+   "tally_hinge": [
+    0.01004437791427064,
+    -0.01004437791427064
+   ],
+   "service_rail": "kvs_refit_srail",
+   "label": "REFIT"
+  },
+  "leaves": [
+   {
+    "node": "kvs_refit_leaf_0",
+    "pivot": [
+     1.247582745,
+     0.84063153,
+     -2.093114918
+    ]
+   },
+   {
+    "node": "kvs_refit_leaf_1",
+    "pivot": [
+     1.243931156,
+     0.844675093,
+     -2.10474677
+    ]
+   },
+   {
+    "node": "kvs_refit_leaf_2",
+    "pivot": [
+     1.231727835,
+     0.843264235,
+     -2.108498161
+    ]
+   },
+   {
+    "node": "kvs_refit_leaf_3",
+    "pivot": [
+     1.223176103,
+     0.837809816,
+     -2.100617699
+    ]
+   },
+   {
+    "node": "kvs_refit_leaf_4",
+    "pivot": [
+     1.226827692,
+     0.833766253,
+     -2.088985847
+    ]
+   },
+   {
+    "node": "kvs_refit_leaf_5",
+    "pivot": [
+     1.239031013,
+     0.835177111,
+     -2.085234456
+    ]
+   }
+  ],
+  "open": {
+   "deg": -60.0,
+   "scale": 0.36,
+   "ms": 420,
+   "close_ms": 160
+  },
+  "ratchet": {
+   "pivot": [
+    1.235863795,
+    0.837253599,
+    -2.097702178
+   ],
+   "step_deg": 60.0,
+   "phases": 6
+  },
+  "tally": {
+   "hinge": [
+    1.239229355,
+    0.835513865,
+    -2.083677564
+   ],
+   "axis": [
+    0.860692687,
+    -0.004398156,
+    0.509105838
+   ],
+   "up_deg": 78.0
+  },
+  "service_rail": {
+   "origin": [
+    1.236631485,
+    0.834135939,
+    -2.099026966
+   ],
+   "dir": [
+    0.860692687,
+    -0.004398156,
+    0.509105838
+   ],
+   "claimed_half_m": 0.019784381,
+   "thick_m": 0.004565626,
+   "proud_m": 0.002560232,
+   "free_from_m": 0.045656263
+  },
+  "evidence": {
+   "tris": 1376,
+   "bbox_px": [
+    326.512,
+    400.769,
+    664.74,
+    719.967
+   ],
+   "projected_px": [
+    64.66,
+    43.87
+   ],
+   "carrier_solid_pct": 100.0,
+   "carrier_depth_m": [
+    0.95236,
+    0.98089
+   ],
+   "carrier_resid_max_m": 6.9e-05,
+   "obliq_carrier_deg": 57.335,
+   "obliq_declared_face_deg": 12.352,
+   "normal_used": "carrier",
+   "seat_over_ubias": 3.02,
+   "clearances": [
+    {
+     "what": "hotspot reel",
+     "overlap_px2": 0.0,
+     "gap_px": 53.73951614470491
+    },
+    {
+     "what": "hotspot key",
+     "overlap_px2": 0.0,
+     "gap_px": 385.23121151726525
+    },
+    {
+     "what": "hotspot lamps",
+     "overlap_px2": 0.0,
+     "gap_px": 365.7395161447049
+    },
+    {
+     "what": "readout 0",
+     "overlap_px2": 0.0,
+     "gap_px": 196.91021812529573
+    }
+   ]
+  }
+ },
+ "mast": {
+  "glb": "mast.glb",
+  "kind": "telltale_mast",
+  "code": "KVS",
+  "variant": "defensive",
+  "mount": "refit.service_rail",
+  "m": 6,
+  "L_m": 0.103772657,
+  "mast_px": 190,
+  "rake_deg": 45.0,
+  "rail_ramp_m": [
+   0.0,
+   0.010998638953087156
+  ],
+  "lift_m": 0.00904,
+  "start_m": 0.097400029,
+  "root_scale": 1.0,
+  "frame": {
+   "origin": [
+    1.318464934,
+    0.841821794,
+    -2.045992058
+   ],
+   "u": [
+    0.860692687,
+    -0.004398156,
+    0.509105838
+   ],
+   "v": [
+    0.168025929,
+    0.946389433,
+    -0.275888253
+   ],
+   "n": [
+    -0.480598986,
+    0.322997983,
+    0.815289468
+   ]
+  },
+  "carrier": {
+   "origin": [
+    1.236631485,
+    0.834135939,
+    -2.099026966
+   ],
+   "u": [
+    0.860692687,
+    -0.004398156,
+    0.509105838
+   ],
+   "v": [
+    0.458647076,
+    0.440804322,
+    -0.771579166
+   ],
+   "n": [
+    -0.221022528,
+    0.89759245,
+    0.381414257
+   ]
+  },
+  "axis_a": [
+   0.860692687,
+   -0.004398156,
+   0.509105838
+  ],
+  "axis_b": [
+   0.168025929,
+   0.946389433,
+   -0.275888253
+  ],
+  "axis_c": [
+   -0.480598986,
+   0.322997983,
+   0.815289468
+  ],
+  "centre": [
+   1.359029698,
+   0.845107176,
+   -2.010016686
+  ],
+  "hotspot": {
+   "x": 533.62,
+   "y": 638.49,
+   "w": 225.74,
+   "h": 67.94
+  },
+  "parts": {
+   "foot": "kvs_mast_foot",
+   "foot_top_m": 0.00433644776349441,
+   "foot_u_m": [
+    0.09428684907870546,
+    0.11711683368964537
+   ],
+   "service_rail": "kvs_mast_srail",
+   "service_rail_span_m": [
+    0.019784381,
+    0.2136254049993746
+   ],
+   "service_rail_ramp_m": [
+    0.0,
+    0.010998638953087156
+   ],
+   "collar": "kvs_mast_collar",
+   "rod": "kvs_mast_rod",
+   "knob": "kvs_mast_knob",
+   "bezel": [
+    "kvs_mast_bezel_t",
+    "kvs_mast_bezel_b",
+    "kvs_mast_bezel_l",
+    "kvs_mast_bezel_r"
+   ],
+   "bore": "kvs_mast_bore",
+   "segments": [
+    "kvs_mast_seg_0",
+    "kvs_mast_seg_1",
+    "kvs_mast_seg_2",
+    "kvs_mast_seg_3",
+    "kvs_mast_seg_4",
+    "kvs_mast_seg_5"
+   ],
+   "hatch": [
+    "kvs_mast_hatch_0",
+    "kvs_mast_hatch_1",
+    "kvs_mast_hatch_2",
+    "kvs_mast_hatch_3",
+    "kvs_mast_hatch_4",
+    "kvs_mast_hatch_5"
+   ],
+   "grads": [
+    "kvs_mast_grad_1",
+    "kvs_mast_grad_2",
+    "kvs_mast_grad_3",
+    "kvs_mast_grad_4",
+    "kvs_mast_grad_5"
+   ],
+   "sweep": "kvs_mast_sweep",
+   "sweep_travel_m": 0.04816089026335096,
+   "hazard": [
+    "kvs_mast_haz_0_0",
+    "kvs_mast_haz_0_1",
+    "kvs_mast_haz_1_0",
+    "kvs_mast_haz_1_1",
+    "kvs_mast_haz_2_0",
+    "kvs_mast_haz_2_1",
+    "kvs_mast_haz_3_0",
+    "kvs_mast_haz_3_1",
+    "kvs_mast_haz_4_0",
+    "kvs_mast_haz_4_1",
+    "kvs_mast_haz_5_0",
+    "kvs_mast_haz_5_1",
+    "kvs_mast_haz_6_0",
+    "kvs_mast_haz_6_1"
+   ],
+   "lampbar": "kvs_mast_lampbar",
+   "lamps": [
+    "kvs_mast_lamp_0",
+    "kvs_mast_lamp_1",
+    "kvs_mast_lamp_2",
+    "kvs_mast_lamp_3",
+    "kvs_mast_lamp_4",
+    "kvs_mast_lamp_5"
+   ],
+   "vane": "kvs_mast_vane",
+   "vane_pivot_ab": [
+    0.09312558268117031,
+    0.0
+   ],
+   "vane_pivot_c": 0.005188632866122706,
+   "cap": "kvs_mast_cap",
+   "cap_ring": "kvs_mast_capring",
+   "cap_stripes": [
+    "kvs_mast_capstripe_0",
+    "kvs_mast_capstripe_1",
+    "kvs_mast_capstripe_2"
+   ],
+   "cap_cross": [
+    "kvs_mast_capcross_0",
+    "kvs_mast_capcross_1"
+   ],
+   "scrim": [
+    "kvs_mast_scrim_0",
+    "kvs_mast_scrim_1",
+    "kvs_mast_scrim_2",
+    "kvs_mast_scrim_3",
+    "kvs_mast_scrim_4"
+   ]
+  },
+  "sweep": {
+   "node": "kvs_mast_sweep",
+   "travel_m": 0.04816089,
+   "ms": 1400
+  },
+  "vane": {
+   "node": "kvs_mast_vane",
+   "pivot": [
+    1.39612379,
+    0.843088131,
+    -1.994351042
+   ],
+   "axis": [
+    -0.480598986,
+    0.322997983,
+    0.815289468
+   ],
+   "flying_deg": 0.0,
+   "half_deg": -45.0,
+   "furled_deg": -90.0
+  },
+  "evidence": {
+   "tris": 1068,
+   "bbox_px": [
+    537.623,
+    755.364,
+    642.488,
+    702.427
+   ],
+   "envelope_px": [
+    217.74,
+    59.94
+   ],
+   "rail_bbox_px": [
+    399.84,
+    758.03,
+    673.45,
+    700.36
+   ],
+   "grad_px": 18.03,
+   "obliq_face_deg": 12.502,
+   "obliq_carrier_deg": 57.335,
+   "px_per_m": [
+    1847.7,
+    1874.1
+   ],
+   "px_per_m_carrier": [
+    1278.6,
+    1372.3
+   ],
+   "carrier_solid_pct": 100.0,
+   "carrier_depth_m": [
+    0.96335,
+    0.98285
+   ],
+   "lift_over_ubias": 16.0,
+   "clearances": [
+    {
+     "what": "hotspot reel",
+     "overlap_px2": 0.0,
+     "gap_px": 79.6228339025322
+    },
+    {
+     "what": "hotspot key",
+     "overlap_px2": 0.0,
+     "gap_px": 31.48770519242953
+    },
+    {
+     "what": "hotspot lamps",
+     "overlap_px2": 0.0,
+     "gap_px": 343.48770519242953
+    },
+    {
+     "what": "readout 0",
+     "overlap_px2": 0.0,
+     "gap_px": 174.65840717302035
+    },
+    {
+     "what": "refit port",
+     "overlap_px2": 0.0,
+     "gap_px": 128.8528339025322
+    }
+   ],
+   "rakes": [
+    {
+     "rake_deg": 0.0,
+     "obliq_deg": 57.33
+    },
+    {
+     "rake_deg": 15.0,
+     "obliq_deg": 42.35
+    },
+    {
+     "rake_deg": 30.0,
+     "obliq_deg": 27.39
+    },
+    {
+     "rake_deg": 45.0,
+     "obliq_deg": 12.5
+    },
+    {
+     "rake_deg": 57.0,
+     "obliq_deg": 2.23
+    },
+    {
+     "rake_deg": 60.0,
+     "obliq_deg": 3.48
+    },
+    {
+     "rake_deg": 75.0,
+     "obliq_deg": 17.83
+    },
+    {
+     "rake_deg": 90.0,
+     "obliq_deg": 32.76
+    }
+   ]
+  }
+ }
+}

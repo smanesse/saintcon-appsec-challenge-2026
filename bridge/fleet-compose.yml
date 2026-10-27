@@ -1,0 +1,167 @@
+
+services:
+  fmm:
+    profiles: ["day1"]
+    build:
+      context: ../file-management-module
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    ports:
+      - "127.0.0.1:2121:2121"
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 100
+
+  dnsm:
+    profiles: ["day1"]
+    build:
+      context: ../dns-module
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8053:8053"
+      - "127.0.0.1:8053:8053/udp"
+      - "127.0.0.1:8054:8080"
+    depends_on:
+      - metadata
+    environment:
+      DNSM_UPSTREAM: "127.0.0.11:53"
+      DNSM_ADMIN_TOKEN: ${DNSM_ADMIN_TOKEN:-}
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 100
+
+  kvs:
+    profiles: ["day1"]
+    build:
+      context: ../keystore-module
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:6379:6379"
+    environment:
+      KVS_REQUIREPASS: ${KVS_REQUIREPASS:-}
+      KVS_FLAG: ${KVS_FLAG:-}
+
+  ipm:
+    profiles: ["day2"]
+    build:
+      context: ../image-processing-module
+      dockerfile: Dockerfile
+    depends_on:
+      - fmm
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      IPM_FMM_HOST: fmm
+      IPM_FMM_PORT: "2121"
+      IPM_FMM_USER: alice
+      IPM_FMM_PASS: password123
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 100
+
+  log:
+    profiles: ["day2"]
+    build:
+      context: ../log-module
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8085:8080"
+    environment:
+      LOG_OP_TOKEN: "operator-secret-123"
+      LOG_FLAG_VALUE: ${LOG_FLAG_VALUE:-}
+
+  mqb:
+    profiles: ["day2"]
+    build:
+      context: ../mqtt-module
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:8082:8081"
+    environment:
+      MQB_REQUIREPASS: ${MQB_REQUIREPASS:-}
+
+  ota:
+    profiles: ["day3"]
+    build:
+      context: ../ota-module
+      dockerfile: Dockerfile
+    depends_on:
+      - dnsm
+      - fmm
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      OTA_API_KEY: ${OTA_API_KEY:-}
+      OTA_RESOLVER: "dnsm:8053"
+      OTA_FMM: "fmm:2121"
+      OTA_FMM_USER: alice
+      OTA_FMM_PASS: password123
+
+  mail:
+    profiles: ["day3"]
+    build:
+      context: ../mail-module
+      dockerfile: Dockerfile
+    depends_on:
+      - dnsm
+    ports:
+      - "127.0.0.1:2525:2525"
+      - "127.0.0.1:8083:8081"
+    environment:
+      MTA_AUTH_USER: "test"
+      MTA_AUTH_PASS: "testpass1"
+      MTA_RESOLVER: "dnsm:8053"
+
+  metadata:
+    profiles: ["day1"]
+    build:
+      context: ../metadata-service
+      dockerfile_inline: |
+        FROM python:3.12-slim
+        WORKDIR /srv
+        COPY metadata_service.py .
+    expose:
+      - "9000"
+    environment:
+      META_SECRET_DNS: "${DNSM_FLAG:-FLAG{local-dev-default}}"
+      META_SECRET_MTA: "${MTA_FLAG:-FLAG{local-dev-default}}"
+      META_SECRET_OTA: "${OTA_FLAG:-FLAG{local-dev-default}}"
+    command: ["python3", "metadata_service.py", "9000"]
+
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #network_mode: host
+    volumes:
+      - ../:/repo
+      - /var/run/docker.sock:/var/run/docker.sock
+      - bridge-session:/session
+    working_dir: /repo/bridge
+    environment:
+      BRIDGE_HOST: ${BRIDGE_HOST:-0.0.0.0}
+      BRIDGE_PORT: ${BRIDGE_PORT:-8787}
+      BRIDGE_LIVE_MODE: compose
+      BRIDGE_SESSION_FILE: /session/session.json
+      # Scoring uplink. Defaults to the public event harness; override by
+      # exporting HARNESS_URL (e.g. local rehearsal: HARNESS_URL=http://127.0.0.1:8888)
+      # or set it empty (HARNESS_URL=) to run with no external harness.
+      HARNESS_URL: ${HARNESS_URL-https://saintcon.sketrik.dev}
+      HARNESS_TIMEOUT: ${HARNESS_TIMEOUT:-30}
+      BRIDGE_AUTOUPDATE: ${BRIDGE_AUTOUPDATE:-1}
+      BRIDGE_UPDATE_AUTOAPPLY: ${BRIDGE_UPDATE_AUTOAPPLY:-0}
+      # Explicit local-operator opt-in for POST /api/updates/apply (default OFF).
+      BRIDGE_UPDATE_APPLY: ${BRIDGE_UPDATE_APPLY:-0}
+      BRIDGE_UPDATE_REMOTE: ${BRIDGE_UPDATE_REMOTE:-origin}
+      BRIDGE_UPDATE_BRANCH: ${BRIDGE_UPDATE_BRANCH:-main}
+    restart: unless-stopped
+    command: ["python3", "-u", "server.py"]
+    ports:
+      - "127.0.0.1:8787:8787"
+
+volumes:
+  bridge-session:
+
+

@@ -1,0 +1,110 @@
+/* THE REFIT DOCKET -- screen-space chrome for live3d/refit.js.
+ *
+ * NOT A READOUT.  Every pixel styled here lives in a screen-space layer above
+ * the front canvas, in exactly the class KVS's two `.hud` panels already
+ * occupy.  It is deliberately NOT a `text_planes` entry and must never become
+ * one: that is what keeps `check_text.py`, `verify_assets.py`'s type audit and
+ * `check_occlusion.py`'s question 5 NOT ENGAGED by this component rather than
+ * merely satisfied.  See live3d/design/FIX_UPLOAD.md section 0, decision 2.
+ *
+ * The layer is authored in raw 1280x720 stage pixels; the stage's own
+ * `transform: scale(k)` in each module's layout() scales it, so it is vector
+ * and stays sharp at any window size and any devicePixelRatio.
+ *
+ * ONE FILE FOR ALL NINE.  Paths here resolve against THIS file's URL
+ * (live3d/refit.css), not against the module page's, so `../fonts/...` is
+ * correct from every module directory depth. */
+
+
+/* The layer.  pointer-events:none so it changes nothing about hover, click or
+ * the cockpit's own hotspot arbitration; the docket itself opts back in. */
+#refit{z-index:7;width:1280px;height:720px;pointer-events:none;
+  font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace}
+
+/* ---------------------------------------------------------------- the docket
+ * ~520 x 420 on a 1280 x 720 stage, cream paper, a punched hole and a treasury
+ * tag at the top-left.  NOT a modal: no scrim, the instrument stays visible
+ * beside it (FIX_UPLOAD 5.2 step 3). */
+#refit .docket{position:absolute;width:520px;pointer-events:auto;
+  background:#e8e2d2;color:#2a2622;border:1px solid #8d8368;
+  border-radius:2px;padding:14px 18px 12px 30px;
+  box-shadow:0 10px 34px rgba(0,0,0,.62),0 0 0 1px rgba(0,0,0,.35);
+  font-size:12.5px;line-height:1.62;font-weight:700;white-space:pre;
+  transform-origin:50% 100%;
+  transition:opacity .18s ease-out,transform .26s cubic-bezier(.16,.9,.3,1)}
+#refit .docket[hidden]{display:none}
+#refit .docket.rise{opacity:0;transform:translateY(24px)}
+
+/* the punched hole and its treasury tag */
+#refit .punch{position:absolute;left:11px;top:16px;width:9px;height:9px;
+  border-radius:50%;background:#02030a;box-shadow:inset 0 1px 2px #000}
+#refit .tag{position:absolute;left:8px;top:27px;width:15px;height:34px;
+  background:linear-gradient(180deg,#b8892f,#8a6420);border-radius:1px;
+  box-shadow:0 1px 2px rgba(0,0,0,.4)}
+
+#refit h1{font-size:12.5px;font-weight:700;letter-spacing:.18em;margin:0 0 2px;
+  display:flex;gap:10px;align-items:baseline;
+  border-bottom:1px solid #8d8368;padding-bottom:5px}
+#refit h1 .no{margin-left:auto;letter-spacing:.1em;color:#6a6252}
+/* REHEARSAL is a promise, not decoration: it is the word that says no
+ * container was touched.  FIX_UPLOAD 5.1 assumption 2. */
+#refit h1 .mode{letter-spacing:.14em;padding:1px 6px;border-radius:2px;
+  background:#8d8368;color:#f4efe2;font-size:10.5px}
+#refit h1 .mode.live{background:#7a3a12}
+
+#refit .kv{display:grid;grid-template-columns:96px 1fr;column-gap:8px}
+#refit .kv .k{color:#6a6252;letter-spacing:.1em}
+#refit .files{margin:2px 0 4px 12px;color:#3a352c;font-size:11.5px}
+#refit .files .f{display:grid;grid-template-columns:1fr 44px 44px;
+  column-gap:6px}
+#refit .files .add{color:#2b6b34;text-align:right}
+#refit .files .del{color:#8a2b22;text-align:right}
+#refit hr{border:0;border-top:1px solid #8d8368;margin:7px 0}
+
+/* the four plain steps, painted ONLY while a rebuild is running (they used to
+ * be six always-painted grey rows).  The ratchet on the port is the ambient
+ * readout you can read from across the panel. */
+#refit .steps{margin:4px 0 2px 12px;white-space:normal}
+#refit .steps[hidden]{display:none}
+#refit .ph{display:grid;grid-template-columns:14px 1fr auto;
+  column-gap:8px;color:#4a4438}
+#refit .ph .n{color:#8d8368}
+#refit .ph .nm{letter-spacing:.04em}
+#refit .ph.run{color:#2a2622}
+#refit .ph.run .n{color:#7a3a12}
+#refit .ph.ok .st{color:#2b6b34}
+#refit .ph.no .st{color:#8a2b22}
+#refit .ph.prev .st{color:#6a6252}
+#refit .ph.pend{opacity:.5}
+#refit .files[hidden]{display:none}
+
+#refit .btns{display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:10px}
+#refit button{font:inherit;font-size:12px;font-weight:700;letter-spacing:.05em;
+  padding:6px 14px;border-radius:2px;cursor:pointer;
+  background:#c9bf9f;color:#2a2622;border:1px solid #8d8368;
+  white-space:nowrap;flex:none}
+#refit button:hover:not(:disabled){background:#d8cfb2;border-color:#5f5943}
+#refit button:disabled{opacity:.45;cursor:default}
+#refit .pwr-state{align-self:center;font-size:11px;letter-spacing:.08em;
+  font-weight:700;color:#3a352c;margin-right:2px}
+#refit .pwr-state[data-powered="locked"]{opacity:.55}
+#refit button.go,#refit button.ret{background:#b8892f;border-color:#7a5a17;color:#1a1508}
+#refit .rebuild-warn,#refit .rebuild-status{white-space:normal;margin:4px 0}
+#refit .log{margin-top:8px;max-height:96px;overflow:auto;font-size:11px;
+  line-height:1.5;background:#dcd5c3;border:1px solid #b3ab92;padding:5px 7px;
+  color:#3a352c}
+#refit .log[hidden]{display:none}
+
+/* FILE RETURN block: scoring copy, not rebuild phases.  white-space:normal
+ * so the helper wraps instead of stretching past placeDocket(). */
+#refit .fr{margin:2px 0 0;white-space:normal;font-size:11px;line-height:1.4}
+#refit .fr .help{color:#6a6252;margin-top:3px}
+#refit .fr .sec{font-size:12px;letter-spacing:.1em;margin-bottom:1px}
+#refit .fr .files{margin:4px 0 0 0;font-size:11px;white-space:normal}
+#refit .fr .log{margin-top:6px;max-height:72px}
+
+/* `body.notext` is the fleet's "hide every string" switch, used by
+ * check_text.py's DOM-ink difference.  The docket is chrome, not instrument
+ * content, but it must still vanish with it -- otherwise its ink would be
+ * scored as if it were on the panel. */
+body.notext #refit{visibility:hidden}

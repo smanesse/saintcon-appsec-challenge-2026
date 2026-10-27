@@ -1,0 +1,62 @@
+services:
+  navcomputer:
+    build:
+      context: ./01-navcomputer
+      args:
+        FLAG: "${FLAG1:-SAINTCON{local_navcomputer_flag}}"
+    ports:
+      - "8091:8080"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [NET_RAW]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 256m
+    restart: unless-stopped
+
+  cargo:
+    build:
+      context: ./02-cargo-manifests
+      args:
+        FLAG: "${FLAG2:-SAINTCON{local_cargo_flag}}"
+    ports:
+      - "8092:8080"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 256m
+    restart: unless-stopped
+
+  reactor:
+    build:
+      context: ./03-reactor-core
+      args:
+        FLAG: "${FLAG3:-SAINTCON{local_reactor_flag}}"
+    ports:
+      - "8093:8080"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 256m
+    restart: unless-stopped
+
+  docking:
+    build:
+      context: ./04-docking-bay
+      args:
+        FLAG: "${FLAG4:-SAINTCON{local_docking_flag}}"
+    ports:
+      - "8094:8080"
+    read_only: true
+    # Varnish compiles its VCL to a shared object and dlopen()s it, so its work
+    # dir must be exec-capable — the default tmpfs mount is noexec.
+    tmpfs:
+      - /tmp:exec,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 512
+    mem_limit: 512m
+    restart: unless-stopped

@@ -1,0 +1,182 @@
+/* THE MUSTER BOARD -- screen-space type for live3d/leaderboard.js.
+ *
+ * NOT A READOUT, AND IT MUST NEVER BECOME ONE.  Every pixel styled here lives
+ * in a screen-space layer above the canvas, in exactly the class the refit
+ * docket and the telltale caption already occupy.  There is no `text_planes`
+ * entry for this component and there must never be one: that is what keeps
+ * `check_text.py`, `verify_assets.py`'s type audit and `check_occlusion.py`'s
+ * question 5 NOT ENGAGED by the board rather than merely satisfied.  It is the
+ * fitting precedent's decision 2, live3d/design/FIX_UPLOAD.md section 0.
+ * It also dodges `MAX_PLANES = 12` (live3d/occlusion.js:78), which a
+ * plane-per-row design would blow at 13 rows.
+ *
+ * WHY A SCREEN-SPACE LAYER IS HONEST HERE AND A STICKER ELSEWHERE.
+ * live3d/css3d.js:9-15 records that a screen-space DOM box over a RAKED face
+ * reads as a sticker floating in front of the panel.  The board face is square
+ * to the camera by construction (the camera is on the face normal through the
+ * face centre -- live3d/pipeline/leaderboard.py), so screen-space DOM and
+ * CSS3D produce THE SAME PIXELS.  No matrix3d, no declared plane, and no
+ * dependence on layoutType()'s one-advance monospace assumption.
+ *
+ * The layer is authored in raw 1280x720 stage pixels; the stage's own
+ * `transform: scale(k)` scales it, so it is vector and stays sharp at any
+ * window size and any devicePixelRatio.
+ *
+ * PATHS RESOLVE AGAINST THIS FILE'S URL (live3d/leaderboard.css), not against
+ * the page's, so `../fonts/...` is correct from live3d/modules/_LEADERBOARD/
+ * -- the same rule refit.css:14-16 states.
+ *
+ * NO GEOMETRY NUMBER IS TYPED IN THIS FILE.  Every rectangle -- the rack, the
+ * slat pitch, the three plaques, the sub-plate, the rail -- comes from
+ * `scene.json -> layout`, which the Blender builder emits, and is applied from
+ * leaderboard.js as an inline style.  What is here is paper: colour, face,
+ * weight, alignment.  A number in both places is a number that drifts. */
+
+
+/* ------------------------------------------------------------------ layer */
+#board{position:absolute;left:0;top:0;width:1280px;height:720px;
+  pointer-events:none;user-select:none;
+  font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+  font-weight:700;letter-spacing:0;
+  /* --rowfs is set from scene.json -> layout.row.font by leaderboard.js.
+   * (It was layout.modes[mode].font; there is one row now, so there is one
+   * key.)  The literal below is a FALLBACK ONLY, so a page whose scene.json
+   * failed to load still lays out at a sane size instead of collapsing to the
+   * 16 px browser default -- and the fallback moved 14 -> 28 with everything
+   * else, because a fallback that lands at half the legible size is not a
+   * fallback. */
+  --rowfs:28px;
+  /* EVERY INK ON THIS BOARD IS CREAM, AND THAT IS A MEASUREMENT, NOT A TASTE.
+   * The fleet's legibility number is the worst SINGLE background pixel under
+   * the type (STATUS_AT_A_GLANCE 265-305), and it is what killed the first
+   * two ink choices:
+   *   * dark engraved type on the bright brass podium plaques scored 0.0014
+   *     -- a raking key light puts a near-black pixel inside a bevel, and
+   *     dark ink has nowhere to go.  The plaques are dark now and the type
+   *     is cream.  (CONVERSION_BRIEF trap 33 is this failure's twin: a dark
+   *     feature UNDER the type deletes glyphs from an ink measurement.)
+   *   * a dim brass rank column at luma 0.580 scored 0.1020 against the
+   *     slat bevel's own highlight at 0.478.  A subordinate colour cannot
+   *     be dim on a lit surface; it is subordinated by letter-spacing and
+   *     by being narrower instead. */
+  --ink:rgb(226,214,190);        /* luma 0.842 -- the rack and the rank */
+  --ink-hot:rgb(244,232,202);    /* luma 0.911 -- points, the thing read */
+  --ink-amber:rgb(250,216,146)}  /* luma 0.849 -- your own row only */
+#board *{position:absolute;white-space:pre}
+
+/* -------------------------------------------------------------- the header
+ * The engraved title is GEOMETRY (a permanent label stamped on the ship,
+ * CONVERSION_BRIEF 1786-1789).  What is DOM here is the sub-plate: the field
+ * size, the page, the staleness and FINAL -- all of them values. */
+/* Vertical centring is LINE-HEIGHT, not flex: every child of #board is
+ * absolutely positioned at a rectangle leaderboard.js reads out of
+ * scene.json -> layout, and a flex container would fight that. */
+/* THE SIZES BELOW ARE THE ONES THAT USED TO BE UNDER `#board.tv`, AND THAT IS
+ * THE WHOLE OF THE LEGIBILITY DECISION.  There were two sets — a 14 px desk
+ * and a 28 px TV — and the desk set does not survive contact with a
+ * television.  Measured on a 1920x1080 capture of the running page, not
+ * derived from the font size:
+ *
+ *              cap height (canonical px)   worst-pixel margin
+ *   14 px row            8.29                    0.4433
+ *   28 px row           17.33                    0.4629
+ *   floor                  16                      0.45
+ *
+ * The 14 px row failed BOTH acceptances at TV size, and nobody had noticed
+ * because nobody had ever pointed the desk mode at a television.  So the
+ * surviving set is the big one, unconditionally, and the desk pays in density
+ * rather than in legibility: eight rows at a time instead of sixteen, with the
+ * pointer reaching the rest. */
+#board .sub{color:var(--ink);font-size:15px;letter-spacing:.18em}
+#board .sub .l{left:12px}
+#board .sub .r{right:12px;text-align:right}
+#board .sub.stale{color:var(--ink-amber)}
+#board .sub.dead{color:rgb(255,150,120)}
+
+/* -------------------------------------------------------------- the podium
+ * Three plaques.  The rank is NOT here -- it is the cast numeral in the step's
+ * bezel, geometry, one of nine baked meshes.  What is DOM is the name and the
+ * points, because those are values. */
+#board .pod{color:var(--ink);overflow:hidden}
+#board .pod .pt{color:var(--ink-hot)}
+#board .pod .nm{font-size:26px;letter-spacing:.02em;overflow:hidden;white-space:normal;
+  text-overflow:clip}
+#board .pod .pt{text-align:right;font-size:32px;letter-spacing:.04em}
+#board .pod.p1 .nm{font-size:30px}
+#board .pod.p1 .pt{font-size:38px}
+#board .pod[hidden]{display:none}
+
+/* ---------------------------------------------------------------- the rack
+ * One element per SLOT, created once at mount and reused for ever after:
+ * paging reassigns textContent and never touches the tree.  The upper bound on
+ * live text nodes is slots + 3 podium + 1 pin + 4 chrome, at 5 entries and at
+ * 500 alike. */
+#board .row{color:var(--ink);font-size:var(--rowfs)}
+#board .row .rk{text-align:right;color:var(--ink);letter-spacing:.06em}
+#board .row .nm{overflow:hidden;white-space:normal;text-overflow:clip}
+#board .row .pt{text-align:right;color:var(--ink-hot)}
+#board .row.empty .rk,#board .row.empty .nm,#board .row.empty .pt{
+  visibility:hidden}
+/* the player's own row, when it happens to be on the visible page.  The
+ * highlight is the raised LUG on the slat's left tab (geometry); this is only
+ * the type acknowledging it. */
+#board .row.self .nm,#board .row.self .pt{color:var(--ink-hot)}
+#board .row.self .rk{color:var(--ink-amber)}
+
+/* --------------------------------------------------------------- the clamp
+ * The docked copy of the player's own row, gripped by the spring clamp on the
+ * bottom rail.  Present whenever the FEED NAMES A `self` -- it used to be
+ * "absent in TV mode", which was a guess at the same condition through the
+ * wrong variable: a desk feed with no self got a clamp, and a television whose
+ * bridge did resolve an identity could not have shown it. */
+#board .pin{color:var(--ink-hot);font-size:var(--rowfs)}
+#board .pin .rk{text-align:right;color:var(--ink-amber);letter-spacing:.06em}
+#board .pin .nm{overflow:hidden;white-space:normal;text-overflow:clip}
+#board .nm .nm-run{position:relative;display:inline-block;left:auto;top:0;width:100%;height:auto;
+  white-space:normal}
+#board .nm.is-scroll{white-space:nowrap}
+#board .nm.is-scroll .nm-run{width:max-content;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){
+  #board .nm.is-scroll .nm-run{animation:none}
+}
+#board .pin .pt{text-align:right}
+#board .pin[hidden]{display:none}
+
+/* The hidden measuring span.  Truncation is on a MEASURED PIXEL BUDGET, never
+ * a character count: the vendored face has no CJK and no emoji, so those names
+ * fall back to a system face with a different advance and a layout computed
+ * from one advance overruns the points column.  design section 8.4. */
+#board .gauge{visibility:hidden;left:-9999px;top:-9999px;white-space:pre}
+
+/* ------------------------------------------------------------- pointer bits
+ * ON EVERY BOARD.  `?tv=1` used to create none of these elements at all, which
+ * is why nobody could scroll the conference board when they asked to. */
+#hots .hot{position:absolute;cursor:pointer;border:1px solid transparent;
+  border-radius:3px;transition:background .12s,border-color .12s}
+/* Soft edge glow instead of the yellow box (owner finding f-mv6t5d1h);
+ * same rule as the module pages. */
+#hots .hot:hover{border-color:transparent;background:transparent;
+  box-shadow:0 0 0 1px rgba(140,195,255,.20),0 0 14px 3px rgba(140,195,255,.26),
+    inset 0 0 12px rgba(140,195,255,.14)}
+#hots .hot:focus-visible{outline:2px solid #cfe9ff;outline-offset:3px;
+  box-shadow:0 0 0 1px rgba(2,6,14,.9),0 0 16px 4px rgba(150,205,255,.38)}
+body.debug #hots .hot{border-color:rgba(63,224,255,.55);
+  background:rgba(63,224,255,.06)}
+/* THE CURSOR IS VISIBLE.  `body.tv{cursor:none}` was here, and the argument
+ * for it — "nobody is at the panel, and a cursor parked in the middle of a 55"
+ * board for eight hours is a defect" — is an argument about BURN-IN that was
+ * answered by a different mechanism entirely.  The camera breath already moves
+ * every pixel on this board continuously (design 3.3), and a cursor is drawn
+ * by the compositor, not by the panel's own pixels, so hiding it protected
+ * nothing.  What it did do was make the board unusable by the one person who
+ * matters: somebody who walks up and asks to see further down the field.
+ *
+ * There is no timed auto-hide either.  A cursor that vanishes and reappears is
+ * a thing on a timer, and nothing on this board is on a timer. */
+
+/* `body.notext` is the fleet's "hide every string" switch, used by
+ * check_text.py's DOM-ink difference and by the `dom text` button.  The board
+ * is chrome by the same argument the docket and the caption make, but it must
+ * still vanish with it -- otherwise its ink would be scored as if it were
+ * baked on the panel. */
+body.notext #board{visibility:hidden}

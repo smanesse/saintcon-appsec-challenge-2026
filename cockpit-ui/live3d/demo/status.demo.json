@@ -1,0 +1,994 @@
+{
+  "schema": "saintcon.status/1",
+  "generated_at": "2026-09-05T18:22:41Z",
+  "fleet": {
+    "vuln_total": 54,
+    "modules": [
+      "DNSM",
+      "FMM",
+      "IPM",
+      "KVS",
+      "LOG",
+      "MQB",
+      "MTA",
+      "OTA"
+    ],
+    "note": "vuln_total is the count of vuln_tests/NN_*.py across the eight defensive modules, not max(NN) and not the counts in the challenge README, which are wrong for seven of the eight."
+  },
+  "warnings": [
+    {
+      "code": "DNSM",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05"
+      ],
+      "detail": "5 of DNSM's 6 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    },
+    {
+      "code": "FMM",
+      "kind": "poc-has-no-exit-contract",
+      "pocs": [
+        "01",
+        "02",
+        "04",
+        "05",
+        "09",
+        "10"
+      ],
+      "detail": "6 of FMM's 8 PoCs never call sys.exit, so they exit 0 whatever happened.  Scoring them on exit code would report FMM as permanently 8-of-8 vulnerable.  They are scored from their last verdict line where stdout was captured, and recorded as inconclusive where it was not."
+    },
+    {
+      "code": "FMM",
+      "kind": "poc-numbering-has-gaps",
+      "detail": "FMM ships 8 PoCs but its highest number is 10; max(NN) is not the count and would draw 10 graduations that can never fill."
+    },
+    {
+      "code": "FMM",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "01",
+        "02",
+        "04",
+        "05",
+        "09",
+        "10"
+      ],
+      "detail": "6 of FMM's 8 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    },
+    {
+      "code": "IPM",
+      "kind": "poc-numbering-has-gaps",
+      "detail": "IPM ships 7 PoCs but its highest number is 08; max(NN) is not the count and would draw 8 graduations that can never fill."
+    },
+    {
+      "code": "IPM",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "01",
+        "02",
+        "04",
+        "06",
+        "08"
+      ],
+      "detail": "5 of IPM's 7 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    },
+    {
+      "code": "KVS",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "01",
+        "02",
+        "03",
+        "05",
+        "06"
+      ],
+      "detail": "5 of KVS's 6 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    },
+    {
+      "code": "LOG",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "01",
+        "02",
+        "03",
+        "04"
+      ],
+      "detail": "4 of LOG's 4 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    },
+    {
+      "code": "MQB",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "06",
+        "07"
+      ],
+      "detail": "6 of MQB's 7 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    },
+    {
+      "code": "MTA",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "02",
+        "03",
+        "04",
+        "06",
+        "07",
+        "08"
+      ],
+      "detail": "6 of MTA's 8 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    },
+    {
+      "code": "OTA",
+      "kind": "poc-numbering-has-gaps",
+      "detail": "OTA ships 8 PoCs but its highest number is 09; max(NN) is not the count and would draw 9 graduations that can never fill."
+    },
+    {
+      "code": "OTA",
+      "kind": "poc-cannot-report-unhealthy",
+      "pocs": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "09"
+      ],
+      "detail": "8 of OTA's 8 PoCs have no route to exit 2, so a service that is down reads through them as `fixed` rather than `inconclusive`.  Exit 2 is what stops \"break it so the exploits stop\" reading as a clean board."
+    }
+  ],
+  "modules": {
+    "DNSM": {
+      "code": "DNSM",
+      "kind": "defensive",
+      "repo_dir": "dns-module",
+      "source_rev": null,
+      "current_source_rev": "sha256:faf73e2c8bc83e8e",
+      "run": {
+        "state": "idle",
+        "job_id": null,
+        "started_at": null,
+        "finished_at": null
+      },
+      "unit": {
+        "state": "untested",
+        "passed": 0,
+        "failed": 0,
+        "errored": 0,
+        "failures": []
+      },
+      "vulns": {
+        "state": "untested",
+        "total": 6,
+        "landing": 0,
+        "fixed": 0,
+        "inconclusive": 0,
+        "untested": 6,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "03",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "05",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "06",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          }
+        ]
+      }
+    },
+    "FMM": {
+      "code": "FMM",
+      "kind": "defensive",
+      "repo_dir": "file-management-module",
+      "source_rev": "sha256:8ab2533cc47a62d1",
+      "current_source_rev": "sha256:8ab2533cc47a62d1",
+      "run": {
+        "state": "done",
+        "job_id": "run-0142",
+        "started_at": "2026-09-05T18:11:04Z",
+        "finished_at": "2026-09-05T18:17:22Z"
+      },
+      "unit": {
+        "exit_code": 1,
+        "passed": 6,
+        "failed": 3,
+        "errored": 0,
+        "failures": [
+          {
+            "name": "unit_tests/test_fmm.py::test_retr_roundtrip"
+          },
+          {
+            "name": "unit_tests/test_fmm.py::test_pasv_transfer"
+          },
+          {
+            "name": "unit_tests/test_fmm.py::test_login"
+          }
+        ],
+        "duration_s": 61.4,
+        "state": "fail"
+      },
+      "vulns": {
+        "state": "partial",
+        "total": 8,
+        "landing": 1,
+        "fixed": 4,
+        "inconclusive": 3,
+        "untested": 0,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 4.6,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "verdict_line",
+            "reason": "poc-has-no-exit-contract"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 4.6,
+            "exit_code": 0,
+            "result": "fixed",
+            "scored_by": "verdict_line",
+            "reason": "poc-has-no-exit-contract"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 4.6,
+            "exit_code": 0,
+            "result": "fixed",
+            "scored_by": "verdict_line",
+            "reason": "poc-has-no-exit-contract"
+          },
+          {
+            "id": "05",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "duration_s": 4.6,
+            "exit_code": 0,
+            "result": "inconclusive",
+            "scored_by": "none",
+            "reason": "poc-unscorable"
+          },
+          {
+            "id": "07",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 1.4,
+            "exit_code": 2,
+            "result": "inconclusive",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "08",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "09",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "duration_s": 4.6,
+            "exit_code": 0,
+            "result": "inconclusive",
+            "scored_by": "none",
+            "reason": "poc-unscorable"
+          },
+          {
+            "id": "10",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 4.6,
+            "exit_code": 0,
+            "result": "fixed",
+            "scored_by": "verdict_line",
+            "reason": "poc-has-no-exit-contract"
+          }
+        ]
+      }
+    },
+    "IPM": {
+      "code": "IPM",
+      "kind": "defensive",
+      "repo_dir": "image-processing-module",
+      "source_rev": "sha256:d61b95b904ef5e8e",
+      "current_source_rev": "sha256:d61b95b904ef5e8e",
+      "run": {
+        "state": "running",
+        "job_id": "run-0143",
+        "started_at": "2026-09-05T18:24:10Z",
+        "finished_at": null
+      },
+      "unit": {
+        "exit_code": 0,
+        "passed": 15,
+        "failed": 0,
+        "errored": 0,
+        "failures": [],
+        "duration_s": 28.9,
+        "state": "pass"
+      },
+      "vulns": {
+        "state": "partial",
+        "total": 7,
+        "landing": 3,
+        "fixed": 3,
+        "inconclusive": 1,
+        "untested": 0,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "03",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "06",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "07",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "08",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 1.4,
+            "exit_code": 2,
+            "result": "inconclusive",
+            "scored_by": "exit_code"
+          }
+        ]
+      }
+    },
+    "KVS": {
+      "code": "KVS",
+      "kind": "defensive",
+      "repo_dir": "keystore-module",
+      "source_rev": "sha256:3379f3b2a6eb9ff4",
+      "current_source_rev": "sha256:3379f3b2a6eb9ff4",
+      "run": {
+        "state": "done",
+        "job_id": "run-0142",
+        "started_at": "2026-09-05T18:18:02Z",
+        "finished_at": "2026-09-05T18:22:41Z"
+      },
+      "unit": {
+        "exit_code": 0,
+        "passed": 24,
+        "failed": 0,
+        "errored": 0,
+        "failures": [],
+        "duration_s": 41.2,
+        "state": "pass"
+      },
+      "vulns": {
+        "state": "partial",
+        "total": 6,
+        "landing": 2,
+        "fixed": 3,
+        "inconclusive": 1,
+        "untested": 0,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "03",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 1.4,
+            "exit_code": 2,
+            "result": "inconclusive",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "05",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "06",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          }
+        ]
+      }
+    },
+    "LOG": {
+      "code": "LOG",
+      "kind": "defensive",
+      "repo_dir": "log-module",
+      "source_rev": "sha256:85a7db72db2f2d87",
+      "current_source_rev": "sha256:85a7db72db2f2d87",
+      "run": {
+        "state": "done",
+        "job_id": "run-0142",
+        "started_at": "2026-09-05T18:11:04Z",
+        "finished_at": "2026-09-05T18:15:58Z"
+      },
+      "unit": {
+        "exit_code": 1,
+        "passed": 9,
+        "failed": 2,
+        "errored": 0,
+        "failures": [
+          {
+            "name": "unit_tests/test_log.py::test_search_returns_hits"
+          },
+          {
+            "name": "unit_tests/test_log.py::test_lookup_renders"
+          }
+        ],
+        "duration_s": 44.1,
+        "state": "fail"
+      },
+      "vulns": {
+        "state": "measured",
+        "total": 4,
+        "landing": 0,
+        "fixed": 4,
+        "inconclusive": 0,
+        "untested": 0,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "03",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          }
+        ]
+      }
+    },
+    "MQB": {
+      "code": "MQB",
+      "kind": "defensive",
+      "repo_dir": "mqtt-module",
+      "source_rev": "sha256:38461c2141988bea",
+      "current_source_rev": "sha256:38461c2141988bea",
+      "run": {
+        "state": "error",
+        "job_id": "run-0141",
+        "started_at": "2026-09-05T18:02:00Z",
+        "finished_at": "2026-09-05T18:02:03Z"
+      },
+      "unit": {
+        "exit_code": 125,
+        "passed": 0,
+        "failed": 0,
+        "errored": 0,
+        "failures": [],
+        "state": "error",
+        "reason": "docker daemon is not running"
+      },
+      "vulns": {
+        "state": "untested",
+        "total": 7,
+        "landing": 0,
+        "fixed": 0,
+        "inconclusive": 0,
+        "untested": 7,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "03",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "05",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "06",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          },
+          {
+            "id": "07",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "result": "untested",
+            "scored_by": "not-run"
+          }
+        ]
+      }
+    },
+    "MTA": {
+      "code": "MTA",
+      "kind": "defensive",
+      "repo_dir": "mail-module",
+      "source_rev": "sha256:0000staleexample",
+      "current_source_rev": "sha256:36ce648b727ad56f",
+      "run": {
+        "state": "done",
+        "job_id": "run-0139",
+        "started_at": "2026-09-05T17:44:10Z",
+        "finished_at": "2026-09-05T17:48:02Z"
+      },
+      "unit": {
+        "exit_code": 0,
+        "passed": 18,
+        "failed": 0,
+        "errored": 0,
+        "failures": [],
+        "duration_s": 33.7,
+        "state": "pass"
+      },
+      "vulns": {
+        "state": "partial",
+        "total": 8,
+        "landing": 6,
+        "fixed": 1,
+        "inconclusive": 1,
+        "untested": 0,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "03",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "05",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 1.4,
+            "exit_code": 2,
+            "result": "inconclusive",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "06",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "07",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "08",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 3.1,
+            "exit_code": 0,
+            "result": "landing",
+            "scored_by": "exit_code"
+          }
+        ]
+      }
+    },
+    "OTA": {
+      "code": "OTA",
+      "kind": "defensive",
+      "repo_dir": "ota-module",
+      "source_rev": "sha256:0b5e0a41518bd3bc",
+      "current_source_rev": "sha256:0b5e0a41518bd3bc",
+      "run": {
+        "state": "done",
+        "job_id": "run-0142",
+        "started_at": "2026-09-05T18:11:04Z",
+        "finished_at": "2026-09-05T18:14:31Z"
+      },
+      "unit": {
+        "exit_code": 0,
+        "passed": 31,
+        "failed": 0,
+        "errored": 0,
+        "failures": [],
+        "duration_s": 52.8,
+        "state": "pass"
+      },
+      "vulns": {
+        "state": "measured",
+        "total": 8,
+        "landing": 0,
+        "fixed": 8,
+        "inconclusive": 0,
+        "untested": 0,
+        "items": [
+          {
+            "id": "01",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "02",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "03",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "04",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "05",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "06",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "07",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          },
+          {
+            "id": "09",
+            "slug": "",
+            "title": "",
+            "poc": "",
+            "verdict_line": "",
+            "duration_s": 2.2,
+            "exit_code": 1,
+            "result": "fixed",
+            "scored_by": "exit_code"
+          }
+        ]
+      }
+    },
+    "PKT": {
+      "code": "PKT",
+      "kind": "offensive",
+      "tally": {
+        "confirmed": 11,
+        "of": 54
+      },
+      "arm": "armed",
+      "run": {
+        "state": "idle"
+      }
+    }
+  },
+  "sample": "Hand-composed states, generated through the same code path as a real run, so every enum and every field is the real shape.  Replace with make_status.py --results <dir> output."
+}

@@ -1,0 +1,352 @@
+<!doctype html>
+<!-- SAINTCON 2026 — PER-MODULE CLOSE-UP TEMPLATE.
+
+     COPY THIS DIRECTORY to live3d/modules/<CODE>/ and edit module.js.
+     Do not edit live3d/app.js: eight agents editing one file is how the
+     convention drift in README section 7 happened.  The fleet integrator wires
+     the finished modules into app.js afterwards; your deliverable is a page
+     that stands alone and passes the checks.
+
+     SERVE FROM THE REPO ROOT:
+         cd /path/to/saintcon/2026
+         python3 -m http.server 8777
+         open http://localhost:8777/live3d/modules/<CODE>/
+
+     THE LAYER STACK BELOW IS THE OCCLUSION MECHANISM.  Do not reorder it, do
+     not add a layer between #css3d and #glFront, and do not put content text
+     anywhere but #css3d.  live3d/design/TEXT_OCCLUSION.md is the decision;
+     live3d/CONVERSION_BRIEF.md is the recipe. -->
+<meta charset="utf-8">
+<title>Drone Telemetry Bus</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#02030a;overflow:hidden;color:#9fb6d0;
+    font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #viewport{position:fixed;left:0;right:0;top:0;bottom:0;overflow:hidden}
+  .stage{position:absolute;left:0;top:0;width:1280px;height:720px;
+    transform-origin:0 0}
+  .stage>*{position:absolute;left:0;top:0}
+  .layer{width:1280px;height:720px;pointer-events:none;user-select:none;
+    -webkit-user-drag:none}
+
+  /* ------------------------------------------------ THE SANDWICH, z 1..5
+     <img> baked plate                                 1
+     canvas #gl        everything BEHIND the readouts  2
+     div    #css3d     the DOM readouts                3
+     canvas #glFront   everything IN FRONT of them     4
+     div    #hots      pointer targets                 5                     */
+  #plate  {z-index:1}
+  #gl     {z-index:2}
+  #css3d  {z-index:3;pointer-events:none}
+  #glFront{z-index:4}
+  #hots   {z-index:5;width:1280px;height:720px}
+  .hot{position:absolute;cursor:pointer;border:1px solid transparent;
+    border-radius:3px;transition:background .12s,border-color .12s}
+  /* HOTSPOT HOVER = a soft edge glow, not a filled box (owner finding
+     f-mv6t5d1h).  No border colour, no fill: only a low-alpha, blurred
+     box-shadow, tinted to sit in the scene's light.  The element's box,
+     border width and radius are untouched, so the hotspot geometry the
+     occlusion split depends on does not move.  KEYBOARD FOCUS is a separate,
+     stronger cue -- a 2 px outline with a dark gap -- so focus and hover are
+     never confused. */
+  .hot{transition:box-shadow .15s ease,background .12s,border-color .12s}
+  .hot:hover{border-color:transparent;background:transparent;
+    box-shadow:0 0 0 1px rgba(140,195,255,.20),
+      0 0 14px 3px rgba(140,195,255,.26),
+      inset 0 0 12px rgba(140,195,255,.14)}
+  .hot:focus-visible{outline:2px solid #cfe9ff;outline-offset:3px;
+    border-color:transparent;background:transparent;
+    box-shadow:0 0 0 1px rgba(2,6,14,.9),0 0 16px 4px rgba(150,205,255,.38)}
+  .hot:focus:not(:focus-visible){outline:none}
+  body.debug .hot{border-color:rgba(63,224,255,.55);
+    background:rgba(63,224,255,.06)}
+
+  /* ---- DOM content text ----
+     Ink colour is measured off Blender's own render of the same type -- the
+     most-common fully-opaque pixel.  For KVS that is rgb(122,113,107), a WARM
+     grey, because albedo-neutral ink under six warm area lights renders warm.
+     MEASURE YOUR MODULE'S; do not copy KVS's and do not "fix" it to neutral. */
+  .readout{overflow:hidden;color:rgb(111,101,92);
+    font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    font-weight:700;white-space:pre;letter-spacing:0}
+  .readout .lines{position:absolute}
+  body.notext .readout{visibility:hidden}
+
+  #bar{position:fixed;left:0;right:0;bottom:0;height:38px;display:none;
+    gap:8px;align-items:center;padding:0 10px;background:#0a0d14;
+    border-top:1px solid #1d2836;z-index:20}
+  /* white-space:nowrap and the clipped #note below are NOT cosmetic.  The bar
+     is a flex row with a fixed 38 px height; a long #note shrinks the buttons,
+     their labels wrap to two lines, the buttons grow to 45 px and OVERFLOW the
+     bar UPWARDS by 3 px -- into the 1280x720 stage rect the capture harness
+     clips.  The occlusion checker then sees the `occlusion split` button change
+     colour between the split-OFF and split-ON screenshots and reports 406
+     changed pixels outside the ground truth: VERDICT FAIL, for a toolbar.
+     Measured on this page; see NOTES.md.  Reported for the template. */
+  button{font:inherit;letter-spacing:.12em;text-transform:uppercase;
+    padding:5px 10px;background:#131a26;color:#9fb6d0;border:1px solid #24405e;
+    border-radius:3px;cursor:pointer;white-space:nowrap;flex:none}
+  button:hover{color:#d8e8fa;border-color:#3d6a96}
+  button.on{background:#c79a2e;color:#161208;border-color:#f2d67a}
+  #note{margin-left:auto;color:#5f7590;font-size:10.5px;min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #err{position:fixed;inset:auto 12px 48px 12px;z-index:40;display:none;
+    background:#2a0d0d;border:1px solid #a33;color:#ffb4b4;padding:10px 12px;
+    white-space:pre-wrap;font-size:12px}
+
+  /* ------------------------------------------------------------ EMBED MODE
+     `?embed=1` is how live3d/index.html -- the cockpit -- opens this page in an
+     iframe when the owner dives into this module.  Three declarations, and
+     each of them is load-bearing:
+
+       * TRANSPARENT BACKGROUND.  This module's plate.png is FILM-TRANSPARENT
+         (trap 20: OTA's is only 35% opaque) and is meant to composite over the
+         dimmed wide cockpit shot, which lives in the PARENT document.  An
+         opaque #02030a here would put black holes through the middle of the
+         close-up -- the exact bug README 16.2 records.
+       * NO TOOLBAR, and #viewport to the bottom edge, so the iframe is exactly
+         the 1280x720 stage and the cockpit's own transition can scale it as a
+         single rectangle.  The cockpit carries the equivalent buttons and
+         drives them through this page's own window.__occ.
+       * NOTHING ELSE.  The renderer, the split, the planes, the constants and
+         the session model are byte-identical in the two modes; embed mode
+         changes only what is around the stage.  Nothing the checkers measure
+         is inside a `.embed` rule -- the harness never sets it. */
+  html.embed,html.embed body{background:transparent}
+  html.embed #viewport{bottom:0}
+  html.embed #bar{display:none}
+  html.embed h1.module-title{display:none}
+
+  /* ---- DEV TOOLBAR GATE (owner finding f-mv6syyni 4.2) ----
+     The bottom #bar (dom text / occlusion split / show planes / show hotspots)
+     is a developer tool.  It is `display:none` above and `?dev=1` turns it on:
+     the head script adds class `dev` for ?dev=1 on this page's own URL or on the
+     cockpit page that embeds it.  Default off, never stored.  Standalone dev
+     gives the 38 px back to the bar; in an embed the bar overlays the bottom of
+     the 1280x720 stage instead, so the cockpit's transition rect is unchanged. */
+  html.dev #bar{display:flex}
+  html.dev:not(.embed) #viewport{bottom:38px}
+
+  /* typeable jack labels: overlay value is copied via textContent */
+  #hots .typein{
+    position:absolute;display:none;z-index:6;pointer-events:auto;
+    background:rgba(12,14,18,.86);color:rgb(111,101,92);
+    border:1px solid rgba(242,214,122,.55);outline:none;box-sizing:border-box;
+    font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    font-weight:700;text-align:center;letter-spacing:0;padding:0 2px;margin:0;
+    caret-color:rgb(242,214,122)}
+  #hots .typein.on{display:block}
+  body.notext #hots .typein{visibility:hidden}
+
+  /* HELD PAPER.  The operator card is DOM placed in 3D on the will card's
+     basis by a second CSS3D layer (#held).  It is drawn out of the will card's
+     holder by the brass pull tab and held to the right of the panel, so the
+     topic lines, the retained switch and the gauge stay usable.  It
+     is in front of every piece of geometry, so #held sits above #hots and
+     needs no occlusion split.  The host is pointer-events:none; only the
+     paper takes the pointer. */
+  #held{z-index:6;width:1280px;height:720px;pointer-events:none}
+  .paper{pointer-events:auto;color:#2a2622;
+    border:1px solid #8d8368;border-radius:2px;display:flex;flex-direction:column;
+    font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    font-weight:700;font-size:17px;line-height:1.4;letter-spacing:0;
+    box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.3)}
+  .paper[hidden]{display:none}
+  /* the will card, full size: grey-white stock, the terracotta WILL band
+     across the head and the brass pull tab under the foot, all measured off
+     the card in plate.png */
+  #mqbCard{width:560px;height:740px;padding:0 18px 10px 18px;position:relative;
+    background:#e1ddd5;border-color:#6b645c}
+  #mqbCard::after{content:"";position:absolute;left:50%;bottom:-22px;width:150px;height:22px;
+    margin-left:-75px;border-radius:0 0 3px 3px;
+    background:linear-gradient(180deg,#e7cf9f,#cfae74 60%,#a98a52);
+    box-shadow:0 3px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.4)}
+  #mqbCard .phd{margin:0 -18px 10px;padding:12px 18px 11px;border-bottom:0;
+    background:#98615a;color:#f4efe7;letter-spacing:.32em}
+  #mqbCard .phd .ttl{text-align:center;padding-left:40px}
+  #mqbCard .phd .sz{color:#ead9d2}
+  #mqbCard .pclose{background:#b3796f;border-color:#6e3d37;color:#f4efe7}
+  #mqbCard .pclose:hover:not(:disabled){background:#c48a80;border-color:#6e3d37}
+  #cardBody{display:flex;flex-direction:column;flex:1;min-height:0;outline:none}
+  .paper .phd{display:flex;align-items:center;gap:10px;letter-spacing:.18em;
+    border-bottom:1px solid #8d8368;padding-bottom:5px;margin-bottom:8px;flex:none}
+  .paper .phd .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .paper .sz{font-weight:400;color:#6a6252;font-size:14px;letter-spacing:.04em;white-space:nowrap}
+  .paper .prow{display:flex;gap:7px;align-items:center;margin:0 0 5px;flex:none}
+  .paper .pk{color:#6a6252;letter-spacing:.1em;flex:none;width:72px;font-size:14px;
+    text-transform:uppercase}
+  .paper .pk.wide{width:auto}
+  .paper .pv{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .paper .sect{flex:none;margin:6px 0 5px;color:#6a6252;font-size:14px;letter-spacing:.18em;
+    border-top:1px dashed #8d8368;padding-top:5px;display:flex;gap:10px}
+  .paper .sect span:first-child{flex:1}
+  .paper input,.paper textarea,.paper select{font:inherit;font-weight:700;
+    background:#d3cec4;color:#2a2622;border:1px solid #a49c8e;
+    border-radius:2px;padding:3px 7px;width:100%;min-width:0;flex:1}
+  .paper select{flex:0 0 auto;width:auto;padding:3px 4px}
+  .paper textarea{resize:none;line-height:1.3}
+  .paper input.num{flex:0 0 76px;width:76px}
+  .paper label.chk{display:flex;gap:6px;align-items:center;flex:none;font-size:14px;
+    letter-spacing:.1em;color:#6a6252;text-transform:uppercase;cursor:pointer}
+  .paper label.chk input{width:auto;flex:none;margin:0}
+  .paper button{font:inherit;font-size:14px;font-weight:700;letter-spacing:.12em;
+    padding:5px 11px;border-radius:2px;cursor:pointer;text-transform:uppercase;
+    background:#d3c39a;color:#2a2622;border:1px solid #8d8368;white-space:nowrap;flex:none}
+  .paper button:hover:not(:disabled){background:#e0d2ab;border-color:#5f5943}
+  .paper button:disabled{opacity:.45;cursor:default}
+  .paper button.go{background:#b8892f;border-color:#7a5a17;color:#1a1508}
+  .paper button.go:hover:not(:disabled){background:#c99a3c}
+  .paper .pclose{width:30px;height:30px;padding:0;display:flex;align-items:center;
+    justify-content:center;font-size:22px;line-height:1;letter-spacing:0;text-transform:none}
+  .paper button:focus-visible,.paper input:focus-visible,.paper textarea:focus-visible,
+  .paper select:focus-visible,.paper [role=option]:focus-visible{outline:2px solid #1d4f8a;outline-offset:1px}
+  /* the three faces of the card, tabbed like index cards */
+  .paper .tabs{display:flex;gap:4px;flex:none;margin-bottom:8px}
+  .paper .tabs button{flex:1;background:#e2d8bb;border-bottom-width:3px}
+  .paper .tabs button[aria-selected=true]{background:#b8892f;border-color:#7a5a17;color:#1a1508}
+  .paper .face{display:flex;flex-direction:column;flex:none}
+  .paper .face[hidden]{display:none}
+  /* the five jacks: one row each, click to plug or unplug */
+  #cardJacks{flex:none;margin:0 0 6px;padding:2px 0;
+    background:rgba(244,242,237,.85);border:1px solid #a49c8e;border-radius:2px;
+    font:400 16px/1.5 "Courier Prime","Courier New",ui-monospace,Menlo,monospace}
+  #cardJacks div{display:flex;gap:10px;padding:0 8px;cursor:pointer;white-space:nowrap}
+  #cardJacks div span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #cardJacks div span:last-child{color:#6a6252;font-size:14px}
+  #cardJacks div:hover{background:#d3cec4}
+  #cardJacks div.on{background:#d3c39a;font-weight:700}
+  #cardJacks div.on span:last-child{color:#33572b}
+  #cardPayload{height:84px}
+  .paper .prow.top{align-items:flex-start}
+  #cardWill{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  #cardWill .wl{flex:none;text-transform:uppercase}
+  .paper .btns{display:flex;gap:8px;align-items:center;flex:none;margin:2px 0 0}
+  .paper .btns .gap{flex:1;min-width:0;font-size:13px;font-weight:400;color:#6a6252;
+    letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .paper .hint{flex:none;font-size:13px;font-weight:400;color:#6a6252;line-height:1.35;
+    margin:0 0 6px}
+  /* the printout: what the bus carried */
+  #cardLines{flex:1;min-height:0;overflow:auto;margin:6px 0 0;padding:6px 8px;
+    background:rgba(244,242,237,.85);border:1px solid #a49c8e;border-radius:2px;
+    font:400 16px/1.35 "Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    white-space:pre-wrap;word-break:break-word;color:#2a2622}
+  #cardLines .sent{color:#1d4f8a}
+  #cardLines .bad{color:#a4402c}
+  #cardLines .empty{color:#6a6252}
+  .paper .preply{flex:none;display:flex;align-items:center;gap:8px;margin-top:6px;
+    padding-top:4px;border-top:1px solid #c4b48e}
+  #cardReply{flex:1;min-width:0;font-size:14px;font-weight:400;color:#3a352c;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.5em}
+  #cardReply.err{white-space:normal;line-height:1.35;color:#a4402c}
+  #cardReply.ok{color:#33572b}
+  #cardReply.busy{color:#6a6252}
+  body.notext #held{visibility:hidden}
+  html.capture .module-title,
+  html.capture .service-rebuild{visibility:hidden !important}
+</style>
+<!-- Rebuild panel and the visible title.  Both are chrome, not readout planes.
+     Font URLs in the shared sheet resolve against that file. -->
+<link rel="stylesheet" href="../../service-rebuild.css">
+<!-- The telltale mast's screen-space caption.  Same class of thing as the
+     docket above: CHROME, a sibling layer over the front canvas, and
+     deliberately NOT a declared readout plane.  live3d/mast.css is shared by
+     all nine modules and its font URLs resolve against ITS OWN location. -->
+<link rel="stylesheet" href="../../mast.css">
+<script>
+/* Set BEFORE the body is laid out, so embed mode never flashes an opaque
+   background over the cockpit behind it.  No innerHTML, no markup assignment
+   -- one className on the root element. */
+(function () {
+  var c = [];
+  var flag = function (q) { return /(^|[?&])dev=1(&|$)/.test(String(q || '').replace(/^\?/, '')); };
+  if (location.search.indexOf('embed') >= 0) c.push('embed');
+  /* ?dev=1 -- developer toolbar.  Own URL, or the cockpit page's URL when this
+     page is the cockpit's iframe (same convention as app.js / FMM).  Never read
+     from storage, so it cannot stay on by accident. */
+  var dev = flag(location.search);
+  try {
+    if (!dev && window.parent && window.parent !== window) dev = flag(window.parent.location.search);
+  } catch (e) { /* cross-origin parent: no flag */ }
+  if (dev) c.push('dev');
+  if (c.length) document.documentElement.className = c.join(' ');
+})();
+</script>
+
+
+<h1 class="module-title">Drone Telemetry Bus (MQB)</h1>
+<div id="rebuildHost"></div>
+<div id="viewport">
+  <div class="stage" id="stage">
+    <img id="plate" class="layer" alt="">
+    <canvas id="gl" class="layer" width="1280" height="720"></canvas>
+    <div id="css3d"></div>
+    <canvas id="glFront" class="layer" width="1280" height="720"></canvas>
+    <div id="hots">
+      <input id="typeIn" class="typein" autocomplete="off" spellcheck="false" aria-label="Topic">
+    </div>
+    <div id="held"></div>
+    <!-- THE OPERATOR CARD.  Lifts off the will card; module.js moves it into
+         #held.  Everything the bus says reaches it by textContent. -->
+    <div id="mqbCard" class="paper" hidden>
+      <div id="cardBody" role="dialog" aria-label="Operator card" tabindex="-1">
+        <div class="phd">
+          <span class="ttl">WILL</span>
+          <span class="sz" id="cardLine"></span>
+          <button type="button" class="pclose" id="cardClose" aria-label="Close" title="Put the card back (Esc)">&times;</button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" id="tabLine" aria-selected="true" aria-controls="faceLine">Line</button>
+          <button type="button" role="tab" id="tabSend" aria-selected="false" aria-controls="faceSend">Send</button>
+          <button type="button" role="tab" id="tabWill" aria-selected="false" aria-controls="faceWill">Will</button>
+        </div>
+        <div class="face" id="faceLine" role="tabpanel" aria-labelledby="tabLine">
+          <div class="prow"><span class="pk">client</span><span class="pv" id="cardCid"></span></div>
+          <div class="prow"><span class="pk">pass</span><input id="cardPass" type="password" autocomplete="off" aria-label="Password" title="Blank uses the console's own sign-in"></div>
+          <div class="sect"><span>JACKS</span><span class="sz" id="cardPlugged"></span></div>
+          <div id="cardJacks" role="listbox" aria-label="Jacks" tabindex="0"></div>
+          <div class="btns">
+            <span class="pk wide">keep alive</span><input id="cardKa" class="num" spellcheck="false" autocomplete="off" inputmode="numeric" value="30" aria-label="Keep alive in seconds" title="Seconds between pings. Takes effect on the next connect.">
+            <span class="gap"></span>
+            <button type="button" id="cardHang" title="Say goodbye and hang up">Hang up</button>
+            <button type="button" class="go" id="cardConn" title="Connect to the bus">Connect</button>
+          </div>
+        </div>
+        <div class="face" id="faceSend" role="tabpanel" aria-labelledby="tabSend" hidden>
+          <div class="prow"><span class="pk">topic</span><input id="cardTopic" spellcheck="false" autocomplete="off" aria-label="Topic" title="A concrete topic such as hull/temp"></div>
+          <div class="prow"><span class="pk">payload</span><textarea id="cardPayload" spellcheck="false" aria-label="Payload" title="Ctrl+Enter publishes it"></textarea></div>
+          <div class="btns">
+            <span class="pk">qos</span><select id="cardQos" aria-label="Delivery"><option value="0">0</option><option value="1">1</option></select>
+            <label class="chk"><input type="checkbox" id="cardRetain">retain</label>
+            <span class="gap"></span>
+            <button type="button" class="go" id="cardPub" title="Publish (Ctrl+Enter)">Publish</button>
+          </div>
+        </div>
+        <div class="face" id="faceWill" role="tabpanel" aria-labelledby="tabWill" hidden>
+          <div class="hint">If the line drops without a goodbye, the bus plays this card on the will topic. It is armed on the next connect.</div>
+          <div class="prow"><span class="pk">topic</span><input id="cardWillTopic" spellcheck="false" autocomplete="off" value="will/lost" aria-label="Will topic"></div>
+          <div class="prow top"><span class="pk">lines</span><div id="cardWill" role="group" aria-label="Will lines" title="One short line per row, as the will card shows them"><input class="wl" maxlength="10" spellcheck="false" autocomplete="off" aria-label="Will line 1"><input class="wl" maxlength="10" spellcheck="false" autocomplete="off" aria-label="Will line 2"><input class="wl" maxlength="10" spellcheck="false" autocomplete="off" aria-label="Will line 3"><input class="wl" maxlength="10" spellcheck="false" autocomplete="off" aria-label="Will line 4"><input class="wl" maxlength="10" spellcheck="false" autocomplete="off" aria-label="Will line 5"></div></div>
+        </div>
+        <div class="sect"><span>TRAFFIC</span><span class="sz" id="cardCount"></span></div>
+        <pre id="cardLines" aria-label="Printout" tabindex="0"></pre>
+        <div class="preply"><div id="cardReply" role="status" aria-live="polite"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="err"></div>
+<div id="bar">
+  <button id="bOcc" class="on">occlusion split</button>
+  <button id="bText" class="on">dom text</button>
+  <button id="bPlanes">show planes</button>
+  <button id="bDbg">show hotspots</button>
+  <button id="bRun">bus: paused</button>
+  <span id="note"></span>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"../../../three-exploration/vendor/three/build/three.module.min.js",
+  "three/addons/":"../../../three-exploration/vendor/three/examples/jsm/"
+}}
+</script>
+<script type="module" src="./module.js"></script>

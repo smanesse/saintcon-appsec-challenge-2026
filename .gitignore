@@ -1,0 +1,60 @@
+# ── Compiled server binaries ──────────────────────────────────────────
+# Built by `make` from fmm.cpp; the sanitizer builds come from the vuln PoCs.
+# Anchored under the module tree so cockpit-ui/live3d/modules/FMM/ is NOT ignored
+# (macOS default FS is case-insensitive; a bare `fmm` rule matched that path).
+/file-management-module/fmm
+/file-management-module/fmm_asan
+/file-management-module/fmm_tsan
+
+.release/
+
+# C/C++ build artifacts
+*.o
+*.obj
+*.a
+*.so
+*.out
+*.dSYM/
+
+# ── Runtime output ────────────────────────────────────────────────────
+# Download/activity log written by the server (see `make clean`).
+transfer.log
+*.log
+
+# ── Python (unit_tests / vuln_tests) ──────────────────────────────────
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# ── OTA module runtime output ─────────────────────────────────────────
+# Published packages/manifests written by the server at runtime.
+ota-module/data/
+
+# ── Editor / OS cruft ─────────────────────────────────────────────────
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Generated per-deployment harness secrets (see generate-secrets.sh) ─
+secrets/
+
+
+.metals/
+.vscode/
+bridge/.env
+
+# live-test artifacts, not source (workspace keeps them under plans/cockpit-api/work/)
+cockpit-ui/**/evidence/
+
+# browser automation tool state
+.playwright-cli/
+
+# bridge rebuild job state (runtime artifacts, not source)
+bridge/data/rebuild/
+
+# bridge per-contestant runtime session + earned-flag wallet (not source)
+bridge/data/session.json
+bridge/data/flags.json

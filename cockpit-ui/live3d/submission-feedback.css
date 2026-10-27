@@ -1,0 +1,27 @@
+/* Shared admission feedback for module and weapons-console submissions. */
+.submission-feedback{margin:0 0 14px;padding:10px 12px;border:1px solid #3d6a96;background:#0d1520}
+.submission-feedback[hidden]{display:none}
+.submission-limit{margin:0 0 8px;overflow-wrap:anywhere;font-size:14px}
+.submission-limit [role="timer"]{color:#f2d67a;font-variant-numeric:tabular-nums}
+.submission-limits-refresh{font:inherit;min-height:40px;padding:6px 12px;border:1px solid #3d6a96;
+  background:#101820;color:#d8e8fa;cursor:pointer}
+.submission-limits-refresh:focus-visible{outline:2px solid #f2d67a;outline-offset:2px}
+.as-root .submission-feedback{margin-bottom:.5rem;padding:.5rem}
+.as-root .submission-limit{font-size:11px}
+.as-root .submission-limits-refresh{min-height:28px;font-size:10px}
+/* Last remote submission. Hidden until a refusal or a finished grade exists. */
+.as-root .as-last{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;box-sizing:border-box;
+  width:max-content;max-width:100%;margin:0 0 .5rem;padding:6px 10px;border:1px solid #243044;
+  border-radius:8px;background:#070b12;color:#9fb6d0;font-size:11px}
+.as-root .as-last[hidden]{display:none}
+.as-root .as-last-k{letter-spacing:.06em;text-transform:uppercase;color:#5f7590;flex:none}
+.as-root .as-last-v{color:#d8e8fa}
+.as-root .as-last.is-refused .as-last-v{color:#c07171}
+.as-root .as-last.is-boarded .as-last-v{color:#6fbf8a}
+/* Boarded-ship list: each item names the ship and, when the ship awards one,
+   shows the EARNED reward flag the contestant keeps. */
+.as-solved li.as-has-flag{display:flex;flex-direction:column;gap:3px}
+.as-solved .as-ship{color:#8fe3a0}
+.as-solved .as-flag{align-self:flex-start;font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:12px;color:#f2d67a;background:#101820;border:1px solid #3d6a96;border-radius:3px;
+  padding:2px 6px;overflow-wrap:anywhere;user-select:all}

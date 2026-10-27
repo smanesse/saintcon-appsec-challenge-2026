@@ -1,0 +1,7 @@
+poc/
+README.md
+*.md
+.git
+.gitignore
+fmm
+transfer.log

@@ -1,0 +1,49 @@
+# Runs the KVS server and its unit tests entirely in containers, so the
+# deliberately-vulnerable server never listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# `kvs` is only reachable on the private compose network - it is deliberately
+# NOT published to the host. The `tests` service connects to it by service
+# name and drives the RESP protocol over that network.
+
+services:
+  kvs:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "6379"
+    environment:
+      # A real password IS configured here (the harness's generated value flows
+      # through when present; the local fallback keeps this instance and `tests`
+      # below on the same password with zero setup). The functional tests AUTH
+      # with it so they pass unchanged when the server enforces authentication.
+      KVS_REQUIREPASS: ${KVS_REQUIREPASS:-unit-test-pass}
+
+  tests:
+    image: python:3.12-slim
+    depends_on:
+      - kvs
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      KVS_HOST: kvs
+      KVS_PORT: "6379"
+      KVS_NO_LAUNCH: "1"
+      KVS_REQUIREPASS: ${KVS_REQUIREPASS:-unit-test-pass}
+    command: ["python3", "-m", "unittest", "test_kvs", "-v"]
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

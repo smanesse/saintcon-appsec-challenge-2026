@@ -1,0 +1,66 @@
+# Runs the DNS Module and its unit tests entirely in containers, so the
+# deliberately-vulnerable server never listens on a host port.
+#
+#   docker compose -f unit_tests/docker-compose.yml up --build \
+#       --abort-on-container-exit --exit-code-from tests
+#
+# (or just: ./unit_tests/run-in-docker.sh)
+#
+# The `dnsm` service is only reachable on the private compose network - it is
+# deliberately NOT published to the host. The `tests` service connects to it by
+# service name and drives DNS/HTTP over that network. `upstream` is a fast
+# stand-in resolver so the recursive-forwarding functional test can run.
+
+services:
+  dnsm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    # No `ports:` mapping on purpose: keep the vulnerable server off the host.
+    expose:
+      - "8053"
+      - "8053/udp"
+      - "8080"
+    # Mirrors the resource envelope a real deployment/scoring harness would
+    # give this module: one core, bounded memory, and a capped PID count. The
+    # functional tests here stay comfortably within these caps.
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 200
+    environment:
+      DNSM_UPSTREAM: "upstream:8053"
+      DNSM_FLAG: "${DNSM_FLAG:-}"
+
+  upstream:
+    image: python:3.12-slim
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    command: ["python3", "upstream_responder.py", "8053", "0"]
+
+  tests:
+    image: python:3.12-slim
+    depends_on:
+      - dnsm
+      - upstream
+    working_dir: /tests
+    volumes:
+      - ./:/tests:ro
+    environment:
+      DNSM_HOST: dnsm
+      DNSM_PORT: "8053"
+      DNSM_ADMIN_PORT: "8080"
+      DNSM_NO_LAUNCH: "1"       # connect to the dnsm container; never launch locally
+      DNSM_HAVE_UPSTREAM: "1"   # upstream service is present -> run forwarding test
+    command: ["python3", "-m", "unittest", "test_dnsm", "-v"]
+
+# Run the whole suite with no outbound route. The functional tests are
+# self-contained (stdlib-only, and any URL a feature fetches is served
+# container-to-container on this network), so egress is never needed - and
+# forbidding it here catches tests that accidentally depend on the internet
+# before they reach the scoring harness, which grades on a locked-down network.
+# Image builds use the daemon's build network, not this one, so `--build` is
+# unaffected.
+networks:
+  default:
+    internal: true

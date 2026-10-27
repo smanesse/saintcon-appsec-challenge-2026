@@ -1,0 +1,1068 @@
+{
+  "ship": {
+    "name": "USS AUDITOR-7",
+    "registry": "SC-2026",
+    "callsign": "BLUE-TEAM"
+  },
+  "subsystems": [
+    {
+      "code": "FMM",
+      "name": "CARGO BAY / DATA VAULT",
+      "service": "file-management-module",
+      "realName": "C++ FTP-like file server",
+      "port": 2121,
+      "proto": "tcp",
+      "desc": "Bulk cargo transfer + long-term data vault. Plaintext control connection.",
+      "actions": [
+        {
+          "id": "login",
+          "label": "Authenticate + PWD",
+          "hint": "Opens a real control connection, logs in over the wire, and reads the working directory.",
+          "fields": [
+            {
+              "name": "user",
+              "label": "user",
+              "default": "alice"
+            },
+            {
+              "name": "pass",
+              "label": "password",
+              "default": "password123"
+            }
+          ]
+        },
+        {
+          "id": "sess",
+          "label": "Resume session",
+          "hint": "SESS the issued token on a fresh control connection, then PWD.",
+          "fields": [
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "id": "list",
+          "label": "LIST directory",
+          "hint": "SESS, optional TYPE, PASV or PORT, then LIST. Returns names including . and ..",
+          "fields": [
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            },
+            {
+              "name": "type",
+              "label": "type I/A",
+              "default": "I",
+              "options": [
+                "I",
+                "A"
+              ]
+            },
+            {
+              "name": "channel",
+              "label": "channel",
+              "default": "pasv",
+              "options": [
+                "pasv",
+                "port"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cwd",
+          "label": "CWD then LIST",
+          "hint": "SESS, CWD, PWD, then the same LIST path as list.",
+          "fields": [
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            },
+            {
+              "name": "dir",
+              "label": "dir",
+              "default": "docs"
+            },
+            {
+              "name": "type",
+              "label": "type I/A",
+              "default": "I",
+              "options": [
+                "I",
+                "A"
+              ]
+            },
+            {
+              "name": "channel",
+              "label": "channel",
+              "default": "pasv",
+              "options": [
+                "pasv",
+                "port"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "retr",
+          "label": "RETR file",
+          "hint": "SESS, TYPE, PASV or PORT, then RETR. Preview is replacement-decoded text, never markup.",
+          "fields": [
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            },
+            {
+              "name": "filename",
+              "label": "filename",
+              "default": "welcome.txt"
+            },
+            {
+              "name": "type",
+              "label": "type I/A",
+              "default": "I",
+              "options": [
+                "I",
+                "A"
+              ]
+            },
+            {
+              "name": "channel",
+              "label": "channel",
+              "default": "pasv",
+              "options": [
+                "pasv",
+                "port"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "stor",
+          "label": "STOR file",
+          "hint": "SESS, TYPE, PASV or PORT, then STOR. Empty body uses a short ASCII probe.",
+          "fields": [
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            },
+            {
+              "name": "filename",
+              "label": "filename",
+              "default": "probe.txt"
+            },
+            {
+              "name": "body",
+              "label": "body",
+              "default": "cargo from auditor-7\n"
+            },
+            {
+              "name": "type",
+              "label": "type I/A",
+              "default": "I",
+              "options": [
+                "I",
+                "A"
+              ]
+            },
+            {
+              "name": "channel",
+              "label": "channel",
+              "default": "pasv",
+              "options": [
+                "pasv",
+                "port"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "type",
+          "label": "TYPE I/A",
+          "hint": "SESS, then TYPE. Connection-local; the interactor QUITs, so the 3D page also sends type on each data-channel call.",
+          "fields": [
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            },
+            {
+              "name": "code",
+              "label": "code",
+              "default": "I",
+              "options": [
+                "I",
+                "A"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "IPM",
+      "name": "OPTICAL SENSOR ARRAY",
+      "service": "image-processing-module",
+      "realName": "Java/Spring image converter (ImageMagick)",
+      "port": 8080,
+      "proto": "http",
+      "desc": "Processes optical feeds via ImageMagick; stores results in the Cargo Bay.",
+      "actions": [
+        {
+          "id": "convert",
+          "label": "Convert test image",
+          "hint": "Uploads a canned image (1x1 PNG by default), converts it via ImageMagick, STORs the result into FMM, and retrieves it back through GET /image/{name}. Optional source: probe | svg | a plate key.",
+          "fields": [
+            {
+              "name": "name",
+              "label": "output name",
+              "default": "probe.png"
+            },
+            {
+              "name": "width",
+              "label": "width",
+              "default": "64"
+            },
+            {
+              "name": "height",
+              "label": "height",
+              "default": "64"
+            },
+            {
+              "name": "format",
+              "label": "format",
+              "default": ""
+            },
+            {
+              "name": "filename",
+              "label": "upload filename",
+              "default": "",
+              "hint": "multipart image filename; empty keeps canned name"
+            },
+            {
+              "name": "image_b64",
+              "label": "image (base64)",
+              "default": ""
+            },
+            {
+              "name": "source",
+              "label": "canned source",
+              "default": "probe"
+            }
+          ]
+        },
+        {
+          "id": "convert-url",
+          "label": "Convert from URL",
+          "hint": "IPM fetches this URL server-side, converts it, and STORs the result into FMM.",
+          "fields": [
+            {
+              "name": "url",
+              "label": "url"
+            },
+            {
+              "name": "name",
+              "label": "output name",
+              "default": ""
+            },
+            {
+              "name": "width",
+              "label": "width",
+              "default": ""
+            },
+            {
+              "name": "height",
+              "label": "height",
+              "default": ""
+            },
+            {
+              "name": "format",
+              "label": "format",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "id": "convert-batch",
+          "label": "Convert deck zip",
+          "hint": "POSTs a zip archive to /convert-batch. Empty source is the unit-test two-PNG probe; source=deck is the four-plate deck. Each member is converted and STORd into FMM.",
+          "fields": [
+            {
+              "name": "source",
+              "label": "archive",
+              "default": ""
+            },
+            {
+              "name": "archive_b64",
+              "label": "archive (base64)",
+              "default": "",
+              "hint": "optional; empty uses source=deck or two-PNG probe"
+            },
+            {
+              "name": "filename",
+              "label": "zip filename",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "id": "image",
+          "label": "Retrieve stored plate",
+          "hint": "GET /image/{name} \u2014 RETR the named plate back out of FMM after IPM STORd it.",
+          "fields": [
+            {
+              "name": "name",
+              "label": "name"
+            }
+          ]
+        },
+        {
+          "id": "health",
+          "label": "Liveness",
+          "hint": "GET /health on the Image Processing Module.",
+          "fields": []
+        }
+      ]
+    },
+    {
+      "code": "DNSM",
+      "name": "NAV BEACON / COMMS ARRAY",
+      "service": "dns-module",
+      "realName": "C authoritative DNS server",
+      "port": 8053,
+      "adminPort": 8054,
+      "proto": "dns",
+      "desc": "Authoritative navigation beacon. Answers A/AAAA/TXT/MX/NS/CNAME over the DNS wire; HTTP admin import/reload on the admin port.",
+      "actions": [
+        {
+          "id": "query",
+          "label": "DNS query",
+          "hint": "Sends a real DNS packet (UDP, or TCP when the answer is truncated) and decodes the answer section.",
+          "fields": [
+            {
+              "name": "name",
+              "label": "name",
+              "default": "www.example.com"
+            },
+            {
+              "name": "type",
+              "label": "type",
+              "default": "A",
+              "options": [
+                "A",
+                "AAAA",
+                "TXT",
+                "MX",
+                "NS",
+                "CNAME"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "import",
+          "label": "Import zone",
+          "hint": "POST /admin/import with zone text; the records are merged into the live zone. Signed in with the console's admin token.",
+          "fields": [
+            {
+              "name": "body",
+              "label": "zone text",
+              "default": "",
+              "placeholder": "www  A  192.0.2.10"
+            }
+          ]
+        },
+        {
+          "id": "reload",
+          "label": "Reload zone",
+          "hint": "POST /admin/reload: reload the zone file from disk. Signed in with the console's admin token.",
+          "fields": []
+        }
+      ]
+    },
+    {
+      "code": "KVS",
+      "name": "CORE MEMORY BANKS",
+      "service": "keystore-module",
+      "realName": "Go RESP key-value store",
+      "port": 6379,
+      "proto": "tcp",
+      "desc": "Ship's core memory. Redis-protocol (RESP) over raw TCP.",
+      "actions": [
+        {
+          "id": "cmd",
+          "label": "RESP terminal",
+          "hint": "Encodes your command as RESP, sends it to the real store, and decodes the reply.",
+          "fields": [
+            {
+              "name": "command",
+              "label": "command",
+              "default": "PING",
+              "placeholder": "e.g. SET ship online  |  GET ship  |  KEYS *"
+            },
+            {
+              "name": "password",
+              "label": "password (optional AUTH)",
+              "default": "",
+              "placeholder": "blank = the console's own sign-in; each call is a new TCP socket"
+            },
+            {
+              "name": "script",
+              "label": "EVAL script (optional)",
+              "default": "",
+              "placeholder": "Lua bulk for EVAL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "LOG",
+      "name": "BLACK BOX RECORDER",
+      "service": "log-module",
+      "realName": "Scala/http4s log ingestion + dashboard",
+      "port": 8085,
+      "proto": "http",
+      "desc": "Flight recorder. Ingests and searches structured log records over HTTP.",
+      "actions": [
+        {
+          "id": "ingest",
+          "label": "Ingest log line",
+          "hint": "POSTs a real record to /ingest.",
+          "fields": [
+            {
+              "name": "source",
+              "label": "source",
+              "default": "bridge"
+            },
+            {
+              "name": "level",
+              "label": "level",
+              "default": "INFO",
+              "options": [
+                "INFO",
+                "WARN",
+                "ERROR"
+              ]
+            },
+            {
+              "name": "message",
+              "label": "message",
+              "default": "console check-in"
+            }
+          ]
+        },
+        {
+          "id": "search",
+          "label": "Search logs",
+          "hint": "Queries /search against real ingested lines.",
+          "fields": [
+            {
+              "name": "q",
+              "label": "query",
+              "default": "check-in"
+            },
+            {
+              "name": "source",
+              "label": "source (optional)",
+              "default": "bridge"
+            }
+          ]
+        },
+        {
+          "id": "download",
+          "label": "Download log file",
+          "hint": "GETs /logs/{name} as raw text.",
+          "fields": [
+            {
+              "name": "name",
+              "label": "log name",
+              "default": "nav.log",
+              "placeholder": "e.g. nav.log"
+            }
+          ]
+        },
+        {
+          "id": "wipe",
+          "label": "Wipe log file",
+          "hint": "DELETEs /logs/{name}.",
+          "fields": [
+            {
+              "name": "name",
+              "label": "log name",
+              "default": "nav.log"
+            }
+          ]
+        },
+        {
+          "id": "dashboard",
+          "label": "Flight recorder dashboard",
+          "hint": "GETs /dashboard (recent lines across sources).",
+          "fields": []
+        }
+      ]
+    },
+    {
+      "code": "OTA",
+      "name": "FLEET REPLICATOR GRID",
+      "service": "ota-module",
+      "realName": "Go fleet-update server",
+      "port": 8090,
+      "proto": "http",
+      "desc": "Pushes update packages to the fleet and tracks device status.",
+      "actions": [
+        {
+          "id": "status",
+          "label": "Fleet update status",
+          "hint": "Reads latest published versions for fmm/ipm/log and GET /devices. A blank API key uses the fleet key.",
+          "fields": [
+            {
+              "name": "api_key",
+              "label": "API key",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "id": "latest",
+          "label": "Latest published update",
+          "hint": "GET /updates/{module}/latest. Unauthenticated \u2014 no API key.",
+          "fields": [
+            {
+              "name": "module",
+              "label": "module",
+              "default": "log",
+              "options": [
+                "fmm",
+                "ipm",
+                "log"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "publish",
+          "label": "Publish update",
+          "hint": "POST /publish. Empty source_url mints a tiny package; a set source_url omits the package part.",
+          "fields": [
+            {
+              "name": "module",
+              "label": "module",
+              "default": "log",
+              "options": [
+                "fmm",
+                "ipm",
+                "log"
+              ]
+            },
+            {
+              "name": "version",
+              "label": "version",
+              "default": "1.5.0"
+            },
+            {
+              "name": "sha256",
+              "label": "sha256",
+              "default": ""
+            },
+            {
+              "name": "api_key",
+              "label": "API key",
+              "default": ""
+            },
+            {
+              "name": "source_url",
+              "label": "source_url",
+              "default": ""
+            },
+            {
+              "name": "post_install",
+              "label": "post_install",
+              "default": "none"
+            }
+          ]
+        },
+        {
+          "id": "report",
+          "label": "Device report",
+          "hint": "POST /devices/{id}/report with Authorization: Bearer {token}.",
+          "fields": [
+            {
+              "name": "device_id",
+              "label": "device id",
+              "default": ""
+            },
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            },
+            {
+              "name": "version",
+              "label": "version",
+              "default": "1.5.0"
+            },
+            {
+              "name": "status",
+              "label": "status",
+              "default": "applied"
+            }
+          ]
+        },
+        {
+          "id": "sync",
+          "label": "Device sync",
+          "hint": "POST /devices/{id}/sync with Bearer token. body_json is sent as typed.",
+          "fields": [
+            {
+              "name": "device_id",
+              "label": "device id",
+              "default": ""
+            },
+            {
+              "name": "token",
+              "label": "token",
+              "default": ""
+            },
+            {
+              "name": "body_json",
+              "label": "body JSON",
+              "default": ""
+            },
+            {
+              "name": "version",
+              "label": "version",
+              "default": ""
+            },
+            {
+              "name": "module",
+              "label": "module",
+              "default": ""
+            },
+            {
+              "name": "status",
+              "label": "status",
+              "default": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "MQB",
+      "name": "DRONE TELEMETRY BUS",
+      "service": "mqtt-module",
+      "realName": "Python MQTT 3.1.1 broker",
+      "port": 1883,
+      "adminPort": 8082,
+      "proto": "tcp",
+      "desc": "Carries drone-swarm telemetry over MQTT 3.1.1.",
+      "actions": [
+        {
+          "id": "roundtrip",
+          "label": "Publish / subscribe round-trip",
+          "hint": "Connects two real MQTT clients, subscribes, publishes, and confirms delivery.",
+          "fields": [
+            {
+              "name": "topic",
+              "label": "topic",
+              "default": "bridge/telemetry"
+            },
+            {
+              "name": "message",
+              "label": "message",
+              "default": "ping from bridge"
+            },
+            {
+              "name": "password",
+              "label": "password (optional)",
+              "default": "",
+              "placeholder": "blank = the console's own sign-in"
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "label": "CONNECT (hold session)",
+          "hint": "Sends CONNECT/CONNACK and holds the socket for the other actions. The console signs in for you unless you give your own password.",
+          "fields": [
+            {
+              "name": "client_id",
+              "label": "client id",
+              "default": "mqb-cockpit"
+            },
+            {
+              "name": "password",
+              "label": "password (optional)",
+              "default": "",
+              "placeholder": "blank = the console's own sign-in"
+            },
+            {
+              "name": "keep_alive",
+              "label": "keep alive s",
+              "default": "30"
+            },
+            {
+              "name": "will_topic",
+              "label": "will topic",
+              "default": "will/lost"
+            },
+            {
+              "name": "will_message",
+              "label": "will message",
+              "default": "IF THIS LINE DROPS PLAY THIS"
+            }
+          ]
+        },
+        {
+          "id": "publish",
+          "label": "PUBLISH",
+          "hint": "PUBLISH on a held session. qos=1 waits for PUBACK. Empty message + retain clears a retained topic.",
+          "fields": [
+            {
+              "name": "client_id",
+              "label": "client id",
+              "default": "mqb-cockpit"
+            },
+            {
+              "name": "topic",
+              "label": "topic",
+              "default": "hull/temp"
+            },
+            {
+              "name": "message",
+              "label": "payload",
+              "default": ""
+            },
+            {
+              "name": "qos",
+              "label": "QoS",
+              "default": "0",
+              "options": [
+                "0",
+                "1"
+              ]
+            },
+            {
+              "name": "retain",
+              "label": "retain",
+              "default": "false",
+              "options": [
+                "false",
+                "true"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "subscribe",
+          "label": "SUBSCRIBE",
+          "hint": "SUBSCRIBE a filter on a held session. Matching retained messages come back on the same call.",
+          "fields": [
+            {
+              "name": "client_id",
+              "label": "client id",
+              "default": "mqb-cockpit"
+            },
+            {
+              "name": "topic",
+              "label": "filter",
+              "default": "drone/+"
+            },
+            {
+              "name": "qos",
+              "label": "QoS",
+              "default": "0",
+              "options": [
+                "0",
+                "1"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "unsubscribe",
+          "label": "UNSUBSCRIBE",
+          "hint": "UNSUBSCRIBE a filter. Session stays connected.",
+          "fields": [
+            {
+              "name": "client_id",
+              "label": "client id",
+              "default": "mqb-cockpit"
+            },
+            {
+              "name": "topic",
+              "label": "filter",
+              "default": "drone/+"
+            }
+          ]
+        },
+        {
+          "id": "ping",
+          "label": "PINGREQ",
+          "hint": "PINGREQ on a held session; waits for PINGRESP.",
+          "fields": [
+            {
+              "name": "client_id",
+              "label": "client id",
+              "default": "mqb-cockpit"
+            }
+          ]
+        },
+        {
+          "id": "drain",
+          "label": "Read messages",
+          "hint": "Messages the broker delivered to a held session since the last read.",
+          "fields": [
+            {
+              "name": "client_id",
+              "label": "client id",
+              "default": "mqb-cockpit"
+            }
+          ]
+        },
+        {
+          "id": "disconnect",
+          "label": "DISCONNECT",
+          "hint": "graceful=true sends DISCONNECT then close (will suppressed). false is a TCP drop (will fires).",
+          "fields": [
+            {
+              "name": "client_id",
+              "label": "client id",
+              "default": "mqb-cockpit"
+            },
+            {
+              "name": "graceful",
+              "label": "graceful",
+              "default": "true",
+              "options": [
+                "true",
+                "false"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "stats",
+          "label": "Admin stats",
+          "hint": "Connected client and retained message counts from the admin port.",
+          "fields": []
+        }
+      ]
+    },
+    {
+      "code": "MAIL",
+      "name": "SUBSPACE COMMS RELAY",
+      "service": "mail-module",
+      "realName": "Node SMTP-like mail relay",
+      "port": 2525,
+      "adminPort": 8083,
+      "proto": "tcp",
+      "desc": "Relays subspace messages off-ship over SMTP.",
+      "actions": [
+        {
+          "id": "send",
+          "label": "Send test message",
+          "hint": "Runs a real SMTP session (EHLO, optional STARTTLS+EHLO, optional AUTH, MAIL/RCPT/DATA) and confirms via the admin queue. Cockpit close-up posts code MTA; track 01 remaps MTA\u2192MAIL. This copy also accepts MAIL in dispatch.",
+          "fields": [
+            {
+              "name": "from",
+              "label": "from",
+              "default": "bridge@auditor-7.ship"
+            },
+            {
+              "name": "to",
+              "label": "to",
+              "default": "ops@station.example"
+            },
+            {
+              "name": "subject",
+              "label": "subject",
+              "default": "Bridge console test"
+            },
+            {
+              "name": "body",
+              "label": "body",
+              "default": "Subspace relay check."
+            },
+            {
+              "name": "user",
+              "label": "AUTH user",
+              "default": ""
+            },
+            {
+              "name": "pass",
+              "label": "AUTH pass",
+              "default": ""
+            },
+            {
+              "name": "mech",
+              "label": "AUTH mech",
+              "default": "PLAIN",
+              "options": [
+                "PLAIN",
+                "LOGIN"
+              ]
+            },
+            {
+              "name": "starttls",
+              "label": "STARTTLS",
+              "default": ""
+            },
+            {
+              "name": "webhook",
+              "label": "X-Notify-Webhook",
+              "default": ""
+            },
+            {
+              "name": "auth_param",
+              "label": "MAIL FROM AUTH=",
+              "default": "",
+              "hint": "ESMTP AUTH= parameter (xtext)"
+            },
+            {
+              "name": "message_id",
+              "label": "Message-ID",
+              "default": "",
+              "hint": "DATA Message-ID header"
+            }
+          ]
+        },
+        {
+          "id": "queue",
+          "label": "Queue lookup",
+          "hint": "GET /queue (list) or GET /queue/<name> (metadata + raw) on the admin viewer.",
+          "fields": [
+            {
+              "name": "name",
+              "label": "name (empty = list)",
+              "default": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "AL01",
+      "name": "Navcomputer",
+      "service": "navcomputer",
+      "composeService": "navcomputer",
+      "composeFile": "aliens/docker-compose.yml",
+      "sourceDir": "aliens/01-navcomputer",
+      "realName": "A.L.I.E.N. ship 01 \u2014 Navcomputer",
+      "port": 8091,
+      "proto": "tcp",
+      "desc": "Alien navcomputer. Local teaching ship on 8091.",
+      "actions": [
+        {
+          "id": "scan",
+          "label": "Scan coordinates",
+          "hint": "POST coords to the navcomputer scan endpoint.",
+          "fields": [
+            {
+              "name": "coords",
+              "label": "coords",
+              "default": "127.0.0.1"
+            }
+          ]
+        },
+        {
+          "id": "health",
+          "label": "Liveness",
+          "hint": "GET health/status on the navcomputer.",
+          "fields": []
+        }
+      ]
+    },
+    {
+      "code": "AL02",
+      "name": "Cargo Manifests",
+      "service": "cargo",
+      "composeService": "cargo",
+      "composeFile": "aliens/docker-compose.yml",
+      "sourceDir": "aliens/02-cargo-manifests",
+      "realName": "A.L.I.E.N. ship 02 \u2014 Cargo Manifests",
+      "port": 8092,
+      "proto": "tcp",
+      "desc": "Alien cargo bay. Local teaching ship on 8092.",
+      "actions": [
+        {
+          "id": "manifest",
+          "label": "Read manifest",
+          "hint": "Fetch a cargo manifest file path.",
+          "fields": [
+            {
+              "name": "file",
+              "label": "file",
+              "default": "manifest.txt"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "AL03",
+      "name": "Reactor Core",
+      "service": "reactor",
+      "composeService": "reactor",
+      "composeFile": "aliens/docker-compose.yml",
+      "sourceDir": "aliens/03-reactor-core",
+      "realName": "A.L.I.E.N. ship 03 \u2014 Reactor Core",
+      "port": 8093,
+      "proto": "tcp",
+      "desc": "Alien reactor core. Local teaching ship on 8093.",
+      "actions": [
+        {
+          "id": "session",
+          "label": "Session cookie",
+          "hint": "Send a reactor_session cookie to the reactor console.",
+          "fields": [
+            {
+              "name": "cookie",
+              "label": "session cookie",
+              "default": ""
+            },
+            {
+              "name": "payload",
+              "label": "payload",
+              "default": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "AL04",
+      "name": "Docking Bay",
+      "service": "docking",
+      "composeService": "docking",
+      "composeFile": "aliens/docker-compose.yml",
+      "sourceDir": "aliens/04-docking-bay",
+      "realName": "A.L.I.E.N. ship 04 \u2014 Docking Bay",
+      "port": 8094,
+      "proto": "tcp",
+      "desc": "Alien docking bay. Local teaching ship on 8094.",
+      "actions": [
+        {
+          "id": "get",
+          "label": "GET path",
+          "hint": "Recon GET against a path on the docking bay.",
+          "fields": [
+            {
+              "name": "path",
+              "label": "path",
+              "default": "/"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

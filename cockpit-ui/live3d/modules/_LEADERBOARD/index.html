@@ -1,0 +1,175 @@
+<!doctype html>
+<!-- SAINTCON 2026 — THE MUSTER BOARD.  The fleet leaderboard, standing alone.
+
+     SERVE FROM THE REPO ROOT:
+         cd /path/to/saintcon/2026
+         ./live3d/run.sh                       (or python3 -m http.server 8777)
+         open http://localhost:8777/live3d/modules/_LEADERBOARD/
+         open http://localhost:8777/live3d/modules/_LEADERBOARD/?dev=1
+
+     THE UNDERSCORE PREFIX MEANS "NOT ONE OF THE NINE", the same way
+     modules/_TEMPLATE/ does.  The nine are keyed by cockpit/combined/
+     manifest.json, live3d/transition.json and live3d/assets/<CODE>/, and the
+     leaderboard is in none of the three.  It has no module, no baked plate, no
+     entry in transition.json and no M — a leaderboard answers a different
+     question from "which module do I go and work on".  The cockpit reaches it
+     through one button and one overlay iframe and nothing else.
+
+     ONE BOARD.  8 slots at 28 px, a pointer, drag and wheel with momentum, a
+     spring clamp holding your own row when the feed names one, and an
+     automatic 12 s advance that runs whenever nobody is touching it and gets
+     out of the way the moment somebody is.  There was a second mode -- `?tv=1`,
+     16 slots at 14 px, no pointer, no clamp -- and it is gone, not defaulted:
+     `grep -n "tv" board.js ../../leaderboard.js` finds comments and no branch.
+
+     `?pages=N` (or `?pages=all`) sets how far the UNATTENDED loop cycles.  It
+     does not limit a hand; a hand reaches the whole field, which is the entire
+     reason the pointer is here.
+
+     THE TOOLBAR IS OFF BY DEFAULT AND `?dev=1` TURNS IT ON.  It is three
+     developer switches and a diagnostic line -- not player UI, and not
+     something a person standing in a conference hallway should be looking at.
+     Every affordance a player needs is on the board itself: the rack scrolls
+     by drag and wheel, and the clamp is a hotspot on the clamp.
+
+     THE LAYER STACK IS THREE DEEP AND THAT IS DELIBERATE.  The nine module
+     pages carry the five-layer occlusion sandwich from modules/_TEMPLATE:
+     baked plate, back canvas, DOM readouts, FRONT canvas, hotspots.  That
+     stack exists so live geometry can pass IN FRONT of on-surface type, and it
+     costs a depth pass, a ubias_m, a split renderer and check_occlusion.py.
+
+     This page has none of it, because it needs none of it:
+
+       * there is no baked plate — the whole board is live geometry, so there
+         is nothing to composite the live pass into;
+       * the board face is FRONTO-PARALLEL by construction, so screen-space
+         DOM over it produces the same pixels CSS3D would, and the type is
+         on-surface without a declared readout plane;
+       * no mesh crosses a value.  Every moving part on the board — the clamp
+         jaws, the index wheel, the raised tabs — lives in the slat left tabs,
+         the frame, the rails and the margins, which is the clear-of-type rule
+         in live3d/design/LEADERBOARD.md section 4.3.  window.__board
+         .clearance() measures it rather than asserting it.
+
+     So: canvas, DOM, hotspots.  Do not add a second canvas here without first
+     reading section 4.3 and finding out what broke.
+
+         canvas #gl      the whole live board             z 1
+         div    #board   the DOM layer (leaderboard.css)  z 2  pointer-events:none
+         div    #hots    pointer targets                  z 3                  -->
+<meta charset="utf-8">
+<title>USS AUDITOR-7 — muster board</title>
+<link rel="stylesheet" href="../../leaderboard.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#02030a;overflow:hidden;color:#9fb6d0;
+    font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #viewport{position:fixed;left:0;right:0;top:0;bottom:0;overflow:hidden}
+  .stage{position:absolute;left:0;top:0;width:1280px;height:720px;
+    transform-origin:0 0}
+  .stage>*{position:absolute;left:0;top:0}
+  .layer{width:1280px;height:720px;pointer-events:none;user-select:none;
+    -webkit-user-drag:none}
+  #gl   {z-index:1}
+  #board{z-index:2}
+  #hots {z-index:3;width:1280px;height:720px}
+
+  #bar{position:fixed;left:0;right:0;bottom:0;height:38px;display:none;
+    gap:8px;align-items:center;padding:0 10px;background:#0a0d14;
+    border-top:1px solid #1d2836;z-index:20}
+  /* white-space:nowrap and flex:none ARE NOT COSMETIC.  #bar is a 38 px flex
+     row; without them a long #note shrinks the buttons until their labels wrap
+     to two lines, the buttons grow from 28.5 px to 45 px and OVERFLOW THE BAR
+     UPWARDS by 3 px -- into the 1280x720 stage rect the capture harness clips.
+     Trap 22, and every page in this fleet carries the same two declarations. */
+  button{font:inherit;letter-spacing:.12em;text-transform:uppercase;
+    white-space:nowrap;flex:none;
+    padding:5px 10px;background:#131a26;color:#9fb6d0;border:1px solid #24405e;
+    border-radius:3px;cursor:pointer}
+  button:hover{color:#d8e8fa;border-color:#3d6a96}
+  button.on{background:#c79a2e;color:#161208;border-color:#f2d67a}
+  #note{margin-left:auto;color:#5f7590;font-size:10.5px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #err{position:fixed;inset:auto 12px 48px 12px;z-index:40;display:none;
+    background:#2a0d0d;border:1px solid #a33;color:#ffb4b4;padding:10px 12px;
+    white-space:pre-wrap;font-size:12px}
+
+  /* ------------------------------------------------------------ EMBED MODE
+     `?embed=1` is how live3d/index.html opens this page in its overlay iframe.
+     Same three declarations the nine module pages carry, and for the same
+     reasons: transparent background so the cockpit shows through, no toolbar,
+     and NOTHING ELSE -- the renderer, the layout, the poll and the geometry
+     are byte-identical with it and without it. */
+  html.embed,html.embed body{background:transparent}
+  html.embed #viewport{bottom:0}
+  html.embed #bar{display:none}
+  /* THE DEFAULT IS THE KIOSK.  #viewport reaches the bottom of the window and
+     #bar is not rendered, so the board gets the whole frame -- which is also
+     what keeps the stage scale at min(w/1280, h/720) with no 38 px bitten out
+     of it.  At 1920x1080 that is the difference between k = 1.5 and k = 1.447,
+     i.e. between 26 device px of cap height and 25.  `?dev=1` gives the 38 px
+     back to the toolbar, and only then. */
+  html.dev #viewport{bottom:38px}
+  html.dev #bar{display:flex}
+</style>
+<script>
+/* Set BEFORE the body is laid out, so embed mode never flashes an opaque
+   background.  (The toolbar cannot flash any more -- it is `display:none` in
+   the stylesheet and `?dev=1` turns it ON, which is the safe direction.)  No innerHTML, no markup
+   assignment -- one className on the root element, exactly as
+   modules/_TEMPLATE/index.html does it. */
+(function () {
+  var q = location.search, c = [];
+  if (q.indexOf('embed') >= 0) c.push('embed');
+  /* `?tv=1` used to add a `tv` class here, which selected a whole second
+     board.  It selects nothing now; the parameter is accepted and ignored so
+     that the printed and bookmarked kiosk URL keeps working. */
+  if (/[?&]dev=1\b/.test(q)) c.push('dev');
+  if (c.length) document.documentElement.className = c.join(' ');
+})();
+</script>
+
+<div id="viewport">
+  <div class="stage" id="stage">
+    <canvas id="gl" class="layer" width="1280" height="720"></canvas>
+    <div id="hots"></div>
+  </div>
+</div>
+<div id="err"></div>
+<div id="bar">
+  <button id="bText" class="on">dom text</button>
+  <button id="bDbg">show hotspots</button>
+  <button id="bPin" class="on">clamp</button>
+  <span id="note"></span>
+</div>
+
+<script>
+/* file:// -- SAY SO, RATHER THAN SHOWING A BLANK PAGE.  An ordinary inline
+   script, not part of the module, because an ES module load over file:// is
+   refused by CORS before one line of it runs -- and this page also fetches
+   scene.json, materials.json, board.glb and leaderboard.json, which are
+   blocked by the same rule.  live3d/index.html says the same thing in the same
+   place; the module template does not, which is a gap this page does not
+   inherit. */
+if (location.protocol === 'file:') {
+  var e = document.getElementById('err');
+  e.style.display = 'block';
+  e.textContent =
+    'This page is open over file:// and that cannot work.\n\n' +
+    'Chrome refuses the ES module load outright (CORS, origin "null"), and ' +
+    'the board also fetches scene.json, materials.json, board.glb and ' +
+    'leaderboard.json, which are blocked by the same rule.\n\n' +
+    'Run this instead, from the repo root:\n' +
+    '    ./live3d/run.sh\n\n' +
+    'then open\n' +
+    '    http://localhost:8777/live3d/modules/_LEADERBOARD/';
+}
+</script>
+
+<script type="importmap">
+{"imports":{
+  "three":"../../../three-exploration/vendor/three/build/three.module.min.js",
+  "three/addons/":"../../../three-exploration/vendor/three/examples/jsm/"
+}}
+</script>
+<script type="module" src="./board.js"></script>

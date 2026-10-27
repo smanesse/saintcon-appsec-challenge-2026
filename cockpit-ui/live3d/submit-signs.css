@@ -1,0 +1,42 @@
+/* First-visit submit signs. A plaque and a thick arrow, not a glow.
+ * Hidden while the tutorial card is open, and off any close-up, so a
+ * late stylesheet still cannot paint them over the card. */
+
+#submitSigns{position:fixed;left:0;right:0;top:0;bottom:0;z-index:14;
+  pointer-events:none}
+#submitSigns[hidden]{display:none !important}
+body:has(#tutorialCard:not([hidden])) #submitSigns,
+body.closeup #submitSigns,
+body.board #submitSigns,
+body.moving #submitSigns,
+body[data-grade-port="open"] #submitSigns,
+body:has(#gradePanel:not([hidden])) #submitSigns{display:none !important}
+
+#submitSigns .ss-arrows{position:absolute;left:0;top:0;overflow:visible;
+  pointer-events:none}
+#submitSigns .ss-sign{position:absolute;z-index:1;pointer-events:auto;
+  box-sizing:border-box;width:min(320px,72vw);padding:16px 16px 14px;
+  background:#ffe14a;color:#111;border:4px solid #111;border-radius:8px;
+  box-shadow:8px 8px 0 #111}
+#submitSigns .ss-sign[hidden]{display:none !important}
+#submitSigns .ss-row{display:flex;align-items:center;gap:10px}
+#submitSigns .ss-label{margin:0;flex:1;min-width:0;
+  font:800 26px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:0;color:#111;white-space:normal;overflow-wrap:break-word}
+#submitSigns .ss-glyph{flex:none;font:800 52px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#111}
+#submitSigns .ss-dismiss{display:block;width:100%;margin-top:12px;
+  text-transform:none;letter-spacing:.02em;
+  font:700 16px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  padding:8px 12px;background:#111;color:#ffe14a;border:3px solid #111;
+  border-radius:4px;cursor:pointer}
+#submitSigns .ss-dismiss:hover,
+#submitSigns .ss-dismiss:focus-visible{background:#fff;color:#111;
+  outline:3px solid #111;outline-offset:2px}
+#submitSigns .ss-live{position:absolute;width:1px;height:1px;margin:-1px;
+  padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media (max-width:720px){
+  #submitSigns .ss-label{font-size:22px}
+  #submitSigns .ss-glyph{font-size:36px}
+}

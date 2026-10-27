@@ -1,0 +1,100 @@
+/* THE TELLTALE MAST'S CAPTION -- screen-space chrome for live3d/mast.js.
+ *
+ * NOT A READOUT, AND IT MUST NEVER BECOME ONE.  Every pixel styled here lives
+ * in a screen-space layer above the front canvas, in exactly the class KVS's
+ * two `.hud` panels and the refit port's docket already occupy.  It is
+ * deliberately NOT a `text_planes` entry, and that is what keeps
+ * `check_text.py`, `verify_assets.py`'s type audit and `check_occlusion.py`'s
+ * question 5 -- the check that caught LOG shipping four blank readouts while
+ * every other check passed -- NOT ENGAGED by this component rather than merely
+ * satisfied.  STATUS_AT_A_GLANCE.md section 6.2 rule 5 asked for a new
+ * declared plane per module; section 6's build note records why it is not
+ * here.  MAX_PLANES is untouched and no module's plane count moves.
+ *
+ * The layer is authored in raw 1280x720 stage pixels; the stage's own
+ * `transform: scale(k)` in each module's layout() scales it, so it is vector
+ * and stays sharp at any window size and any devicePixelRatio.
+ *
+ * ONE FILE FOR ALL NINE.  Paths here resolve against THIS file's URL
+ * (live3d/mast.css), not against the module page's, so `../fonts/...` is
+ * correct from every module directory depth.
+ *
+ * NO COLOUR IS TYPED HERE THAT `status.js -> INK` OWNS.  The state colours are
+ * set from JS off the one exported table (section 9.3: status.json carries no
+ * colours, and every colour in the indicator is in status.js and nowhere
+ * else).  What this file styles is the panel: paper, rules, spacing. */
+
+
+/* The layer.  Above #refit (z 7) so a docket and a caption never fight, and
+ * `pointer-events:none` so it changes nothing about hover, click or the
+ * cockpit's own hotspot arbitration. */
+#mast{z-index:8;width:1280px;height:720px;pointer-events:none;
+  font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace}
+
+/* ------------------------------------------------------------- the caption
+ * QUIET UNTIL A GESTURE.  Load, poll, and apply fill the words and leave
+ * the caption hidden.  The detail gate is what removes `hidden`. */
+#mast .cap{position:absolute;background:rgba(4,8,16,.82);
+  border:1px solid #3a2f16;border-radius:3px;padding:5px 9px 6px;
+  font-size:11.5px;line-height:1.6;white-space:pre;letter-spacing:.02em;
+  color:#9fb6d0;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#mast .cap[hidden]{display:none}
+#mast .cap .hd{color:#f2d67a;letter-spacing:.2em;font-weight:700;
+  font-size:11px}
+#mast .cap .sub{color:#8fa6c0}
+/* the one word that must never be quiet.  FIX_UPLOAD 12.10 clipped
+ * `inconclusive` out of the docket's status column and it is the field
+ * STATUS_AT_A_GLANCE 9.4 rule 1 says makes "break it so the exploits stop"
+ * impossible to paint as clean.  It gets its own line here, never a column. */
+#mast .cap .warn{color:#e8a317}
+#mast .cap .stale{color:#8a8578;font-style:normal}
+
+/* ------------------------------------------------------- the per-PoC detail
+ * On hover / click of the mast's own hotspot.  Section 5's close-up column
+ * asks for WHICH vulns still land, what each one is, which unit tests failed
+ * and when it was last run; this is where those live.  Catalogue order, to
+ * match the pilot-lamp row on the fitting -- the tube is sorted by state, the
+ * lamps and this list are sorted by identity, because up close you are
+ * choosing WHICH vuln to work on (section 6.1). */
+#mast .det{position:absolute;background:rgba(4,8,16,.9);
+  border:1px solid #3a2f16;border-radius:3px;padding:7px 10px 8px;
+  font-size:10.5px;line-height:1.5;white-space:pre;
+  color:#9fb6d0;box-shadow:0 10px 30px rgba(0,0,0,.62);
+  /* last-resort bound: whatever a record contains, the panel is never taller
+   * than the stage (720 px, less the 8 px margins place() keeps) */
+  max-height:704px;overflow:hidden;
+  transition:opacity .14s ease-out}
+#mast .det[hidden]{display:none}
+#mast .det .t{color:#f2d67a;letter-spacing:.18em;font-weight:700;
+  border-bottom:1px solid #3a2f16;padding-bottom:4px;margin-bottom:5px}
+#mast .det .r{display:grid;grid-template-columns:18px 1fr 84px;column-gap:8px}
+#mast .det .r .n{color:#5f7590}
+#mast .det .r .s{text-align:right;letter-spacing:.1em}
+#mast .det .r.more{color:#8a8578}
+/* THE SOLVED LIST IS BOUNDED (f-mv6stu8x).  Hover shows a short summary (mast.js
+ * caps it); a click pins the panel and the whole list then sits in a box of
+ * fixed height that scrolls.  The box re-enables the pointer because #mast is
+ * pointer-events:none, and `overscroll-behavior` keeps the wheel from also
+ * scrolling the page behind it.  232 px is about fifteen rows: with the title,
+ * the power row and the unit-test footer the panel stays under ~420 px, well
+ * inside the 720 px stage, whatever the number of solved items. */
+#mast .det.pinned .list{max-height:232px;overflow-y:auto;overscroll-behavior:contain;
+  pointer-events:auto;padding-right:6px;scrollbar-width:thin;
+  scrollbar-color:#5a4622 transparent}
+#mast .det .foot{color:#5f7590;margin-top:5px;border-top:1px solid #24405e;
+  padding-top:4px}
+
+/* Read-only power word inside the detail. No buttons and no rebuild. */
+#mast .det .pwr{margin-top:6px;padding-top:6px;border-top:1px solid #3a2f16}
+#mast .det .pwr[hidden]{display:none}
+#mast .det .pwr-state{font-size:10px;font-weight:700;letter-spacing:.14em;
+  color:#cdb77e}
+#mast .det .pwr-state[data-powered="off"]{color:#8a8578}
+#mast .det .pwr-state[data-powered="unknown"]{color:#5f7590}
+#mast .det .pwr-state[data-powered="locked"]{opacity:.55}
+
+/* `body.notext` is the fleet's "hide every string" switch, used by
+ * check_text.py's DOM-ink difference and by each module's `dom text` button.
+ * This is chrome, not instrument content, but it must still vanish with it --
+ * otherwise its ink would be scored as if it were on the panel. */
+body.notext #mast{visibility:hidden}

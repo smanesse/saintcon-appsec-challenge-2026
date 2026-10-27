@@ -1,0 +1,320 @@
+/* Full-set grade panel. Wide cockpit only. Visually separate from a module
+ * rebuild control: cool shell chrome, large, not a service card. */
+button#gradeStationHot{background:transparent;padding:0;margin:0;color:transparent;font-size:0}
+body.closeup #gradeStationHot,body.board #gradeStationHot,body.moving #gradeStationHot,
+body:has(#tutorialCard:not([hidden])) #gradeStationHot,
+body:has(#gradePanel:not([hidden])) #gradeStationHot{display:none}
+/* After the zoom lands, this dialog covers the content viewport. The person
+ * button floats above it. Titles and the budget scroll. Submit is a separate dialog. */
+#gradePanel{position:fixed;z-index:28;left:0;right:0;top:0;bottom:0;
+  box-sizing:border-box;overflow:auto;overflow-x:hidden;pointer-events:auto;
+  padding:0;background:#070b12;color:#d8e8fa;
+  border:0;border-radius:0;text-align:left;
+  font-size:15px;line-height:1.45;text-transform:uppercase}
+#gradePanel .grade-head{position:sticky;top:0;z-index:6;background:#070b12;
+  padding:16px 20px 12px;border-bottom:1px solid #243044}
+#gradePanel .grade-titlebar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#gradePanel h2{margin:0;flex:1 1 auto;min-width:0;max-width:min(840px,100%);
+  font-size:22px;line-height:1.25;letter-spacing:.06em;
+  text-transform:uppercase;color:#f2d67a;overflow-wrap:anywhere}
+#gradePanel .grade-dash{position:absolute;left:50%;right:auto;bottom:0;top:auto;z-index:4;
+  display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;
+  width:min(547px,calc(100% - 24px));max-width:547px;margin:0;padding:0;
+  transform:translateX(-50%);border:1px solid #3d6a96;border-bottom:0;border-radius:12px 12px 0 0;
+  background:#101820;min-width:0;box-sizing:border-box;overflow:hidden;
+  box-shadow:0 -10px 28px rgba(0,0,0,.35)}
+#gradePanel .grade-dash-chevron{pointer-events:auto;position:absolute;top:6px;right:8px;z-index:2;
+  width:26px;height:26px;padding:0;border:0;border-radius:50%;background:transparent;color:#d8e8fa;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+#gradePanel .grade-dash-chevron svg{transition:transform .28s ease}
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-chevron svg{transform:rotate(180deg)}
+#gradePanel .grade-dash-bar{display:flex;align-items:center;justify-content:space-evenly;
+  gap:0;min-height:44px;padding:8px 12px;box-sizing:border-box;background:#101820}
+#gradePanel .grade-dash-k{flex:0 0 auto;color:#f2d67a;font-size:13px;letter-spacing:.04em}
+#gradePanel .grade-dash-bar .sl-meter{flex:0 0 auto;justify-content:center}
+#gradePanel .grade-dash-bar .grade-dash-tools{display:inline-flex;align-items:center;gap:6px;
+  flex:0 0 auto}
+#gradePanel .sl-meter{display:inline-flex;align-items:center;gap:6px;min-width:0;color:#9fb6d0}
+#gradePanel .sl-meter-icon{flex:none}
+#gradePanel .sl-chunks{display:flex;align-items:flex-end;gap:2px;height:16px}
+#gradePanel .sl-chunks .sl-box{width:8px;height:16px;overflow:visible;font-size:9px}
+#gradePanel .sl-meter-n{font-size:12px;font-weight:600;color:#f2d67a;font-variant-numeric:tabular-nums}
+#gradePanel .grade-dash-bar .grade-limits-refresh{width:22px;height:22px;margin-left:0;
+  box-shadow:0 0 0 3px rgba(61,106,150,.16)}
+#gradePanel .grade-dash-bar .grade-limits-refresh svg{width:12px;height:12px}
+#gradePanel .grade-dash-plus{pointer-events:auto;flex:0 0 auto;width:22px;height:22px;
+  padding:0;border:0;border-radius:50%;background:rgba(61,106,150,.28);color:#d8e8fa;
+  font-size:16px;line-height:1;cursor:pointer;box-shadow:0 0 0 3px rgba(61,106,150,.16)}
+#gradePanel .grade-dash-plus:hover{background:#f2d67a;color:#161208}
+#gradePanel .grade-dash-bar .grade-dash-k,
+#gradePanel .grade-dash-bar .sl-meter,
+#gradePanel .grade-dash-bar .grade-limits-refresh,
+#gradePanel .grade-dash-bar .grade-dash-plus{opacity:1;pointer-events:auto;transition:opacity .28s ease}
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-bar{
+  height:0;min-height:0;padding:0;overflow:hidden;visibility:hidden}
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-bar .grade-dash-k,
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-bar .sl-meter,
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-bar .grade-limits-refresh,
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-bar .grade-dash-plus{
+  opacity:0;pointer-events:none}
+#gradePanel .grade-dash-detail{display:block;max-height:0;height:auto;min-height:0;
+  margin:0;padding:0;border:0;overflow:hidden;visibility:hidden;
+  transition:max-height .32s ease}
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-detail{max-height:none;
+  overflow:visible;visibility:visible}
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-detail-inner{overflow:visible}
+#gradePanel .grade-dash-detail-inner{display:flex;align-items:center;justify-content:center;
+  gap:8px;width:100%;min-width:0;overflow:hidden;min-height:0;margin:0;padding:0;
+  box-sizing:border-box}
+#gradePanel .grade-dash[data-open="yes"] .grade-dash-detail-inner{padding:16px 48px 12px}
+#gradePanel .grade-dash-actions{display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+  flex:0 0 auto}
+#gradePanel button.grade-counts-refresh{margin:0;padding:6px 12px;border:0;border-radius:2px;
+  background:#1a2433;color:#9fb6d0;font:inherit;font-size:12px;letter-spacing:.08em;
+  cursor:pointer;box-shadow:none;min-height:32px}
+#gradePanel button.grade-counts-refresh:hover{color:#f2d67a;background:#243044}
+@media (prefers-reduced-motion:reduce){
+  #gradePanel .grade-dash-detail,#gradePanel .grade-dash-chevron svg{transition:none}
+}
+#gradePanel .grade-dash-title{margin:0;font-size:13px;letter-spacing:.08em;
+  text-transform:uppercase;color:#f2d67a}
+#gradePanel .grade-dash-status,#gradePanel .grade-dash-counts,#gradePanel .grade-dash-submit{
+  min-width:0;max-width:100%}
+#gradePanel .grade-dash-label{margin:0;font-size:12px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:#9fb6d0}
+#gradePanel .grade-dash-counts{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+#gradePanel .grade-dash-counts-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#gradePanel .grade-dash-tracks{display:flex;flex-wrap:nowrap;justify-content:flex-start;align-items:stretch;gap:8px;width:auto;min-width:0}
+#gradePanel .grade-dash-track{flex:0 1 128px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;width:100%;max-width:128px;min-width:0;min-height:48px;
+  box-sizing:border-box;padding:8px;border:1px solid #243044;border-radius:8px;
+  background:#070b12;text-align:center}
+#gradePanel .sl-boxes{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+  gap:3px;width:100%;min-height:8px}
+#gradePanel .sl-box{width:11px;height:11px;box-sizing:border-box;border:1px solid #3d6a96;border-radius:1px;
+  background:transparent;display:inline-flex;align-items:center;justify-content:center;
+  overflow:hidden;color:#9fb6d0;font-size:10px;line-height:1}
+#gradePanel .sl-box:not(.is-left){background:#5f7590;border-color:#5f7590;color:transparent}
+#gradePanel .sl-box:not(.is-left)::before{content:none}
+#gradePanel .sl-box.is-left{background:#f2d67a;border-color:#f2d67a;color:transparent}
+#gradePanel .sl-box.is-left::before{content:none}
+#gradePanel .grade-dash:not(.grade-dash-side) .grade-dash-tracks{display:grid;
+  grid-template-columns:max-content max-content;grid-template-rows:auto auto auto;
+  justify-content:center;align-items:stretch;gap:8px 12px;width:auto}
+#gradePanel .grade-dash:not(.grade-dash-side) .grade-dash-track{display:grid;
+  grid-template-rows:subgrid;grid-row:span 3;justify-items:center;align-items:center;
+  min-height:0;max-width:none;width:auto}
+#gradePanel .grade-dash-track .sl-k{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;align-self:center;min-height:0;min-width:0;font-size:11px;
+  letter-spacing:.04em;text-transform:uppercase;color:#9fb6d0;white-space:normal;overflow-wrap:anywhere}
+#gradePanel .grade-dash-track .sl-v{width:100%;font-size:18px;font-weight:600;color:#f2d67a;text-align:center}
+#gradePanel .grade-dash-counts-copy{min-width:0}
+#gradePanel .grade-dash-counts .sl-note{display:block;margin:2px 0 0;font-size:11px;color:#5f7590;
+  letter-spacing:.02em;text-transform:none;white-space:normal;overflow-wrap:anywhere}
+#gradePanel .grade-dash-submit{display:flex;justify-content:center}
+#gradePanel .grade-dash-submit .grade-open-submit{width:auto;max-width:100%;text-transform:none;
+  letter-spacing:.02em}
+#gradePanel button.grade-limits-refresh{pointer-events:auto;flex:0 0 auto;width:32px;height:32px;
+  padding:0;border:0;border-radius:50%;background:rgba(61,106,150,.28);color:#d8e8fa;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 5px rgba(61,106,150,.16)}
+#gradePanel button.grade-limits-refresh:hover{background:#f2d67a;color:#161208;
+  box-shadow:0 0 0 6px rgba(242,214,122,.55)}
+#gradePanel button.grade-limits-refresh:focus-visible{outline:2px solid #f2d67a;outline-offset:3px}
+#gradePanel button.grade-limits-refresh.is-reading svg{animation:gradeLimitsSpin .7s linear 1}
+@keyframes gradeLimitsSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  #gradePanel button.grade-limits-refresh.is-reading svg{animation:none}
+}
+#gradePanel .grade-status{display:inline-flex;align-items:center;gap:6px;margin:0;padding:4px 10px;
+  border:0;border-radius:2px;background:#070b12;color:#9fb6d0;cursor:pointer;
+  font:inherit;font-size:11px;line-height:1.2;letter-spacing:.06em;text-align:inherit}
+#gradePanel .grade-status-k{color:#9fb6d0}
+#gradePanel .grade-status[data-failure="yes"],
+#gradePanel .grade-status[data-failure="yes"] .grade-status-text{color:#e59a9a}
+#gradePanel .grade-status[data-failure="yes"] .grade-status-icon{background:#e59a9a}
+#gradePanel .grade-status-dialog{position:fixed;z-index:40;left:50%;top:50%;right:auto;
+  transform:translate(-50%,-50%);width:min(320px,calc(100% - 32px));padding:12px 14px;
+  background:#101820;color:#d8e8fa;border:1px solid #3d6a96;text-align:left}
+#gradePanel .grade-status-dialog[hidden]{display:none}
+#gradePanel .grade-status-dialog p{margin:0 0 10px;font-size:14px;line-height:1.4}
+#gradePanel .grade-status-x{min-height:32px;padding:6px 12px;border:1px solid #3d6a96;
+  background:#101820;color:#d8e8fa;cursor:pointer}
+#gradePanel .grade-status-icon{width:8px;height:8px;border-radius:50%;background:#5f7590;flex:none}
+#gradePanel .grade-status[data-running="yes"]{border:0;background:#070b12;color:#f2d67a}
+#gradePanel .grade-status[data-running="yes"] .grade-status-icon{background:#f2d67a}
+#gradePanel[data-grade-read="reading"] .grade-status,
+#gradePanel[data-grade-read="failed"] .grade-status,
+#gradePanel[data-grade-read="grading"] .grade-status{border:0;background:#070b12;color:#f2d67a}
+#gradePanel .grade-status[data-failure="yes"],
+#gradePanel .grade-status[data-failure="yes"] .grade-status-text{color:#e59a9a}
+#gradePanel .grade-progress{margin:10px 0 0}
+#gradePanel .grade-read{margin:8px 0 0;max-height:4.5em;overflow:auto;
+  font-size:14px;line-height:1.4;color:#f2d67a;overflow-wrap:anywhere}
+
+#gradePanel .grade-overview{display:flex;flex-direction:column;align-items:center;
+  width:100%;box-sizing:border-box;padding:0 0 24px;background:transparent;border:0}
+#gradePanel .grade-results-bar{align-self:stretch;width:100%;box-sizing:border-box;
+  background:#101820;border-bottom:1px solid #243044}
+#gradePanel .grade-results-cluster{display:flex;align-items:center;justify-content:center;
+  gap:12px;width:max-content;max-width:100%;margin:10px auto 0;padding:0 20px}
+#gradePanel .grade-remain-box{box-sizing:border-box;padding:10px 12px 12px;
+  border:1px solid #243044;border-radius:8px;background:#070b12}
+#gradePanel .grade-remain-title{margin:0 0 8px;font-size:12px;letter-spacing:.04em;
+  text-align:center;color:#9fb6d0}
+#gradePanel .grade-remain-counts{display:grid;grid-template-columns:157px 157px;
+  grid-template-rows:auto auto auto;justify-content:center;align-items:stretch;gap:4px 8px}
+#gradePanel .grade-title-actions{display:flex;flex-direction:column;align-items:flex-start;
+  justify-content:center;gap:6px;align-self:center;text-align:left}
+#gradePanel .grade-title-track{display:grid;grid-template-rows:subgrid;grid-row:span 3;
+  align-items:center;justify-items:center;box-sizing:border-box;width:157px;
+  padding:8px 10px;border:1px solid #243044;border-radius:8px;background:#070b12}
+#gradePanel .grade-title-count{display:flex;align-items:center;justify-content:center;gap:6px;
+  min-width:0}
+#gradePanel .grade-title-track .sl-k{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;font-size:11px;letter-spacing:.04em;color:#9fb6d0;text-align:center}
+#gradePanel .grade-title-track .sl-v{font-size:18px;font-weight:600;color:#f2d67a;
+  font-variant-numeric:tabular-nums;text-align:center}
+#gradePanel .grade-title-track .sl-boxes{width:auto;flex-wrap:nowrap}
+#gradePanel .grade-read{grid-column:1 / -1}
+#gradePanel .grade-results-title{margin:0;font-size:22px;letter-spacing:.08em;
+  text-transform:uppercase;color:#f2d67a}
+#gradePanel .grade-score,#personMenu .menu-score{display:flex;flex-wrap:nowrap;align-items:center;
+  justify-content:space-evenly;gap:8px;width:100%;margin:8px 0 0;padding:0;font-size:12px;color:#9fb6d0}
+#gradePanel .grade-score{grid-column:1 / -1}
+#personMenu .menu-score{margin:0;padding-top:8px;border-top:1px solid #243044}
+.grade-score .score-item,.menu-score .score-item{display:inline-flex;align-items:center;justify-content:center;
+  gap:4px;flex:1 1 0;min-width:0}
+.grade-score .score-v,.menu-score .score-v{color:#f2d67a;font-weight:600;
+  font-variant-numeric:tabular-nums}
+#gradePanel .grade-modules{display:flex;flex-direction:column;flex-wrap:nowrap;
+  align-items:stretch;gap:0;box-sizing:border-box;width:100%;max-width:547px;
+  margin:14px auto 0;padding:0}
+#gradePanel .grade-module{flex:0 0 auto;box-sizing:border-box;width:100%;max-width:none;
+  margin:0;padding:12px 0;border:0;border-bottom:1px solid #243044;background:transparent;
+  min-width:0}
+#gradePanel .grade-module-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;
+  margin:0;min-width:0;line-height:1.3;overflow-wrap:anywhere}
+#gradePanel .grade-module-code{font-size:16px;font-weight:600;letter-spacing:.08em;color:#f2d67a}
+#gradePanel .grade-module-name{font-size:12px;font-weight:400;letter-spacing:.02em;color:#9fb6d0}
+#gradePanel .grade-vulns{list-style:none;display:flex;flex-wrap:wrap;gap:8px;
+  margin:8px 0 0;padding:0}
+#gradePanel .grade-vuln{display:flex;align-items:baseline;gap:8px;margin:0;padding:4px 10px;
+  border:1px solid #243044;color:#9fb6d0;font-size:14px;line-height:1.3}
+#gradePanel .grade-vuln[data-resolved="no"]{padding:2px 0;border:0;background:transparent;
+  color:#5f7590;font-size:12px}
+#gradePanel .grade-broken{margin:8px 0 0;color:#e59a9a;font-size:13px;line-height:1.3}
+#gradePanel .grade-module[data-broken="yes"]{border-color:#6a2f2f}
+#gradePanel .grade-vuln[data-resolved="yes"]{color:#8fe0a0;border-color:#2f5a3a;background:#102216}
+#gradePanel .grade-vuln[data-resolved="yes"] .grade-vuln-n{color:#8fe0a0;font-weight:700}
+#gradePanel .grade-vuln-n{font-variant-numeric:tabular-nums}
+#gradePanel .grade-vuln-state{letter-spacing:.04em}
+#gradePanel .submission-feedback{display:none}
+#gradePanel button.grade-open-submit,#gradePanel button.grade-local,
+#gradePanel button.grade-to-weapons,#gradePanel button.grade-x,
+#gradePanel button.grade-submit-x,#gradePanel .grade-zip{
+  font:inherit;letter-spacing:.06em;text-transform:uppercase}
+#gradePanel button.grade-open-submit,#gradePanel button.grade-local,
+#gradePanel button.grade-to-weapons,#gradePanel button.grade-x,
+#gradePanel button.grade-submit-x{
+  min-height:40px;min-width:0;max-width:100%;padding:8px 14px;border:1px solid #3d6a96;border-radius:2px;
+  background:#101820;color:#d8e8fa;cursor:pointer;white-space:normal;overflow-wrap:anywhere}
+#gradePanel button.grade-local:hover,
+#gradePanel button.grade-to-weapons:hover,#gradePanel button.grade-x:hover,
+#gradePanel button.grade-submit-x:hover{border-color:#f2d67a;color:#fff}
+#gradePanel button.grade-open-submit,#gradePanel button.grade-dash-plus{
+  background:#007302;border-color:#0b8f0e;color:#f4fff4}
+#gradePanel button.grade-open-submit:hover,#gradePanel button.grade-dash-plus:hover{
+  background:#0b8f0e;border-color:#12b016;color:#fff}
+#gradePanel button.grade-open-submit:focus-visible,#gradePanel button.grade-local:focus-visible,
+#gradePanel button.grade-to-weapons:focus-visible,#gradePanel button.grade-x:focus-visible,
+#gradePanel button.grade-submit-x:focus-visible,#gradePanel .grade-file:focus-visible{
+  outline:2px solid #f2d67a;outline-offset:2px}
+#gradePanel button.grade-local:disabled{opacity:.55;cursor:default}
+#gradePanel button.grade-x,#gradePanel button.grade-submit-x{flex:0 0 auto;position:static;float:none;margin:0}
+#gradeSubmitDialog{position:fixed;z-index:48;left:50%;top:18vh;
+  transform:translateX(-50%);width:min(480px,calc(100% - 32px));box-sizing:border-box;
+  padding:16px;background:#101820;color:#d8e8fa;border:1px solid #3d6a96;
+  font-size:15px;line-height:1.45;text-transform:uppercase;text-align:left}
+#gradeSubmitDialog[hidden]{display:none}
+#gradeSubmitDialog .grade-submit-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 14px}
+#gradeSubmitDialog .grade-submit-bar h3{margin:0;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:#f2d67a}
+#gradeSubmitDialog .grade-actions{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+#gradeSubmitDialog .grade-to-weapons,#gradeSubmitDialog .grade-to-grading{margin-top:8px}
+#gradeSubmitDialog button.grade-to-grading{font:inherit;letter-spacing:.06em;text-transform:uppercase;
+  min-height:40px;min-width:0;max-width:100%;padding:8px 14px;border:1px solid #3d6a96;border-radius:2px;
+  background:#101820;color:#d8e8fa;cursor:pointer}
+#gradeSubmitDialog button.grade-to-grading:hover{border-color:#f2d67a;color:#fff}
+#gradeSubmitDialog button.grade-to-grading[hidden]{display:none}
+#gradeSubmitDialog button.grade-to-weapons[hidden]{display:none}
+#gradeSubmitDialog .grade-zip{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+  min-height:40px;min-width:0;max-width:100%;padding:8px 14px;border:1px solid #3d6a96;border-radius:2px;
+  background:#101820;color:#9fb6d0;cursor:pointer;overflow:hidden;white-space:normal;text-align:center}
+#gradeSubmitDialog .grade-zip:hover{border-color:#f2d67a;color:#d8e8fa}
+#gradeSubmitDialog .grade-file{position:absolute;inset:0;width:100%;height:100%;min-width:0;max-width:100%;
+  margin:0;padding:0;border:0;opacity:0;cursor:pointer}
+#gradeSubmitDialog .grade-zip:has(input:disabled){opacity:.55;cursor:default}
+#gradeSubmitDialog button.grade-local,#gradeSubmitDialog button.grade-to-weapons,
+#gradeSubmitDialog button.grade-submit-x{font:inherit;letter-spacing:.06em;text-transform:uppercase;
+  min-height:40px;min-width:0;max-width:100%;padding:8px 14px;border:1px solid #3d6a96;border-radius:2px;
+  background:#101820;color:#d8e8fa;cursor:pointer;white-space:normal;overflow-wrap:anywhere}
+#gradeSubmitDialog button.grade-local:hover,#gradeSubmitDialog button.grade-to-weapons:hover,
+#gradeSubmitDialog button.grade-submit-x:hover{border-color:#f2d67a;color:#fff}
+#gradeSubmitDialog button.grade-local:disabled{opacity:.55;cursor:default}
+#gradePanel .grade-head,#gradePanel .grade-overview{min-width:0;max-width:100%}
+#gradePanel .grade-dash{left:50%;right:auto;width:min(547px,calc(100% - 24px));max-width:547px;
+  margin:0;transform:translateX(-50%)}
+#gradePanel .grade-stage{position:relative;width:100%}
+#gradePanel .grade-dash.grade-dash-side{left:0;right:auto;top:8px;bottom:auto;transform:none;
+  flex-direction:column-reverse;justify-content:flex-start;align-items:center;
+  width:max-content;max-width:max-content;height:auto;border-radius:0 12px 12px 0;
+  border-bottom:1px solid #3d6a96;overflow:visible}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-chevron{position:static;top:auto;right:auto}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-chevron svg{transform:rotate(-90deg)}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-chevron svg{transform:rotate(90deg)}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-bar{flex:0 0 auto;flex-direction:column;
+  align-items:center;justify-content:flex-start;gap:6px;width:max-content;max-width:max-content;
+  height:auto;min-height:0;padding:8px 8px 10px}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-bar{height:auto;
+  min-height:0;padding:8px 10px 10px;overflow:visible;visibility:visible}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-bar .grade-dash-k,
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-bar .sl-meter,
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-bar .grade-limits-refresh,
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-bar .grade-dash-plus{
+  opacity:1;visibility:visible;pointer-events:auto}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-tools{display:flex;flex-direction:row;
+  align-items:center;justify-content:center;gap:6px}
+#gradePanel .grade-dash.grade-dash-side .sl-meter{flex:0 0 auto;width:max-content;
+  max-width:max-content;justify-content:center}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-bar .grade-limits-refresh{margin-left:0}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-detail{position:absolute;flex:0 0 auto;
+  width:0;min-width:0;max-width:0;height:0;max-height:none;overflow:hidden;visibility:hidden;
+  pointer-events:none}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-detail{position:static;
+  width:auto;max-width:none;max-height:none;height:auto;overflow:visible;visibility:visible;
+  pointer-events:auto}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-detail-inner{flex-direction:column;
+  align-items:center;width:max-content;max-width:100%;overflow:visible;padding:8px 10px 4px}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-detail-inner{padding:8px 10px 4px}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-tracks{flex-direction:column;flex-wrap:nowrap;
+  align-items:center;width:max-content}
+#gradePanel .grade-dash.grade-dash-side .grade-dash-actions{flex-direction:column;align-items:center}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"]{width:max-content;max-width:max-content}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .sl-meter{
+  height:0;min-height:0;margin:0;overflow:hidden;visibility:hidden;opacity:0;pointer-events:none}
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-plus,
+#gradePanel .grade-dash.grade-dash-side[data-open="yes"] .grade-dash-bar .grade-limits-refresh{
+  position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none}
+#gradePanel .grade-dash.grade-dash-top{position:relative;left:auto;right:auto;top:auto;bottom:auto;
+  transform:none;margin:0 auto;width:min(547px,calc(100% - 24px));max-width:547px;
+  flex-direction:column-reverse;justify-content:flex-start;align-items:stretch;
+  border-radius:0 0 12px 12px;border-top:0;border-bottom:1px solid #3d6a96;
+  box-shadow:0 10px 28px rgba(0,0,0,.35);overflow:visible;z-index:5}
+@media (max-width:800px){
+  #gradePanel .grade-head{padding:12px 14px 10px}
+  #gradePanel h2{font-size:18px}
+  #gradePanel .grade-overview{padding:12px 14px 24px}
+  #gradePanel .grade-dash{top:auto;bottom:0;margin:0;max-width:547px}
+}
+body.notext #gradePanel{visibility:hidden}

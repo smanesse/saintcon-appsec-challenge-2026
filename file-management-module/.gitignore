@@ -1,0 +1,21 @@
+# Proof files dropped into ftproot/ by manually running unit_tests/vuln_tests
+# against a server launched from this directory (the test suites launch their
+# own server against a tempdir copy, so this only happens when you run ./fmm
+# by hand from here). Keep the tracked sample data (welcome.txt, credentials.txt)
+# clean of test noise.
+ftproot/injected_*.txt
+ftproot/leaked_*.txt
+ftproot/listed_*.txt
+ftproot/unit_*.txt
+transfer.log
+fmm
+
+# The runtime secret written by write_flag_files() (see fmm.cpp main()) --
+# only appears when you run ./fmm by hand from here; the test suites launch
+# their own server against a tempdir copy.
+secret/
+
+# Third copy of the runtime flag, written inside the served root by
+# write_flag_files() (fmm.cpp). Same story as secret/: only appears when you
+# run ./fmm by hand from here.
+ftproot/vault/

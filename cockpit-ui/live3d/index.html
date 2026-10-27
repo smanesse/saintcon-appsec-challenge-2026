@@ -1,0 +1,817 @@
+<!doctype html>
+<!-- SAINTCON 2026 — THE COCKPIT.
+
+     THIS IS THE ENTRY POINT.  Serve the REPO ROOT and open this page:
+
+         cd /path/to/saintcon/2026
+         python3 -m http.server 8777
+         open http://localhost:8777/live3d/
+
+     or just run  ./live3d/run.sh  , which does both.
+
+     `file://` DOES NOT WORK and is not a bug in this page: an ES module
+     import, and the fetches of scene.json / depth.bin / *.glb, are all blocked
+     by the browser's own origin rules for file URLs.  The page says so in
+     plain words if you try.
+
+     WHAT IT IS
+     ----------
+     Three tiers, exactly as ratified in README section 12:
+
+       1. THE WIDE SHOT is the shipped baked plate, referenced IN PLACE from
+          ../cockpit/combined/main_plate.png.  It is never re-rendered and
+          never copied, so it is provably the same pixels.  Hover glow and
+          hotspot for all NINE modules come from the shipped
+          combined/manifest.json, also read in place.
+
+       2. THE CLOSE-UP is a LIVE three.js page per module, one of the nine
+          under live3d/modules/, opened in an iframe with `?embed=1` and flown
+          into by transition.js.  Every module keeps its own measured
+          constants -- its own light_gain, its own ubias_m, its own grade, its
+          own readout planes -- because those are measurements of that module
+          and not fleet settings.  See live3d/RESULTS.md.
+
+       3. CONTENT TEXT IS DOM, inside each module page, laid on the
+          instrument's own surface by css3d.js and sandwiched between two
+          WebGL canvases so geometry can pass in front of it.
+
+     WHY AN IFRAME AND NOT NINE `import()`s
+     --------------------------------------
+     Each module page owns two WebGL contexts, a requestAnimationFrame loop, a
+     resize listener and the global `window.__occ`.  Nine of those in one
+     document is 18 contexts against a browser limit around 16, and there is no
+     teardown path -- the modules are written as top-level scripts, not as
+     disposable classes.  An iframe is created on hover, flown into on click
+     and DESTROYED on the way out, which frees both contexts with certainty.
+     It also means the page the cockpit shows is byte-for-byte the page the
+     checkers verified: `modules/<CODE>/index.html`, unmodified.
+
+     TRAP 20, AND IT IS WHY THE IFRAME IS TRANSPARENT
+     ------------------------------------------------
+     The close-up plates are FILM-TRANSPARENT and must composite over the
+     dimmed wide shot -- cockpit/make_cockpit.py does it with
+     `blur(2px) brightness(.35)`.  OTA's plate is only 35% opaque.  So the wide
+     layer STAYS on screen underneath, dimmed and defocused (transition.js
+     lands it on dimEnd and leaves it), and the module page declares
+     `html.embed body{background:transparent}` so what shows through its plate
+     is that backdrop and not black. -->
+<meta charset="utf-8">
+<title>USS AUDITOR-7 — cockpit</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#02030a;overflow:hidden;color:#9fb6d0;
+    font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  /* The cockpit plate's window is an ALPHA HOLE (rendered film_transparent),
+     so whatever sits behind it shows through. That is the whole point of the
+     starfield: it is the view out of the ship. Must stay BELOW #viewport. */
+  #stars{position:fixed;left:0;right:0;top:0;bottom:0;
+    width:100%;height:100%;z-index:0;display:block}
+  #viewport{position:fixed;left:0;right:0;top:0;bottom:0;overflow:hidden;
+    z-index:1}
+  /* Bands outside the fitted plate. Same color as the page. They live in
+     #viewport, under the plate, so the window hole still shows #stars and
+     these never paint over the person button or its menu. */
+  #starVeil{position:absolute;inset:0;z-index:0;pointer-events:none}
+  #starVeil span{position:absolute;display:block;background:#02030a}
+  #starVeilTop,#starVeilBottom{left:0;right:0}
+  #starVeilTop{top:0}
+  #starVeilBottom{bottom:0}
+  #starVeilLeft{left:0}
+  #starVeilRight{right:0}
+  .stage{position:absolute;left:0;top:0;width:1280px;height:720px;
+    transform-origin:0 0}
+  .stage>*{position:absolute;left:0;top:0}
+  .layer{width:1280px;height:720px;pointer-events:none;user-select:none;
+    -webkit-user-drag:none}
+
+  /* ---------------------------------------------------------------- layers
+     wide (1) -- vignette (2) -- close (3).
+     #wide and #close are driven ONLY by transition.js; neither carries a CSS
+     transition, because the two have to stay locked to each other frame by
+     frame and a CSS timing function on each would let them drift apart. */
+  #wide{z-index:1;will-change:transform,filter}
+  #wPlate{z-index:1}
+  #wGlows{z-index:2}
+  /* THE TELLTALE MAST LAYER — live3d/design/STATUS_AT_A_GLANCE.md section 3.1.
+     Nine <svg> masts drawn from live3d/status.json through live3d/status.js,
+     authored in the SAME canonical 1280x720 px as everything else inside
+     #stage, so one translate+scale on #stage scales them with the plate and
+     they ride the dolly during the dive.  pointer-events:none via .layer, so
+     hover and click are byte-for-byte what they were before this existed --
+     the mast's own hotspot is a .whot in #wHots like the other nine.
+     #wHots MOVED FROM 3 TO 4 for this: index.html gave it z 3 with no room
+     above it inside #wide (section 12.9). */
+  #wTells{z-index:3}
+  /* THE STANDINGS PLATE'S LAYER — live3d/design/LEADERBOARD.md section 2.2.
+     That section calls a brass entry affordance on the plate "a legitimate v2
+     and not built".  It is built now, and this is where it lands: two sprites,
+     the prop then its hover mask, authored in the SAME canonical 1280x720 px
+     as the plate and rendered from the SAME Blender camera in the SAME scene
+     (live3d/pipeline/standings_plate.py), so they are pixels of the cockpit
+     rather than a box drawn over it.  Both are children of #wide, so one
+     translate+scale on #stage scales them with the plate and they ride the
+     dolly during a dive — the nameplate is bolted to the ship and goes where
+     the ship goes.  pointer-events:none via .layer; the fitting's own pointer
+     target is a .whot in #wHots, exactly like the nine modules' and the nine
+     masts'.
+     #wHots MOVED FROM 4 TO 5 for this, which is the same one-line move the
+     comment above records the telltale mast making from 3 to 4.  It is the
+     only line in this file that is changed rather than added.
+     WHY NOT #wGlows.  check/drive_cockpit.mjs reads a module's glow tint as
+     `[...document.querySelectorAll('#wGlows img')][codes().indexOf(code)]` —
+     a POSITIONAL index into that layer.  A tenth image in #wGlows would shift
+     it and every one of the nine would report the wrong tint. */
+  #wGrade{z-index:3}
+  #wFit{z-index:4}
+  #wHots{z-index:5}
+  #wTells .tell{position:absolute;overflow:visible}
+  /* "Lit by the same light": on hover, the mast's #CDB77E highlight edge
+     brightens for the 160 ms of the glow transition.  Section 2.4 -- the
+     telltale is opaque hard-edged hardware OUTSIDE the module silhouette, so it
+     must not fight the soft screen-blended bloom, only acknowledge it. */
+  #wTells .tell .hl{transition:fill .16s}
+  #wTells .tell.hot .hl{fill:#F0E2B4}
+  /* THE ONLY ANIMATION IN THE INDICATOR.  A 9 px band with a 3 px bright core
+     sweeps the bore from the collar end outward while a run is in flight,
+     1.4 s per cycle.  It exists because the real thing takes minutes:
+     unit_tests/run-in-docker.sh does a `docker compose --build`.  Nothing else
+     in the layer moves, and a page with no running module rests dead still --
+     which is what check_occlusion.py and check_text.py require of a pose. */
+  #wTells .tell .sweep{animation:tellSweep 1.4s ease-in-out infinite}
+  @keyframes tellSweep{from{transform:translate(0px,0px)}
+                       to{transform:translate(0px,35px)}}
+  .glow{position:absolute;left:0;top:0;width:1280px;height:720px;opacity:0;
+    pointer-events:none;transition:opacity .16s;mix-blend-mode:screen;
+    filter:sepia(1) saturate(5) hue-rotate(-12deg) brightness(1.2)
+      drop-shadow(0 0 5px rgba(255,215,106,.95))
+      drop-shadow(0 0 16px rgba(199,154,46,.7))}
+  /* PKT is the offensive panel and declares glow_tint:"red" in the manifest --
+     it must not glow brass like the eight maintenance modules. */
+  .glow.tint-red{filter:sepia(1) saturate(7) hue-rotate(-52deg) brightness(1.25)
+      drop-shadow(0 0 6px rgba(255,120,96,.95))
+      drop-shadow(0 0 18px rgba(200,60,40,.75))}
+  body.closeup #wGrade .glow,
+  body.board #wGrade .glow,
+  body.moving #wGrade .glow,
+  body:has(#tutorialCard:not([hidden])) #wGrade .glow,
+  body:has(#gradePanel:not([hidden])) #wGrade .glow{opacity:0 !important}
+  .whot{position:absolute;cursor:pointer;border:1px solid transparent;
+    border-radius:3px}
+  /* an unreleased module's hotspot: still hoverable (tooltip reads NOT YET
+     AVAILABLE) but the dive is refused, so it must not read as clickable */
+  .whot.locked{cursor:default}
+  body.debug .whot{border-color:rgba(63,224,255,.55);
+    background:rgba(63,224,255,.06)}
+
+  /* A soft lens vignette that closes over the periphery mid-dive and opens
+     again on arrival.  Screen space on purpose: it is a lens effect, not scene
+     content, so it must NOT ride the dolly. */
+  #vig{z-index:2;opacity:0;
+    background:radial-gradient(ellipse 72% 72% at 50% 50%,
+      rgba(2,3,10,0) 0%,rgba(2,3,10,0) 46%,rgba(2,3,10,.42) 78%,
+      rgba(2,3,10,.80) 100%)}
+
+  #close{z-index:3;opacity:0;pointer-events:none;will-change:transform,opacity}
+  body.closeup #close{pointer-events:auto}
+  /* Feathered while the close plate is smaller than the frame, so its edge
+     blends into the wide plate behind instead of reading as a pasted inset.
+     ONLY while moving: a mask on the resting close-up would be a defect. */
+  body.moving #close{
+    -webkit-mask-image:
+      linear-gradient(to right,transparent 0,#000 var(--fx,0%),
+                      #000 calc(100% - var(--fx,0%)),transparent 100%),
+      linear-gradient(to bottom,transparent 0,#000 var(--fy,0%),
+                      #000 calc(100% - var(--fy,0%)),transparent 100%);
+    -webkit-mask-composite:source-in;
+    mask-image:
+      linear-gradient(to right,transparent 0,#000 var(--fx,0%),
+                      #000 calc(100% - var(--fx,0%)),transparent 100%),
+      linear-gradient(to bottom,transparent 0,#000 var(--fy,0%),
+                      #000 calc(100% - var(--fy,0%)),transparent 100%);
+    mask-composite:intersect}
+
+  /* THE DIVE'S OWN PICTURE.  The baked close-up plates, exactly the layers
+     cockpit/cockpit.html shows and exactly what transition.json's M was
+     measured against -- so the match dissolve is the measured one.  They are
+     removed once the live page has faded in, because two film-transparent
+     copies of the same plate composite to the wrong alpha. */
+  #cLayers{z-index:1}
+  #cLayers img{position:absolute;left:0;top:0;width:1280px;height:720px;
+    pointer-events:none;user-select:none;-webkit-user-drag:none}
+
+  /* THE LIVE MODULE.  #cWrap counter-scales the stage's own fit so the iframe
+     is laid out at the size it will actually occupy ON SCREEN -- see
+     sizeFrame() in app.js.  Without it the module page's layout() would solve
+     its pixel ratio against a 1280x720 viewport while the cockpit displayed it
+     at k x that, and the live geometry would render under-dense beside a
+     baked plate that is not.  That is README 16.5's failure mode wearing a
+     different hat. */
+  #cWrap{z-index:2;transform-origin:0 0;width:1280px;height:720px}
+  #cFrame{border:0;display:block;background:transparent;opacity:0;
+    transition:opacity .26s linear}
+  body.live #cFrame{opacity:1}
+
+  /* ------------------------------------------------- THE MUSTER BOARD OVERLAY
+     live3d/design/LEADERBOARD.md.  The standings are NOT a module: they have
+     no entry in cockpit/combined/manifest.json, none in transition.json and no
+     measured M, and the wide shot answers exactly one question -- which module
+     do I go and work on -- which is not this one (STATUS_AT_A_GLANCE 350).
+
+     So the cockpit gets ONE BUTTON AND ONE OVERLAY, and deliberately nothing
+     else.  #lbHost is a NEW element at a NEW z-index, a sibling of #viewport:
+     above #close (z 3, inside #stage) and below the person button.  It re-enters
+     nothing -- not openModule(), not the dolly, not #cLayers, not landLive(),
+     not transition.json.  Every one of those carries measured constants and
+     every one of them is a chance to break the nine.
+
+     Opaque, not film-transparent: the board is a whole separate instrument
+     standing in front of the cockpit, not a close-up compositing over it, so
+     trap 20 does not arise here and a scrim is the honest reading. */
+  #lbHost{position:fixed;left:0;right:0;top:0;bottom:0;z-index:15;
+    display:none;opacity:0;background:#02030a;
+    transition:opacity .22s ease-out}
+  body.board #lbHost{display:block;opacity:1}
+  #lbFrame{border:0;display:block;width:100%;height:100%;background:#02030a}
+
+  /* ---- chrome ----
+     The bottom bar is gone. The person button is the only control on the
+     bottom edge. Menu labels are not forced into uppercase. */
+  button{font:inherit;letter-spacing:.12em;text-transform:uppercase;
+    white-space:nowrap;flex:none;
+    padding:5px 10px;background:#131a26;color:#9fb6d0;border:1px solid #24405e;
+    border-radius:3px;cursor:pointer}
+  button:hover{color:#d8e8fa;border-color:#3d6a96}
+  button.on{background:#c79a2e;color:#161208;border-color:#f2d67a}
+  button[disabled]{opacity:.35;cursor:default;border-color:#1d2836}
+  /* The icon stays put. Opening the menu does not move it. The card
+     wraps it, with the buttons above and the circle fully inside. */
+  #personDock{position:fixed;right:16px;bottom:16px;z-index:45;
+    width:48px;height:48px;
+    transition:right .55s cubic-bezier(.22,.61,.36,1)}
+  body:has(#tutorialCard:not([hidden])) #personDock,
+  body:has(#helpCard:not([hidden])) #personDock{right:calc(100% - 64px)}
+  #personFab{position:absolute;inset:0;z-index:2;
+    width:48px;height:48px;padding:0;display:flex;align-items:center;justify-content:center;
+    border-radius:50%;background:rgba(4,8,16,.92);border:1px solid #3d6a96;color:#d8e8fa;
+    letter-spacing:0;text-transform:none;
+    box-shadow:0 0 0 1px rgba(2,3,10,.6),0 2px 12px rgba(0,0,0,.55)}
+  @media (prefers-reduced-motion:reduce){#personDock,#personMenu,#branchPanel{transition:none}}
+  #personFab svg{width:28px;height:28px;display:block;pointer-events:none}
+  #personFab:hover,#personFab:focus-visible{border-color:#f2d67a;color:#fff}
+  #personFab[aria-expanded="true"]{border-color:#f2d67a;color:#f2d67a}
+  #personFab.bn-glow{box-shadow:0 0 16px 3px rgba(242,214,122,.45)}
+  #personFab:focus-visible{outline:3px solid #f2d67a;outline-offset:3px}
+  #personMenu{position:absolute;z-index:1;right:-8px;bottom:-8px;
+    width:min(280px,calc(100vw - 24px));display:flex;flex-direction:column;gap:6px;
+    padding:10px 10px 64px;background:rgba(4,8,16,.96);border:1px solid #3d6a96;border-radius:4px;
+    box-shadow:0 8px 28px rgba(0,0,0,.65);text-align:left;
+    transform-origin:calc(100% - 32px) calc(100% - 32px);transform:scale(1);
+    transition:transform .28s cubic-bezier(.22,.61,.36,1)}
+  #personMenu[data-grow="no"]{transform:scale(0);pointer-events:none}
+  #personMenu > *{opacity:0;transition:opacity .14s ease}
+  #personMenu[data-shown="yes"] > *{opacity:1}
+  body:has(#tutorialCard:not([hidden])) #personMenu,
+  body:has(#helpCard:not([hidden])) #personMenu{
+    right:auto;left:-8px;width:min(280px,calc(100vw - 320px));
+    transform-origin:32px calc(100% - 32px)}
+  #personMenu[hidden]{display:none !important}
+  @media (prefers-reduced-motion:reduce){#personMenu > *{transition:none}}
+  #personMenu .menu-submits{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:8px;
+    margin:0 0 8px;padding:8px;border:1px solid #3d6a96;border-radius:4px;background:#101820}
+  #personMenu .menu-submits-row{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;
+    gap:6px;width:100%;min-width:0}
+  #personMenu .menu-submits .sl-meter{display:inline-flex;align-items:center;gap:4px;min-width:0;
+    color:#9fb6d0}
+  #personMenu .menu-submits .sl-chunks{display:flex;align-items:flex-end;gap:2px;height:14px}
+  #personMenu .menu-submits .sl-box{width:8px;height:14px;box-sizing:border-box;border:1px solid #3d6a96;
+    border-radius:1px;background:transparent;display:inline-flex}
+  #personMenu .menu-submits .sl-box:not(.is-left){background:#5f7590;border-color:#5f7590}
+  #personMenu .menu-submits .sl-box:not(.is-left)::before{content:none}
+  #personMenu .menu-submits .sl-box.is-left{background:#f2d67a;border-color:#f2d67a}
+  #personMenu .menu-submits .grade-limits-refresh.is-reading svg{animation:gradeLimitsSpin .7s linear 1}
+  #personMenu .menu-submits .sl-meter-n{font-size:12px;font-weight:600;color:#f2d67a}
+  #personMenu .menu-submits .grade-dash-tools{display:inline-flex;align-items:center;gap:6px;flex:none}
+  #personMenu .menu-submits button{width:22px;height:22px;min-width:22px;padding:0;border:0;
+    border-radius:50%;text-align:center;justify-content:center;flex:none}
+  #personMenu .menu-submits .grade-dash-plus{background:#007302;color:#f4fff4;font-size:16px;line-height:1}
+  #personMenu button{text-transform:none;letter-spacing:.03em;text-align:left;width:100%;
+    height:32px;box-sizing:border-box;display:flex;align-items:center}
+  /* The old 18px sat only above Re-open tutorial. Split it across both sides. */
+  #bTutorial{margin-top:9px;margin-bottom:9px}
+  /* Sign-out is opposite the icon, centered on its height. Not with Up to date. */
+  #personMenu .menu-foot{position:absolute;left:10px;right:64px;bottom:8px;height:48px;
+    display:flex;align-items:center;gap:8px}
+  body:has(#tutorialCard:not([hidden])) #personMenu .menu-foot,
+  body:has(#helpCard:not([hidden])) #personMenu .menu-foot{left:64px;right:10px}
+  body:has(#tutorialCard:not([hidden])) #personMenu .menu-foot #bAuth,
+  body:has(#helpCard:not([hidden])) #personMenu .menu-foot #bAuth{order:2}
+  #personMenu .menu-foot #bAuth{flex:none;width:auto;min-width:32px;height:32px;
+    display:flex;align-items:center;justify-content:center;padding:5px 10px}
+  #personMenu #bAuth[data-mode="out"]{width:32px;height:32px;min-width:32px;padding:0;
+    justify-content:center}
+  #personMenu #bAuth .auth-out{width:16px;height:16px;display:none}
+  #personMenu #bAuth[data-mode="out"] .auth-label{display:none}
+  #personMenu #bAuth[data-mode="out"] .auth-out{display:block !important}
+  /* Name only while the menu is open. Beside the icon: left of it on the
+     right, right of it after the slide. */
+  #crew{flex:1;min-width:0;height:48px;margin:0;padding:0;
+    display:flex;flex-direction:column;justify-content:center;
+    overflow:hidden;text-align:right;border:0;background:transparent;
+    font-size:12px;letter-spacing:.04em;color:#9fb6d0}
+  body:has(#tutorialCard:not([hidden])) #crew,
+  body:has(#helpCard:not([hidden])) #crew{text-align:left}
+  #crewWho{display:block;color:#f2d67a;overflow:hidden;text-overflow:clip;white-space:nowrap;
+    line-height:1.15}
+  #crewWho .who-run{display:inline-block;white-space:nowrap;width:max-content}
+  #crewWho.is-scroll{text-align:left}
+  @media (prefers-reduced-motion:reduce){#crewWho.is-scroll .who-run{animation:none}}
+  #crewSep{display:none}
+  #crewRet,#crewN{display:block;font-size:10.5px;letter-spacing:.06em;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  #crewRet:empty,#crewN:empty{display:none}
+  #crewRet.closed{color:rgb(250,216,146)}
+  #crewRet.dead{color:#5f7590}
+  #crewUpd{display:inline-block;margin-top:4px;cursor:pointer;pointer-events:auto;color:#c79a2e}
+  #crewUpd:empty{display:none;pointer-events:none}
+  /* Shown in the menu only while a submission is non-terminal. */
+  #gradeTell{display:flex;align-items:center;gap:6px;width:100%;
+    border-color:#877647;color:#f2d67a;background:#1a1407;font-size:12px;text-transform:none}
+  #gradeTell:hover{color:#fff;border-color:#f2d67a}
+  #gradeTell .gt-dot{width:7px;height:7px;border-radius:50%;background:#f2d67a;
+    box-shadow:0 0 6px #f2d67a;flex:none;animation:gtPulse 1.3s ease-in-out infinite}
+  #gradeTell .gt-text{letter-spacing:.08em;max-width:30ch;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @keyframes gtPulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media (prefers-reduced-motion:reduce){#gradeTell .gt-dot{animation:none}}
+  #tip{position:fixed;z-index:30;pointer-events:none;opacity:0;
+    transition:opacity .14s;background:rgba(4,8,16,.9);border:1px solid #c79a2e;
+    color:#f2d67a;padding:5px 9px;border-radius:3px;letter-spacing:.16em;
+    text-transform:uppercase;
+    /* PRE, not NOWRAP: the tooltip is two lines now -- the module
+       name, then one line of status (section 5.1).  Both are set
+       with textContent and a \n; neither wraps. */
+    white-space:pre;line-height:1.45}
+  #err{position:fixed;inset:auto 76px 16px 12px;z-index:50;display:none;
+    background:#2a0d0d;border:1px solid #a33;color:#ffb4b4;padding:10px 12px;
+    white-space:pre-wrap;font-size:12px}
+  /* Coordinator link strip (track 01).  Empty host; JS fills it with
+     textContent.  Not a bottom bar. */
+  #linkUx{position:fixed;left:0;right:0;top:8px;z-index:25;
+    pointer-events:none;display:flex;justify-content:center;
+    padding:6px 12px 0}
+  /* One submissions-left card. Not a stack of repeating lines, and not a
+     plate on the bottom of the screen. Empty state is text, never a made-up count. */
+  #subsLeft{position:static;z-index:auto;pointer-events:none;
+    display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;max-width:100%;
+    margin:0;padding:0;background:transparent;border:0;border-radius:0;
+    color:#9fb6d0;font-size:12px;letter-spacing:.04em;line-height:1.35}
+  #subsLeft .sl-row{display:flex;justify-content:space-between;gap:10px;
+    min-width:0}
+  #subsLeft .sl-k{min-width:0;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;letter-spacing:.08em;text-transform:uppercase}
+  #subsLeft .sl-v{flex:none;color:#5f7590;white-space:nowrap}
+  #subsLeft .sl-v.known{color:#f2d67a}
+  #subsLeft .sl-note{margin:-1px 0 1px;color:#5f7590;font-size:9.5px;
+    letter-spacing:.03em;text-transform:none;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+
+  /* New-content status lives in the person menu. Never hidden. The click
+     opens the explanation. Nothing here applies the update or marks current. */
+  #branchNotice{display:flex;align-items:center;gap:8px;width:100%;
+    font-size:12px;line-height:1;letter-spacing:.03em;text-transform:none}
+  #branchNotice .bn-dot{width:7px;height:7px;border-radius:50%;flex:none;
+    background:#9fb6d0;animation:none}
+  #branchNotice[data-state="behind"]{border-color:#877647;color:#f2d67a;
+    background:#1a1407}
+  #branchNotice[data-state="behind"] .bn-dot{background:#f2d67a;
+    box-shadow:0 0 6px #f2d67a;animation:bnFlash 2.2s ease-in-out infinite}
+  #branchNotice[data-state="current"] .bn-dot{animation:none}
+  @keyframes bnFlash{0%,100%{opacity:1}50%{opacity:.28}}
+  @media (prefers-reduced-motion:reduce){#branchNotice .bn-dot{animation:none}}
+  body:has(#personMenu:not([hidden])) #branchPanel{
+    right:calc(24px + min(280px, 100vw - 24px));bottom:16px}
+  /* Beside the card after the icon slides left. Not a dismiss. */
+  body:has(#tutorialCard:not([hidden])):has(#personMenu:not([hidden])) #branchPanel,
+  body:has(#helpCard:not([hidden])):has(#personMenu:not([hidden])) #branchPanel{
+    right:auto;left:calc(24px + min(280px, 100vw - 320px));bottom:16px;
+    max-width:min(420px,calc(100vw - 240px - min(280px, 100vw - 320px)))}
+  #branchPanel{position:fixed;right:16px;bottom:72px;z-index:47;
+    width:min(420px,calc(100vw - 24px));padding:12px 14px;
+    background:rgba(4,8,16,.96);border:1px solid #3d6a96;border-radius:4px;
+    color:#d8e8fa;text-align:left;box-shadow:0 6px 30px rgba(0,0,0,.65);
+    transition:right .55s cubic-bezier(.22,.61,.36,1)}
+  #branchPanel[data-state="behind"]{border-color:#c79a2e}
+  #branchPanel .bn-head{display:flex;align-items:flex-start;gap:10px}
+  #branchPanel .bn-title{flex:1;min-width:0;font-size:13px;line-height:1.35;
+    letter-spacing:.04em;text-transform:none;color:#d8e8fa}
+  #branchPanel[data-state="behind"] .bn-title{color:#f2d67a}
+  #branchPanel .bn-x{flex:none;text-transform:none;letter-spacing:.04em}
+  #branchPanel .bn-body{margin-top:8px}
+  #branchPanel .bn-body p{margin:0 0 8px;font-size:12px;line-height:1.5;
+    color:#9fb6d0;white-space:normal;overflow-wrap:anywhere}
+  #branchPanel .bn-body p:last-child{margin-bottom:0}
+  /* A.L.I.E.N. flag wallet: a menu button with a captured-count badge, and a
+     panel (same frame as the branch panel) listing each earned reward flag. */
+  #bFlags{justify-content:space-between;gap:8px}
+  #bFlags .bf-count{flex:none;min-width:20px;height:18px;padding:0 6px;box-sizing:border-box;
+    display:inline-flex;align-items:center;justify-content:center;border-radius:9px;
+    background:#1a1407;border:1px solid #877647;color:#f2d67a;font-size:11px;
+    font-variant-numeric:tabular-nums;letter-spacing:.02em}
+  #bFlags .bf-count[hidden]{display:none}
+  body:has(#personMenu:not([hidden])) #flagsPanel{
+    right:calc(24px + min(280px, 100vw - 24px));bottom:16px}
+  body:has(#tutorialCard:not([hidden])):has(#personMenu:not([hidden])) #flagsPanel,
+  body:has(#helpCard:not([hidden])):has(#personMenu:not([hidden])) #flagsPanel{
+    right:auto;left:calc(24px + min(280px, 100vw - 320px));bottom:16px;
+    max-width:min(420px,calc(100vw - 240px - min(280px, 100vw - 320px)))}
+  #flagsPanel{position:fixed;right:16px;bottom:72px;z-index:47;
+    width:min(420px,calc(100vw - 24px));padding:12px 14px;
+    background:rgba(4,8,16,.96);border:1px solid #3d6a96;border-radius:4px;
+    color:#d8e8fa;text-align:left;box-shadow:0 6px 30px rgba(0,0,0,.65);
+    transition:right .55s cubic-bezier(.22,.61,.36,1)}
+  #flagsPanel[hidden]{display:none}
+  #flagsPanel .bn-head{display:flex;align-items:flex-start;gap:10px}
+  #flagsPanel .bn-title{flex:1;min-width:0;font-size:13px;line-height:1.35;
+    letter-spacing:.04em;text-transform:none;color:#f2d67a}
+  #flagsPanel .bn-x{flex:none;text-transform:none;letter-spacing:.04em}
+  #flagsPanel .fp-body{margin-top:8px;max-height:min(50vh,340px);overflow:auto}
+  #flagsPanel .fp-note{margin:0 0 8px;font-size:12px;line-height:1.5;color:#9fb6d0}
+  #flagsPanel .fp-note[data-stale="yes"]{color:#c79a2e}
+  #flagsPanel .fp-note:empty{display:none}
+  #flagsPanel .fp-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  #flagsPanel .fp-item{display:flex;flex-direction:column;gap:3px;padding:8px 10px;
+    border:1px solid #2a4663;border-radius:3px;background:#0d1520}
+  #flagsPanel .fp-ship{font-size:12px;letter-spacing:.03em;color:#8fe3a0}
+  #flagsPanel .fp-flag{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    color:#f2d67a;overflow-wrap:anywhere;user-select:all}
+  @media (prefers-reduced-motion:reduce){#flagsPanel{transition:none}}
+  /* Ripple rings sit on the person button while this copy is behind.
+     Clicking them opens the menu. It does not mark the copy current. */
+  #branchRipple{position:fixed;z-index:39;display:block;
+    width:220px;height:220px;right:auto;bottom:auto;
+    margin:0;padding:0;border:0;border-radius:0;background:transparent;
+    box-shadow:none;overflow:visible;cursor:pointer}
+  #branchRipple[hidden]{display:none !important}
+  #branchRipple .bn-ring{position:absolute;left:50%;top:50%;width:100%;height:100%;
+    border-radius:50%;pointer-events:none;background:transparent;
+    border:4px solid rgba(255,228,160,.42);
+    box-shadow:0 0 12px 2px rgba(242,214,122,.28);
+    transform:translate(-50%,-50%) scale(.12);opacity:0;
+    animation:bnRipple 2.7s ease-out infinite}
+  #branchRipple .bn-ring:nth-child(2){animation-delay:-.9s}
+  #branchRipple .bn-ring:nth-child(3){animation-delay:-1.8s}
+  @keyframes bnRipple{
+    0%{transform:translate(-50%,-50%) scale(.12);opacity:0}
+    14%{opacity:.46}
+    100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+  @media (prefers-reduced-motion:reduce){
+    #branchRipple .bn-ring{animation:none;opacity:.34;
+      transform:translate(-50%,-50%) scale(.62)}
+    #branchRipple .bn-ring:nth-child(n+2){opacity:0}}
+
+  /* ------------------------------------------------ WAY OUT (T1a, shell-nav.js)
+     The top-right CLOSE X is the primary exit from any close-up (and from the
+     standings overlay).  Escape and browser Back still work; neither is the
+     only way.  `display:none` until a close-up or the board is up, so the
+     wide shot is untouched. */
+  [hidden]{display:none !important}
+  #bClose{position:fixed;top:12px;right:12px;z-index:18;display:none;
+    width:38px;height:38px;padding:0;align-items:center;justify-content:center;
+    border-radius:50%;background:rgba(4,8,16,.86);border:1px solid #3d6a96;
+    color:#d8e8fa;box-shadow:0 0 0 1px rgba(2,3,10,.6),0 2px 10px rgba(0,0,0,.5)}
+  body.closeup #bClose,body.board #bClose{display:flex}
+  #bClose svg{width:16px;height:16px;display:block;pointer-events:none}
+  #bClose:hover{background:#131a26;border-color:#f2d67a;color:#fff}
+  #bClose:focus-visible,#frameCard button:focus-visible,#leaveCard button:focus-visible{
+    outline:3px solid #f2d67a;outline-offset:3px}
+
+  /* LOADING / ERROR CARD over the close-up while the live frame boots, and when
+     it does not.  Cockpit-level (not inside the frame): the frame is opacity 0
+     until it reports ready, so anything it says about itself is invisible. */
+  #frameCard,#leaveCard{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);
+    z-index:32;width:min(440px,calc(100vw - 32px));padding:16px 18px 14px;
+    background:rgba(4,8,16,.94);border:1px solid #3d6a96;border-radius:4px;
+    color:#d8e8fa;letter-spacing:.04em;text-align:left;
+    box-shadow:0 6px 30px rgba(0,0,0,.65);transition:opacity .18s linear}
+  #leaveCard{z-index:34;border-color:#c79a2e}
+  #frameCard .fc-title,#leaveCard .lc-title{font-size:13px;letter-spacing:.12em;
+    text-transform:uppercase;color:#f2d67a}
+  #frameCard .fc-msg,#leaveCard .lc-msg{margin-top:8px;font-size:11.5px;line-height:1.55;
+    color:#9fb6d0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:9em;overflow:auto}
+  #frameCard .fc-bar{margin-top:12px;height:3px;background:#12202f;overflow:hidden;
+    border-radius:2px}
+  #frameCard .fc-bar i{display:block;width:35%;height:100%;background:#c79a2e;
+    animation:fcSlide 1.3s ease-in-out infinite}
+  @keyframes fcSlide{from{transform:translateX(-110%)}to{transform:translateX(300%)}}
+  @media (prefers-reduced-motion:reduce){#frameCard .fc-bar i{animation:none;width:100%;opacity:.5}}
+  #frameCard .fc-actions,#leaveCard .lc-actions{display:flex;gap:8px;margin-top:14px;
+    flex-wrap:wrap}
+  #frameCard[data-mode="loading"] .fc-actions{display:none}
+  #frameCard[data-mode="error"]{border-color:#a33}
+  #frameCard[data-mode="error"] .fc-title{color:#ffb4b4}
+  #frameCard[data-mode="error"] .fc-bar{display:none}
+</style>
+
+<link rel="stylesheet" href="help.css">
+<link rel="stylesheet" href="submit-core.css">
+<link rel="stylesheet" href="submission-feedback.css">
+<link rel="stylesheet" href="grade-panel.css">
+<link rel="stylesheet" href="submit-signs.css">
+
+<canvas id="stars"></canvas>
+<div id="viewport">
+  <div id="starVeil" aria-hidden="true">
+    <span id="starVeilTop"></span>
+    <span id="starVeilBottom"></span>
+    <span id="starVeilLeft"></span>
+    <span id="starVeilRight"></span>
+  </div>
+  <div class="stage" id="stage">
+    <div id="wide" class="stage">
+      <img id="wPlate" class="layer" alt="">
+      <div id="wGlows" class="layer"></div>
+      <div id="wTells" class="layer"></div>
+      <div id="wFit" class="layer"></div>
+      <div id="wHots"></div>
+    </div>
+    <div id="vig" class="layer"></div>
+    <div id="close" class="stage">
+      <div id="cLayers" class="layer"></div>
+      <div id="cWrap"></div>
+    </div>
+  </div>
+</div>
+<!-- THE MUSTER BOARD's host.  EMPTY, and it stays empty until the button is
+     pressed: openBoard() CREATES the iframe and closeBoard() REMOVES it, which
+     is the same construction warm()/dropFrame() use for the nine and for the
+     same reason -- removing the element is what actually frees the page's
+     WebGL context, because a board page is a top-level script with no
+     dispose() to call.  It also keeps `document.querySelectorAll("iframe")`
+     at zero when nothing is open, which is what check/drive_cockpit.mjs
+     counts after every leave.  There is no second copy of the board's code
+     here: the cockpit shows modules/_LEADERBOARD/index.html, unmodified. -->
+<div id="lbHost"></div>
+<!-- WAY OUT.  The close X is the primary exit; see shell-nav.js and the CSS
+     above.  aria-label is the accessible name; the glyph is decoration. -->
+<button id="bClose" type="button" aria-label="Close" title="Close (Esc)">
+  <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3 13 13M13 3 3 13"
+    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+</button>
+<!-- HELP (T6, help.js).  The ? button sits left of the Close X and is shown only
+     in a settled close-up; it comes AFTER the X in tab order.  The card is the
+     first-open help for the module that is open.  Text is set with textContent. -->
+<h1 id="closeTitle" hidden></h1>
+<button id="bHelp" type="button" aria-label="Help" title="Help for this instrument"
+  aria-controls="helpCard" aria-expanded="false">?</button>
+<div id="helpShade" class="td-shade" hidden></div>
+<div id="helpCard" class="td-dialog" hidden role="dialog" aria-modal="false" aria-labelledby="helpTitle">
+  <div class="hp-head">
+    <div class="hp-title" id="helpTitle"></div>
+    <button type="button" class="hp-x" aria-label="Close">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3 13 13M13 3 3 13"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <p class="hp-progress"></p>
+  <div class="hp-body"></div>
+  <div class="hp-actions">
+    <button type="button" class="hp-prev">Previous</button>
+    <button type="button" class="hp-next">Next</button>
+    <button type="button" class="gotit">Done</button>
+  </div>
+</div>
+<div id="tutorialShade" class="td-shade" hidden></div>
+<div id="tutorialCard" class="td-dialog" hidden role="dialog" aria-modal="false" aria-labelledby="tutorialTitle">
+  <div class="tu-head">
+    <div class="tu-title" id="tutorialTitle"></div>
+    <button type="button" class="tu-x" aria-label="Close">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3 13 13M13 3 3 13"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="tu-body"></div>
+  <div class="tu-actions">
+    <button type="button" class="tu-back">Back</button>
+    <button type="button" class="tu-next">Next</button>
+  </div>
+</div>
+<div id="gradePanel" hidden role="dialog" aria-modal="true" aria-labelledby="gradeTitle">
+  <div class="grade-head">
+    <div class="grade-titlebar">
+      <h2 id="gradeTitle">Grade &amp; submit</h2>
+      <button type="button" class="grade-x" aria-label="Close grade panel">Close</button>
+    </div>
+  </div>
+  <div class="grade-overview">
+    <div class="grade-results-bar">
+      <div class="grade-results-cluster">
+      <div class="grade-remain-box">
+      <p class="grade-remain-title">Submissions remaining today</p>
+      <div class="grade-remain-counts">
+        <div class="grade-title-track">
+          <span class="sl-k">Module Fix</span>
+          <span class="sl-v" data-budget="grading">Unavailable</span>
+          <span class="sl-boxes" data-budget-boxes="grading"></span>
+        </div>
+        <div class="grade-title-track">
+          <span class="sl-k"><span>A.L.I.E.N.</span><span>Exploit</span></span>
+          <span class="sl-v" data-budget="alien">Unavailable</span>
+          <span class="sl-boxes" data-budget-boxes="alien"></span>
+        </div>
+      </div>
+      </div>
+      <div class="grade-title-actions">
+        <button type="button" class="grade-status" data-running="no" data-failure="no" aria-live="polite" aria-haspopup="dialog" aria-controls="gradeStatusDialog" title="No running grades."><span class="grade-status-k">Status:</span><span class="grade-status-icon" aria-hidden="true"></span><span class="grade-status-text">Idle</span></button>
+        <button type="button" class="grade-open-submit" aria-haspopup="dialog" aria-controls="gradeSubmitDialog" aria-expanded="false">New submission</button>
+        <button type="button" class="grade-counts-refresh">Refresh counts</button>
+      </div>
+      </div>
+      <p class="grade-read" aria-live="polite" hidden></p>
+    </div>
+    <div id="gradeStatusDialog" class="grade-status-dialog" hidden role="dialog" aria-labelledby="gradeStatusDialogText">
+      <p id="gradeStatusDialogText"></p>
+      <button type="button" class="grade-status-x">Close</button>
+    </div>
+    <div class="grade-modules"></div>
+  </div>
+  <div class="submission-feedback" id="grade-submission-limits" hidden></div>
+</div>
+<div id="gradeSubmitDialog" class="grade-submit-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="gradeSubmitTitle">
+  <div class="grade-submit-bar">
+    <h3 id="gradeSubmitTitle">Submit</h3>
+    <button type="button" class="grade-submit-x">Close</button>
+  </div>
+  <div class="grade-actions">
+    <button type="button" class="grade-local">Submit modules from this machine</button>
+    <label class="grade-zip">Upload a module ZIP
+      <input class="grade-file" type="file" accept=".zip,application/zip">
+    </label>
+    <button type="button" class="grade-to-weapons">Weapons console</button>
+    <button type="button" class="grade-to-grading">Grading console</button>
+  </div>
+</div>
+<!-- LOADING / ERROR card for the live close-up (app.js).  Text is set with
+     textContent only. -->
+<div id="frameCard" hidden data-mode="loading" role="status" aria-live="polite">
+  <div class="fc-title"></div>
+  <div class="fc-msg"></div>
+  <div class="fc-bar" aria-hidden="true"><i></i></div>
+  <div class="fc-actions">
+    <button type="button" class="retry">Retry</button>
+    <button type="button" class="back">Back to cockpit</button>
+  </div>
+</div>
+<!-- Asked before leaving a close-up with a file return still in progress. -->
+<div id="leaveCard" hidden role="alertdialog" aria-labelledby="lcTitle" aria-describedby="lcMsg">
+  <div class="lc-title" id="lcTitle"></div>
+  <div class="lc-msg" id="lcMsg"></div>
+  <div class="lc-actions">
+    <button type="button" class="stay">Stay here</button>
+    <button type="button" class="leave">Leave anyway</button>
+  </div>
+</div>
+<div id="tip"></div>
+<div id="err"></div>
+<div id="linkUx"></div>
+<script src="stars.js"></script>
+<script>
+/* file:// -- SAY SO, RATHER THAN SHOWING A BLANK PAGE.
+   This has to be an ordinary inline script, not part of app.js, because app.js
+   is an ES MODULE and a module load over file:// is refused before one line of
+   it runs.  Measured, in Chrome 152:
+       Access to script at 'file:///.../live3d/app.js' from origin 'null' has
+       been blocked by CORS policy: Cross origin requests are only supported
+       for protocol schemes: chrome, chrome-extension, chrome-untrusted, data,
+       http, https, isolated-app.
+   Inlining the source does not help either: `<script type="module">` is
+   subject to the same rule whether its code came from a URL or not, and each
+   module page then fetches scene.json, a 3.7 MB depth.bin and up to seven
+   .glb files, which are XHR and blocked for the same reason.  So the honest
+   answer is a one-command launcher, and this is where it is said out loud.
+   live3d/RESULTS.md, "How to open it". */
+if (location.protocol === 'file:') {
+  var e = document.getElementById('err');
+  e.style.display = 'block';
+  e.textContent =
+    'This page is open over file:// and that cannot work.\n\n' +
+    'Chrome refuses the ES module load outright (CORS, origin "null"), and ' +
+    'each module close-up also fetches scene.json, a 3.7 MB depth.bin and up ' +
+    'to seven .glb files, which are blocked by the same rule.  Nothing the ' +
+    'page can do changes that.\n\n' +
+    'Run this instead, from the repo root:\n' +
+    '    ./live3d/run.sh\n\n' +
+    'or, by hand:\n' +
+    '    cd <repo>/2026 && python3 -m http.server 8777\n' +
+    '    open http://localhost:8777/live3d/';
+}
+</script>
+<div id="personDock">
+<button id="personFab" type="button" aria-label="Account and settings"
+  aria-haspopup="menu" aria-controls="personMenu" aria-expanded="false">
+  <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <path fill="currentColor" fill-rule="evenodd" d="M8.6 12.4C8.6 6.8 11.8 2.6 16 2.6s7.4 4.2 7.4 9.8V15c0 1.8-1.5 3.2-3.4 3.2h-8c-1.9 0-3.4-1.4-3.4-3.2v-2.6zM11 9.4h10c.7 0 1.3.9 1.3 2.1v1.6c0 1.1-.6 1.9-1.3 1.9H11c-.7 0-1.3-.8-1.3-1.9v-1.6c0-1.2.6-2.1 1.3-2.1z"/>
+    <path fill="currentColor" d="M7.2 29.5c.55-5.1 4-8 8.8-8s8.25 2.9 8.8 8c.08.6-.38 1.1-.98 1.1H8.18c-.6 0-1.06-.5-.98-1.1z"/>
+  </svg>
+</button>
+<div id="personMenu" hidden role="menu" aria-label="Account and settings">
+  <div class="menu-submits" role="group" aria-label="Remaining submissions">
+    <div class="menu-submits-row">
+    <span class="sl-meter" title="Module Fix">
+      <svg class="sl-meter-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <path d="M2.5 6.5h11v7h-11z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M6 6.5V4.2h4v2.3M2.5 9.5h11" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      </svg>
+      <span class="sl-chunks" data-budget-boxes="grading"></span>
+      <span class="sl-meter-n" data-budget="grading">Unavailable</span>
+    </span>
+    <span class="sl-meter" title="A.L.I.E.N. Exploit">
+      <svg class="sl-meter-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <path d="M8 1.6l4.8 6.4L8 14.4 3.2 8z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <circle cx="8" cy="8" r="1.3" fill="currentColor"/>
+      </svg>
+      <span class="sl-chunks" data-budget-boxes="alien"></span>
+      <span class="sl-meter-n" data-budget="alien">Unavailable</span>
+    </span>
+    <span class="grade-dash-tools">
+      <button type="button" class="grade-limits-refresh" title="Refresh remaining submissions" aria-label="Refresh remaining submissions">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M13.2 8a5.2 5.2 0 1 1-1.3-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M13.4 2.2v3.1H10.3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+      </button>
+      <button type="button" id="menuSubmit" class="grade-dash-plus" title="Start a new submission" aria-label="Start a new submission" aria-haspopup="dialog" aria-controls="gradeSubmitDialog">+</button>
+    </span>
+    </div>
+    <div class="menu-score" aria-label="Score">
+      <span class="score-item" title="Score"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 1.4l1.7 3.6 3.9.5-2.9 2.7.8 3.8L8 10.2 4.5 12l.8-3.8L2.4 5.5l3.9-.5z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg><span class="score-v" data-score="points">?</span></span>
+      <span class="score-item" title="Place"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 13h12M3 13V8h3v5M6.5 13V4h3v9M10 13V9h3v4" fill="none" stroke="currentColor" stroke-width="1.3"/></svg><span class="score-v" data-score="place">?</span></span>
+      <span class="score-item" title="Solved vulns"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 6.5h11v7h-11z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 6.5V4.2h4v2.3M2.5 9.5h11" fill="none" stroke="currentColor" stroke-width="1.4"/></svg><span class="score-v" data-score="vulns">?</span></span>
+      <span class="score-item" title="Solved ships"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 1.6l4.8 6.4L8 14.4 3.2 8z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg><span class="score-v" data-score="ships">?</span></span>
+    </div>
+  </div>
+  <button id="bPerf" type="button" role="menuitem" aria-haspopup="dialog"
+    aria-controls="perfDialog" aria-expanded="false" title="Performance settings">Performance settings</button>
+  <button id="bTutorial" type="button" role="menuitem" aria-label="Re-open tutorial"
+    aria-controls="tutorialCard" aria-expanded="false">Re-open tutorial</button>
+  <button id="bFlags" type="button" role="menuitem" aria-label="Captured A.L.I.E.N. flags"
+    aria-haspopup="dialog" aria-controls="flagsPanel" aria-expanded="false">
+    <span class="bf-label">A.L.I.E.N. flags</span>
+    <span class="bf-count" data-flags-count hidden>0</span></button>
+  <button id="branchNotice" type="button" role="menuitem" data-state="current"
+    aria-controls="branchPanel" aria-expanded="false">
+    <span class="bn-dot" aria-hidden="true"></span><span class="bn-text" aria-live="polite">Up to date</span>
+  </button>
+  <button id="gradeTell" type="button" hidden aria-live="polite"
+    title="A submission is being scored">
+    <span class="gt-dot" aria-hidden="true"></span><span class="gt-text"></span></button>
+  <div class="menu-foot">
+    <button id="bAuth" type="button" role="menuitem" aria-label="Sign in">
+      <span class="auth-label">Sign in</span>
+      <svg class="auth-out" hidden viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          d="M16 17l5-5-5-5M21 12H9"/>
+      </svg>
+    </button>
+    <div id="crew" title="">
+      <span id="crewWho"></span>
+      <span id="crewSep" hidden> · </span>
+      <span id="crewRet"></span>
+      <span id="crewN"></span>
+      <!-- the admin UPDATE chip: crew.js creates it only under `?dev=1` -->
+    </div>
+  </div>
+  <!-- DEV / QA CONTROLS exist only when the cockpit URL carries `?dev=1`. -->
+</div>
+</div>
+<div id="branchRipple" hidden aria-hidden="true">
+  <span class="bn-ring"></span>
+  <span class="bn-ring"></span>
+  <span class="bn-ring"></span>
+</div>
+<div id="branchPanel" hidden role="dialog" aria-labelledby="branchPanelTitle">
+  <div class="bn-head">
+    <div class="bn-title" id="branchPanelTitle"></div>
+    <button type="button" class="bn-x">Close</button>
+  </div>
+  <div class="bn-body"></div>
+</div>
+<div id="flagsPanel" hidden role="dialog" aria-labelledby="flagsPanelTitle">
+  <div class="bn-head">
+    <div class="bn-title" id="flagsPanelTitle">Captured A.L.I.E.N. flags</div>
+    <button type="button" class="bn-x" data-flags-close>Close</button>
+  </div>
+  <div class="fp-body">
+    <p class="fp-note" data-flags-note aria-live="polite">No flags captured yet.</p>
+    <ul class="fp-list" data-flags-list></ul>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"../three-exploration/vendor/three/build/three.module.min.js",
+  "three/addons/":"../three-exploration/vendor/three/examples/jsm/"
+}}
+</script>
+<script type="module" src="./app.js"></script>

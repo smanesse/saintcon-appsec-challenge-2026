@@ -1,0 +1,350 @@
+<!doctype html>
+<!-- SAINTCON 2026 — PER-MODULE CLOSE-UP TEMPLATE.
+
+     COPY THIS DIRECTORY to live3d/modules/<CODE>/ and edit module.js.
+     Do not edit live3d/app.js: eight agents editing one file is how the
+     convention drift in README section 7 happened.  The fleet integrator wires
+     the finished modules into app.js afterwards; your deliverable is a page
+     that stands alone and passes the checks.
+
+     SERVE FROM THE REPO ROOT:
+         cd /path/to/saintcon/2026
+         python3 -m http.server 8777
+         open http://localhost:8777/live3d/modules/<CODE>/
+
+     THE LAYER STACK BELOW IS THE OCCLUSION MECHANISM.  Do not reorder it, do
+     not add a layer between #css3d and #glFront, and do not put content text
+     anywhere but #css3d.  live3d/design/TEXT_OCCLUSION.md is the decision;
+     live3d/CONVERSION_BRIEF.md is the recipe. -->
+<meta charset="utf-8">
+<title>Signal Harpoon</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#02030a;overflow:hidden;color:#9fb6d0;
+    font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #viewport{position:fixed;left:0;right:0;top:0;bottom:0;overflow:hidden}
+  .stage{position:absolute;left:0;top:0;width:1280px;height:720px;
+    transform-origin:0 0}
+  .stage>*{position:absolute;left:0;top:0}
+  .layer{width:1280px;height:720px;pointer-events:none;user-select:none;
+    -webkit-user-drag:none}
+
+  /* ------------------------------------------------ THE SANDWICH, z 1..5
+     <img> baked plate                                 1
+     canvas #gl        everything BEHIND the readouts  2
+     div    #css3d     the DOM readouts                3
+     canvas #glFront   everything IN FRONT of them     4
+     div    #hots      pointer targets                 5                     */
+  #plate  {z-index:1}
+  #gl     {z-index:2}
+  #css3d  {z-index:3;pointer-events:none}
+  #glFront{z-index:4}
+  #hots   {z-index:5;width:1280px;height:720px}
+  .hot{position:absolute;cursor:pointer;border:1px solid transparent;
+    border-radius:3px;transition:background .12s,border-color .12s}
+  /* HOTSPOT HOVER = a soft edge glow, not a filled box (owner finding
+     f-mv6t5d1h).  No border colour, no fill: only a low-alpha, blurred
+     box-shadow, tinted to sit in the scene's light (PKT: red-leaning, like its cockpit glow).  The element's box,
+     border width and radius are untouched, so the hotspot geometry the
+     occlusion split depends on does not move.  KEYBOARD FOCUS is a separate,
+     stronger cue -- a 2 px outline with a dark gap -- so focus and hover are
+     never confused. */
+  .hot{transition:box-shadow .15s ease,background .12s,border-color .12s}
+  .hot:hover{border-color:transparent;background:transparent;
+    box-shadow:0 0 0 1px rgba(255,120,110,.20),
+      0 0 14px 3px rgba(255,120,110,.26),
+      inset 0 0 12px rgba(255,120,110,.14)}
+  .hot:focus-visible{outline:2px solid #cfe9ff;outline-offset:3px;
+    border-color:transparent;background:transparent;
+    box-shadow:0 0 0 1px rgba(2,6,14,.9),0 0 16px 4px rgba(150,205,255,.38)}
+  .hot:focus:not(:focus-visible){outline:none}
+  body.debug .hot{border-color:rgba(63,224,255,.55);
+    background:rgba(63,224,255,.06)}
+
+  /* ---- DOM content text ----
+     Ink colour is measured off Blender's own render of your own type.  For KVS
+     that is rgb(122,113,107), a WARM grey, because albedo-neutral ink under six
+     warm area lights renders warm.  MEASURE YOUR MODULE'S; do not copy KVS's
+     and do not "fix" it to neutral.
+     TAKE THE MEDIAN OVER alpha > 0.5, WITH NO COLOUR TRANSFORM.  The recipe
+     this comment used to give -- "the most-common fully-opaque pixel" -- fails
+     twice and silently on small type: (a) nothing in MTA's type is fully
+     opaque, max alpha 224, so a >0.996 threshold returns an EMPTY set, and the
+     mode over the ~20 px that survive a lower one picked a specular highlight;
+     (b) bpy hands `image.pixels` back ALREADY display-encoded for an 8-bit sRGB
+     PNG, so applying an sRGB encode on top turned the true rgb(85,77,71) into a
+     wholly plausible rgb(157,150,146).  Cross-check against the PNG bytes read
+     with the stdlib decoder.  (Blender writes STRAIGHT alpha -- verified: mean
+     RGB is flat across every alpha bucket -- so a half-covered pixel still
+     carries the ink's own colour and belongs in the median.) */
+  /* ---- THE VENDORED FACE ----  FLEET RULE, decided once, see
+     CONVERSION_BRIEF.md section 7.6.  Every baked label in this project is
+     Courier New Bold (cockpit/modules/*/build.py's mono_font() loads
+     "/System/Library/Fonts/Supplemental/Courier New Bold.ttf"), which is a
+     Monotype face that may not be redistributed.  The Docker image has neither
+     it nor any guarantee of a mono face at all, so a face MUST be bundled --
+     and it is listed FIRST, ahead of Courier New, so that what is measured on
+     a developer's Mac is byte-for-byte what the container renders.  A stack
+     that resolves differently in the two places is how the Retina bug hid for
+     a week (README 16.5).
+     Courier Prime Bold, SIL OFL 1.1, is the chosen face; the measurement that
+     chose it is in the brief.  Do NOT swap in fonts/MatrixVCR5x7 -- it is a
+     5x7 pixel face and the engraved labels 3 mm away are Courier. */
+  /* PKT sets each readout's colour PER PLANE from scene.json -> text_planes[].ink,
+     which the exporter measured off Blender's own render of that readout's own
+     type with that readout's own material (module.js, section M1):
+         target   rgb(208,231,209)  pkt_phosphor, emissive green, clipping warm
+         payload  rgb(225,204,160)  pkt_hazard,   amber on the lit breech
+         catch    rgb(112,103,94)   pkt_ink,      dark on the platen
+         verdict  rgb(114,105,96)   pkt_ink,      dark on the tinted header bar
+     The value below is only the fallback for a plane with no measured ink. */
+  .readout{overflow:hidden;color:rgb(122,113,107);
+    font-family:"Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    font-weight:700;white-space:pre;letter-spacing:0}
+  .readout .lines{position:absolute}
+  body.notext .readout{visibility:hidden}
+
+  #bar{position:fixed;left:0;right:0;bottom:0;height:38px;display:none;
+    gap:8px;align-items:center;padding:0 10px;background:#0a0d14;
+    border-top:1px solid #1d2836;z-index:20}
+  /* white-space:nowrap and flex:none ARE NOT COSMETIC.  #bar is a 38 px flex
+     row; without them a long #note shrinks the buttons until their labels wrap
+     to two lines, the buttons grow to 45 px and OVERFLOW THE BAR UPWARDS by
+     3 px -- into the 1280x720 stage rect the capture harness clips.  Toggling
+     the split changes a button's colour, so the two screenshots then differ by
+     406 px outside the ground truth and check_occlusion.py's question 3 fails
+     for a toolbar.  getBoundingClientRect on #bar still says 720, so it looks
+     correct; only the button moves.  Every module writes a #note. */
+  button{font:inherit;letter-spacing:.12em;text-transform:uppercase;
+    white-space:nowrap;flex:none;
+    padding:5px 10px;background:#131a26;color:#9fb6d0;border:1px solid #24405e;
+    border-radius:3px;cursor:pointer}
+  button:hover{color:#d8e8fa;border-color:#3d6a96}
+  button.on{background:#c79a2e;color:#161208;border-color:#f2d67a}
+  #note{margin-left:auto;color:#5f7590;font-size:10.5px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #err{position:fixed;inset:auto 12px 48px 12px;z-index:40;display:none;
+    background:#2a0d0d;border:1px solid #a33;color:#ffb4b4;padding:10px 12px;
+    white-space:pre-wrap;font-size:12px}
+
+  /* ------------------------------------------------------------ EMBED MODE
+     `?embed=1` is how live3d/index.html -- the cockpit -- opens this page in an
+     iframe when the owner dives into this module.  Three declarations, and
+     each of them is load-bearing:
+
+       * TRANSPARENT BACKGROUND.  This module's plate.png is FILM-TRANSPARENT
+         (trap 20: OTA's is only 35% opaque) and is meant to composite over the
+         dimmed wide cockpit shot, which lives in the PARENT document.  An
+         opaque #02030a here would put black holes through the middle of the
+         close-up -- the exact bug README 16.2 records.
+       * NO TOOLBAR, and #viewport to the bottom edge, so the iframe is exactly
+         the 1280x720 stage and the cockpit's own transition can scale it as a
+         single rectangle.  The cockpit carries the equivalent buttons and
+         drives them through this page's own window.__occ.
+       * NOTHING ELSE.  The renderer, the split, the planes, the constants and
+         the session model are byte-identical in the two modes; embed mode
+         changes only what is around the stage.  Nothing the checkers measure
+         is inside a `.embed` rule -- the harness never sets it. */
+  html.embed,html.embed body{background:transparent}
+  html.embed #viewport{bottom:0}
+  html.embed #bar{display:none}
+  html.embed h1.module-title{display:none}
+
+  /* ---- DEV TOOLBAR GATE (owner finding f-mv6syyni 4.2) ----
+     The bottom #bar (dom text / occlusion split / show planes / show hotspots)
+     is a developer tool.  It is `display:none` above and `?dev=1` turns it on:
+     the head script adds class `dev` for ?dev=1 on this page's own URL or on the
+     cockpit page that embeds it.  Default off, never stored.  Standalone dev
+     gives the 38 px back to the bar; in an embed the bar overlays the bottom of
+     the 1280x720 stage instead, so the cockpit's transition rect is unchanged. */
+  html.dev #bar{display:flex}
+  html.dev:not(.embed) #viewport{bottom:38px}
+  .module-title{position:fixed;top:12px;left:16px;z-index:30;margin:0;
+    color:#f3ead7;font:20px/1.2 Georgia,serif;text-shadow:0 1px 2px #000;
+    pointer-events:none}
+
+  /* A.L.I.E.N. OPERATIONS DOCKET — ONE themed panel in the stage's top band,
+     above the bearing hotspot (y 252) and the charge hotspot (y 198) so a drag
+     can start on the wheel. Built like the other modules' docket panels (a
+     single panel with a header and sectioned bodies, e.g. FMM's manifest),
+     rendered in PKT's own palette. Two tabs pick which body shows, so only one
+     surface is ever up. Screen-space chrome, not a readout plane; hidden for
+     capture stability. */
+  /* COLLAPSIBLE: expanded the body can be tall (it covers the harpoon
+     hotspots while you work the panel); collapse to the header to free the
+     scene and drive the FIRE/CHARGE/ARM/BEARING controls below it. */
+  #alienDock{position:absolute;left:8px;top:48px;width:600px;max-width:calc(100% - 16px);
+    max-height:320px;z-index:25;display:flex;flex-direction:column;overflow:hidden;
+    pointer-events:auto;background:rgba(8,12,18,.94);border:1px solid #2a3a4e;color:#9fb6d0;
+    font:11px/1.4 "Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  #alienDock.as-hidden{display:none}
+  #alienDock.collapsed .adock-body{display:none}
+  .adock-head{display:flex;align-items:center;gap:10px;flex:none;
+    padding:5px 8px;border-bottom:1px solid #2a3a4e;background:#0a0f17}
+  #alienDock.collapsed .adock-head{border-bottom:0}
+  .adock-ttl{letter-spacing:.14em;text-transform:uppercase;color:#c79a2e;font-size:10px;flex:none}
+  .adock-collapse:focus-visible{outline:2px solid #cfe9ff;outline-offset:2px}
+  .adock-collapse{font:inherit;font-size:12px;line-height:1;flex:none;margin-left:auto;width:24px;height:22px;
+    padding:0;background:#131a26;color:#9fb6d0;border:1px solid #24405e;border-radius:3px;cursor:pointer}
+  .adock-collapse:hover{color:#d8e8fa;border-color:#3d6a96}
+  .adock-body{flex:1;min-height:0;overflow:auto;padding:8px}
+  /* Shared form controls (the scoring form reuses these). */
+  .ac-row{display:flex;flex-wrap:wrap;gap:0.35rem;align-items:end;margin:0.2rem 0}
+  .ac-panel label{display:flex;flex-direction:column;gap:0.15rem;font-size:9px;color:#5f7590}
+  .ac-panel select{font:inherit;color:#d8e8fa;background:#0a0d14;border:1px solid #24405e;
+    padding:0.25rem 0.35rem;min-width:8rem;letter-spacing:0;text-transform:none}
+  .ac-act{font:inherit;letter-spacing:.06em;text-transform:uppercase;
+    padding:0.3rem 0.5rem;background:#c79a2e;color:#161208;border:1px solid #f2d67a;
+    border-radius:3px;cursor:pointer;white-space:nowrap;flex:none}
+  .ac-act:disabled{opacity:.45;cursor:not-allowed}
+  .ac-note{margin:0 0 0.25rem;color:#d8e8fa;font-size:10px}
+
+  /* A.L.I.E.N. fleet-scoring form (alien-submit.js). */
+  #alienSubmit .ac-row{margin:0 0 .45rem}
+  #alienSubmit .ac-note{margin:0 0 .45rem;font-size:10px}
+  #alienSubmit .sl-inline{min-height:0;font-size:10px;align-self:center}
+  #alienSubmit .sl-inline[hidden]{display:none !important}
+  #alienSubmit .as-alien-box{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;
+    gap:8px;box-sizing:border-box;width:max-content;max-width:100%;margin:0 0 .5rem;
+    padding:6px 10px;border:1px solid #243044;border-radius:8px;background:#070b12;color:#9fb6d0}
+  #alienSubmit .as-alien-box[hidden]{display:none}
+  #alienSubmit .as-alien-lead{font-size:11px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+  #alienSubmit .as-alien-k{font-size:11px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+  #alienSubmit .as-alien-n{font-size:18px;font-weight:600;color:#f2d67a;text-align:center}
+  #alienSubmit .as-alien-boxes{display:flex;flex-wrap:nowrap;justify-content:center;gap:3px}
+  #alienSubmit .as-alien-boxes .sl-box{width:11px;height:11px;box-sizing:border-box;
+    border:1px solid #3d6a96;border-radius:1px;background:transparent}
+  #alienSubmit .as-alien-boxes .sl-box:not(.is-left){background:#5f7590;border-color:#5f7590}
+  #alienSubmit .as-alien-boxes .sl-box:not(.is-left)::before{content:none}
+  #alienSubmit .as-alien-boxes .sl-box.is-left{background:#f2d67a;border-color:#f2d67a}
+  #alienSubmit .as-alien-refresh{width:22px;height:22px;padding:0;border:0;border-radius:50%;
+    background:rgba(61,106,150,.28);color:#d8e8fa;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center}
+  #alienSubmit .as-alien-refresh.is-reading svg{animation:gradeLimitsSpin .7s linear 1}
+  @keyframes gradeLimitsSpin{to{transform:rotate(360deg)}}
+  /* Mode toggle: a segmented control (local test vs remote scoring). */
+  .as-mode{display:inline-flex;margin:0 0 .5rem;border:1px solid #24405e;border-radius:3px;overflow:hidden}
+  .as-mode-btn{font:inherit;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+    padding:.3rem .7rem;background:#0a0d14;color:#9fb6d0;border:0;border-right:1px solid #24405e;cursor:pointer}
+  .as-mode-btn:last-child{border-right:0}
+  .as-mode-btn:hover{color:#d8e8fa}
+  .as-mode-btn.on{background:#2a1e0a;color:#f2d67a}
+  .as-mode-btn:disabled{opacity:.5;cursor:default}
+  .as-stub{margin:0 0 .45rem;font-size:10px;color:#9fb6d0;word-break:break-all}
+  .as-solved{margin:.3rem 0 0;padding-left:16px;font-size:10px;color:#6fbf8a;list-style:disc}
+  .as-solved .as-none{color:#5f7590;list-style:none;margin-left:-16px}
+  /* Verdict tone on the status line: green for a captured flag / boarded ship,
+     red for an unsuccessful run (mirrors the green .as-solved cue). */
+  #alienSubmit .ac-note.as-ok{color:#6fbf8a}
+  #alienSubmit .ac-note.as-fail{color:#c07171}
+  #alienSubmit .as-last{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;box-sizing:border-box;
+    width:max-content;max-width:100%;margin:0 0 .5rem;padding:6px 10px;border:1px solid #243044;
+    border-radius:8px;background:#070b12;color:#9fb6d0;font-size:11px}
+  #alienSubmit .as-last[hidden]{display:none}
+  #alienSubmit .as-last-k{letter-spacing:.04em;text-transform:uppercase;color:#5f7590;flex:none}
+  #alienSubmit .as-last-v{color:#d8e8fa}
+  #alienSubmit .as-last.is-refused .as-last-v{color:#c07171}
+  #alienSubmit .as-last.is-boarded .as-last-v{color:#6fbf8a}
+  /* Raw script output: an expandable disclosure, not a fixed scroll box. The
+     body grows to fit; the dock panel itself provides any scrolling. */
+  .as-output{margin:.4rem 0 0;background:#06090f;border:1px solid #1d2836;
+    border-radius:2px;color:#9fb6d0}
+  .as-output[hidden]{display:none}
+  .as-output-summary{cursor:pointer;list-style:none;padding:.35rem .5rem;
+    font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:#5f7590;
+    user-select:none}
+  .as-output-summary::-webkit-details-marker{display:none}
+  .as-output-summary::before{content:"\25B8  ";color:#5f7590}
+  .as-output[open] .as-output-summary::before{content:"\25BE  "}
+  .as-output-summary:hover{color:#9fb6d0}
+  .as-output-pre{margin:0;padding:0 .5rem .4rem;color:#9fb6d0;
+    font:400 10px/1.4 "Courier Prime","Courier New",ui-monospace,Menlo,monospace;
+    white-space:pre-wrap;word-break:break-word}
+  /* Indeterminate busy bar for the blocking local test (alien-submit.js). */
+  .as-busy{position:relative;height:3px;margin:.1rem 0 .45rem;overflow:hidden;
+    background:#0a0d14;border:1px solid #24405e;border-radius:2px}
+  .as-busy-fill{position:absolute;top:0;bottom:0;left:-40%;width:40%;
+    background:linear-gradient(90deg,transparent,#c79a2e,transparent);
+    animation:as-busy-slide 1.1s linear infinite}
+  @keyframes as-busy-slide{from{left:-40%}to{left:100%}}
+  @media (prefers-reduced-motion:reduce){
+    .as-busy-fill{animation:none;left:0;width:100%;opacity:.5}}
+  /* Tone the shared sp-* live indicator to the campaign palette so the chips
+     sit in the same console, not a transplant from the cockpit grade panel. */
+  #alienSubmit .sp-progress{font-size:11px}
+  #alienSubmit .sp-head{color:#c79a2e}
+  #alienSubmit .sp-step.is-current{color:#c79a2e}
+  #alienSubmit .sp-step.is-done{color:#6fbf8a}
+  #alienSubmit .sp-chip{background:#0a0d14;border-color:#24405e;font-size:10px}
+  #alienSubmit .sp-chip.is-running{color:#f2d67a;border-color:#c79a2e}
+  #alienSubmit .sp-chip.is-pass,#alienSubmit .sp-chip.is-solved,
+  #alienSubmit .sp-chip.is-done{color:#6fbf8a;border-color:#3d6a4e}
+  #alienSubmit .sp-chip.is-fail,#alienSubmit .sp-chip.is-missed,
+  #alienSubmit .sp-chip.is-error{color:#c07171;border-color:#6a3d3d}
+</style>
+<link rel="stylesheet" href="../../submit-core.css">
+<link rel="stylesheet" href="../../submission-feedback.css">
+<!-- The telltale mast's screen-space caption.  CHROME, a sibling layer over
+     the front canvas, and deliberately NOT a declared readout plane.
+     live3d/mast.css is shared by all nine modules and its font URLs resolve
+     against ITS OWN location. -->
+<link rel="stylesheet" href="../../mast.css">
+<script>
+/* Set BEFORE the body is laid out, so embed mode never flashes an opaque
+   background over the cockpit behind it.  No innerHTML, no markup assignment
+   -- one className on the root element. */
+(function () {
+  var c = [];
+  var flag = function (q) { return /(^|[?&])dev=1(&|$)/.test(String(q || '').replace(/^\?/, '')); };
+  if (location.search.indexOf('embed') >= 0) c.push('embed');
+  /* ?dev=1 -- developer toolbar.  Own URL, or the cockpit page's URL when this
+     page is the cockpit's iframe (same convention as app.js / FMM).  Never read
+     from storage, so it cannot stay on by accident. */
+  var dev = flag(location.search);
+  try {
+    if (!dev && window.parent && window.parent !== window) dev = flag(window.parent.location.search);
+  } catch (e) { /* cross-origin parent: no flag */ }
+  if (dev) c.push('dev');
+  if (c.length) document.documentElement.className = c.join(' ');
+})();
+</script>
+
+<h1 class="module-title" id="moduleTitle">Signal Harpoon (PKT)</h1>
+
+<div id="viewport">
+  <div class="stage" id="stage">
+    <img id="plate" class="layer" alt="">
+    <canvas id="gl" class="layer" width="1280" height="720"></canvas>
+    <div id="css3d"></div>
+    <canvas id="glFront" class="layer" width="1280" height="720"></canvas>
+    <div id="hots"></div>
+    <div id="alienDock" aria-label="A.L.I.E.N. fleet scoring">
+      <div class="adock-head">
+        <span class="adock-ttl">A.L.I.E.N. Fleet Scoring</span>
+        <button type="button" class="adock-collapse" id="alienCollapse"
+          aria-expanded="true" aria-controls="alienDock" title="Collapse panel"
+          aria-label="Collapse A.L.I.E.N. panel">&#9662;</button>
+      </div>
+      <div class="adock-body">
+        <div id="alienSubmit" aria-label="A.L.I.E.N. fleet scoring"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="err"></div>
+<div id="bar">
+  <button id="bOcc" class="on">occlusion split</button>
+  <button id="bText" class="on">dom text</button>
+  <button id="bPlanes">show planes</button>
+  <button id="bDbg">show hotspots</button>
+  <span id="note"></span>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"../../../three-exploration/vendor/three/build/three.module.min.js",
+  "three/addons/":"../../../three-exploration/vendor/three/examples/jsm/"
+}}
+</script>
+<script type="module" src="./module.js"></script>

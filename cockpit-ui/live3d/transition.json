@@ -1,0 +1,210 @@
+{
+ "_": "wide -> close-up magnification per module; see live3d/pipeline/measure_transition.py for method and validation",
+ "wide_plate": "combined/main_plate.png",
+ "canvas": [
+  1280,
+  720
+ ],
+ "modules": {
+  "DNSM": {
+   "M_frame": 4.9,
+   "score_frame": 0.365,
+   "M_module": 5.096,
+   "score_module": 0.499,
+   "q": 0.592,
+   "fit": 4.045,
+   "frac": 1.211,
+   "clipped": true,
+   "far_box": [
+    871,
+    0,
+    176,
+    178
+   ],
+   "wide_c": [
+    954.5,
+    106.0
+   ],
+   "source": "ncc",
+   "M": 4.9
+  },
+  "FMM": {
+   "M_frame": 6.532,
+   "score_frame": 0.2588,
+   "M_module": 5.683,
+   "score_module": 0.6228,
+   "q": 0.538,
+   "fit": 6.184,
+   "frac": 1.056,
+   "clipped": false,
+   "far_box": [
+    24,
+    406,
+    207,
+    75
+   ],
+   "wide_c": [
+    134.5,
+    448.0
+   ],
+   "source": "ncc",
+   "M": 6.532
+  },
+  "IPM": {
+   "M_frame": 3.243,
+   "score_frame": 0.7549,
+   "M_module": 2.952,
+   "score_module": 0.8467,
+   "q": 0.678,
+   "fit": 3.564,
+   "frac": 0.91,
+   "clipped": false,
+   "far_box": [
+    901,
+    193,
+    87,
+    202
+   ],
+   "wide_c": [
+    953.0,
+    296.5
+   ],
+   "source": "ncc",
+   "M": 3.243
+  },
+  "KVS": {
+   "M_frame": 5.619,
+   "score_frame": 0.7261,
+   "M_module": 5.675,
+   "score_module": 0.7017,
+   "q": 0.566,
+   "fit": 6.102,
+   "frac": 0.921,
+   "clipped": false,
+   "far_box": [
+    973,
+    352,
+    158,
+    118
+   ],
+   "wide_c": [
+    1051.0,
+    408.0
+   ],
+   "source": "ncc",
+   "M": 5.619
+  },
+  "LOG": {
+   "M_frame": 4.156,
+   "score_frame": 0.6401,
+   "M_module": 4.239,
+   "score_module": 0.6289,
+   "q": 0.625,
+   "fit": 4.645,
+   "frac": 0.895,
+   "clipped": false,
+   "far_box": [
+    375,
+    473,
+    199,
+    155
+   ],
+   "wide_c": [
+    478.5,
+    553.0
+   ],
+   "source": "ncc",
+   "M": 4.156
+  },
+  "MQB": {
+   "M_frame": 6.295,
+   "score_frame": 0.1474,
+   "M_module": 5.855,
+   "score_module": 0.2195,
+   "q": 0.545,
+   "fit": 4.091,
+   "frac": 1.539,
+   "clipped": true,
+   "far_box": [
+    66,
+    0,
+    184,
+    176
+   ],
+   "wide_c": [
+    157.0,
+    96.0
+   ],
+   "source": "override",
+   "M": 5.15,
+   "why": "bezel measured by hand in both plates; ncc score 0.147 is noise"
+  },
+  "MTA": {
+   "M_frame": 5.69,
+   "score_frame": 0.354,
+   "M_module": 6.43,
+   "score_module": 0.3919,
+   "q": 0.563,
+   "fit": 5.333,
+   "frac": 1.067,
+   "clipped": false,
+   "far_box": [
+    704,
+    475,
+    151,
+    135
+   ],
+   "wide_c": [
+    782.0,
+    547.5
+   ],
+   "source": "override",
+   "M": 5.0,
+   "why": "geometry: fit_camera(frac=0.94) bounds M <= 0.94 x fit"
+  },
+  "OTA": {
+   "M_frame": 3.308,
+   "score_frame": 0.7089,
+   "M_module": 3.043,
+   "score_module": 0.7878,
+   "q": 0.674,
+   "fit": 3.512,
+   "frac": 0.942,
+   "clipped": false,
+   "far_box": [
+    284,
+    187,
+    83,
+    205
+   ],
+   "wide_c": [
+    330.5,
+    301.5
+   ],
+   "source": "ncc",
+   "M": 3.308
+  },
+  "PKT": {
+   "M_frame": 3.8,
+   "score_frame": 0.9523,
+   "M_module": 3.8,
+   "score_module": 0.9221,
+   "q": 0.644,
+   "fit": 4.337,
+   "frac": 0.876,
+   "clipped": false,
+   "far_box": [
+    510,
+    293,
+    260,
+    166
+   ],
+   "wide_c": [
+    640.5,
+    377.0
+   ],
+   "source": "ncc",
+   "M": 3.8
+  }
+ }
+}
