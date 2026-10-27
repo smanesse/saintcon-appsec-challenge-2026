@@ -62,30 +62,6 @@ The host also checks the last approved commit every five minutes as a fallback.
 
 Run the same suites locally with `./run-all-unit-tests.sh`.
 
----
-
-## Design principles
-
-1. **Realistic, not contrived.** The service does a real job with a real
-   protocol/API. The weaknesses are the kind you actually find in that kind of
-   system — not artificial "guess the flag" puzzles. A team that audits the
-   source learns transferable lessons.
-2. **Deliberately vulnerable, clearly labelled.** Every module screams that it
-   is unsafe (banner comments, README warnings) and must never run on an
-   untrusted network. Mitigations are intentionally disabled where they'd get
-   in the way, with a comment at the build setting that says so.
-3. **Functional tests ≠ security.** The `unit_tests/` prove the *intended*
-   behaviour works. They are driven purely over the wire and say nothing about
-   the planted weaknesses.
-4. **Everything runs in Docker, off the host.** The vulnerable service (and any
-   vulnerable dependency) is only ever reachable on a private compose network,
-   never published to a host port, in the default flows.
-5. **The functional README has no spoilers.** Each module's `README.md`
-   documents the *functional* protocol/API so clients and tests can drive it,
-   and nothing more.
-
----
-
 ## What a submission may contain
 
 Teams fix weaknesses by editing **source code, in place**. A submission is
@@ -151,11 +127,3 @@ Any flag or credential a deployment relies on is **unique per deployment**,
 minted fresh at deploy time — never a value baked into the repo or image. See
 [`generate-secrets.sh`](generate-secrets.sh) for how the per-deployment flags
 and credentials are minted and fed to the stack.
-
----
-
-## Adding a new module
-
-Use the **`new-module`** skill rather than hand-rolling the scaffold. It
-produces a complete module in this exact layout: real working functionality,
-functional unit tests, README documentation, and Dockerized runners.
