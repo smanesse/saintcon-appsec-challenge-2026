@@ -6,7 +6,7 @@ realistic piece of infrastructure (a file server, an image pipeline, …), speak
 a real protocol, and does something genuinely useful. Teams audit the source,
 find and exploit the planted weaknesses, and fix them in place.
 
-The modules:
+The modules (which are released on a cadence through the competition):
 
 - **`file-management-module/` (FMM)** — a C++ FTP-like file server (plaintext
   TCP control connection + separate data connection).
@@ -48,19 +48,7 @@ From the repo root:
 `bridge/fleet-up.sh` / `bridge/fleet-down.sh`); they accept module names or a
 release day (`day1` `day2` `day3` `all`). On Windows, `start.bat` takes the
 same arguments (it delegates to `start.sh` via Git Bash or WSL). Start individual modules from the
-console's START buttons or by passing them to `./start.sh`. The console submits
-to the scoring harness at `https://saintcon.sketrik.dev` by default; override
-with `HARNESS_URL=...` or disable the uplink with `HARNESS_URL=`.
-
-## CI and harness updates
-
-Pull requests to `main` run every `*/unit_tests/run-in-docker.sh` functional
-suite, including the bridge. A push to `main` runs the same suites; once they
-all pass, GitHub Actions marks the commit approved and asks the AWS harness
-host to pull it. If grading is in progress, the action waits for an idle queue.
-The host also checks the last approved commit every five minutes as a fallback.
-
-Run the same suites locally with `./run-all-unit-tests.sh`.
+console's START buttons or by passing them to `./start.sh`.
 
 ## What a submission may contain
 
