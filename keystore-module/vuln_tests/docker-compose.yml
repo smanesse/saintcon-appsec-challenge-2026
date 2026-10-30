@@ -1,0 +1,94 @@
+# Runs the KVS server(s) and a vuln-test PoC runner, all in containers -
+# nothing is ever published to the host.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #3 (the flagship: REPLICAOF an
+# attacker-controlled "master", take over the keyspace, and chain a stream-
+# injected EVAL into exfiltrating the deployment's real KVS_FLAG secret).
+# Override which script runs, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm \
+#       poc python3 01_no_auth_default.py kvs 6379
+#
+# The disclosure PoCs (#1 no-auth read, #2 EVAL, #3 REPLICAOF) all steal the
+# same per-deployment secret, KVS_FLAG, which the server seeds into its own
+# keyspace at startup AND carries in its environment (see main.go's Seed()).
+# Both `kvs` and `kvs-auth` carry it, so those PoCs score against either
+# instance. The DoS PoCs (#4 unbounded bulk length, #5 exponential KEYS glob)
+# target the default `kvs`:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --rm poc python3 04_bulklen_overflow_dos.py kvs 6379
+#   docker compose -f vuln_tests/docker-compose.yml run --rm poc python3 05_keys_glob_dos.py kvs 6379
+#
+# Both instances have a real KVS_REQUIREPASS configured; VULN #1 is that the
+# server does not actually enforce it, so an unauthenticated client sails
+# straight past the AUTH gate on either one.
+
+services:
+  # Default deployment. Target of PoCs #1, #4, #5, and a valid target for #2/#3.
+  # A real KVS_REQUIREPASS IS configured here (harness value via the ${VAR:-}
+  # passthrough, else the fixed dev default) — VULN #1 is that the server never
+  # enforces it, so PoC #1's unauthenticated GET of the seeded secret still
+  # works despite the configured password. KVS_FLAG is the minted per-deployment
+  # secret the server seeds into its keyspace + env (see ../../generate-secrets.sh
+  # and main.go); empty/unset falls back to the fixed dev default.
+  kvs:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "6379"
+    environment:
+      KVS_REQUIREPASS: "${KVS_REQUIREPASS:-s3cr3t-dev-default}"
+      KVS_FLAG: "${KVS_FLAG:-FLAG{local-dev-default}}"
+
+  # A second instance carrying the same configured KVS_REQUIREPASS, kept as the
+  # dedicated target for the un-numbered non-constant-time AUTH compare (its
+  # cmdAuth() path is reachable whenever a password is configured, independent
+  # of whether the AUTH gate is enforced) and for showing #2/#3 working through
+  # an AUTH the client actually sends. The password is the harness's generated
+  # per-deployment KVS_REQUIREPASS via the `${VAR:-}` passthrough (see ../../
+  # generate-secrets.sh), falling back to a fixed dev default standalone. It
+  # carries the same KVS_FLAG as `kvs` so the disclosure PoCs steal the
+  # identical secret here.
+  kvs-auth:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "6379"
+    environment:
+      KVS_REQUIREPASS: "${KVS_REQUIREPASS:-s3cr3t-dev-default}"
+      KVS_FLAG: "${KVS_FLAG:-FLAG{local-dev-default}}"
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - kvs
+      - kvs-auth
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    environment:
+      # Same passthrough as the servers, so this resolves to the identical
+      # secret (the harness's minted KVS_FLAG, or the shared dev fallback) and a
+      # PoC can assert the KVS_FLAG value it recovered from the server matches.
+      KVS_FLAG: "${KVS_FLAG:-FLAG{local-dev-default}}"
+      # The configured AUTH password, shared with both server instances. PoC #1
+      # deliberately never sends it (proving the gate is not enforced); the
+      # AUTH-aware PoCs use it to show they still reach their targets through an
+      # enabled gate.
+      KVS_REQUIREPASS: "${KVS_REQUIREPASS:-s3cr3t-dev-default}"
+    # PoCs are pure-stdlib (socket/threading); no pip install needed. Wait for
+    # kvs to accept connections, then run the flagship replication + secret-
+    # exfiltration PoC against it.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import socket; socket.create_connection(('kvs',6379),timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 03_replicaof_injection.py kvs 6379

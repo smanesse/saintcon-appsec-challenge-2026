@@ -1,0 +1,152 @@
+# Runs the OTA server plus its entire managed fleet (fmm, ipm, log-module)
+# and a vuln-test PoC runner, all in containers - nothing is ever published
+# to the host.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #4 (the flagship unauthenticated RCE
+# chain: default API key + post_install command injection, landing on the
+# log-module sibling). Override which script runs, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm \
+#       poc python3 02_default_api_key.py ota 8090
+#
+# PoCs #5 and #6 only need `ota` itself (#6 also the internal `metadata`
+# service). PoCs #2, #3, #4, #7, #9 additionally need the `log` sibling and
+# its ota-agent.sh to actually poll, download, and apply what gets published -
+# each reaches unauth publish a different way (default key / tar-slip /
+# post_install / mass-assign / guessable token) and then steals the
+# log host's minted secret - so give those a little longer to land (their poll
+# loop runs every OTA_POLL_INTERVAL seconds).
+
+# Two networks model a realistic split for the SSRF PoC (#6):
+#   * dmz     - the whole fleet (ota, fmm, ipm, log) and the poc/attacker
+#   * backend - ota and the shared fleet metadata service (see
+#               ../../metadata-service) the attacker CANNOT reach
+# Only `ota` bridges both, so the sole path to the metadata secret is to make
+# ota's source_url fetch reach it. Everything else stays on dmz exactly as
+# before, so the other PoCs are unaffected.
+services:
+  ota:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "8090"
+    environment:
+      # The minted API key (vuln #2 is "default API key"). `${VAR:-}` passthrough
+      # so a harness that sets a real OTA_API_KEY has the server actually require
+      # it -- without this the server always boots on its compiled-in default and
+      # a team that fixes #2 by minting a key could never see #2 reverify-as-fixed.
+      OTA_API_KEY: ${OTA_API_KEY:-}
+    networks:
+      - dmz
+      - backend
+
+  # Shared fleet metadata service (PoC #6 SSRF target); see ../../metadata-service.
+  # Only on `backend`, so the poc container cannot reach it directly - only ota
+  # can. Serves this deployment's real OTA_FLAG at /secret/ota, from the
+  # environment (never hardcoded). OTA has no secret of its own, so this is where
+  # #6's disclosure is scored against a genuine per-deployment value.
+  metadata:
+    image: python:3.12-slim
+    working_dir: /srv
+    volumes:
+      - ../../metadata-service:/srv:ro
+    environment:
+      META_SECRET_OTA: "${OTA_FLAG:-FLAG{local-dev-default}}"
+    command: ["python3", "metadata_service.py", "9000"]
+    networks:
+      - backend
+
+  fmm:
+    build:
+      context: ../../file-management-module
+      dockerfile: Dockerfile
+    depends_on:
+      - ota
+    expose:
+      - "2121"
+    environment:
+      OTA_SERVER: http://ota:8090
+      OTA_POLL_INTERVAL: "3"
+    networks:
+      - dmz
+
+  ipm:
+    build:
+      context: ../../image-processing-module
+      dockerfile: Dockerfile
+    depends_on:
+      - ota
+      - fmm
+    expose:
+      - "8080"
+    environment:
+      IPM_FMM_HOST: fmm
+      IPM_FMM_PORT: "2121"
+      IPM_FMM_USER: alice
+      IPM_FMM_PASS: password123
+      OTA_SERVER: http://ota:8090
+      OTA_POLL_INTERVAL: "3"
+    networks:
+      - dmz
+
+  log:
+    build:
+      context: ../../log-module
+      dockerfile: Dockerfile
+    depends_on:
+      - ota
+    expose:
+      - "8080"
+    environment:
+      OTA_SERVER: http://ota:8090
+      OTA_POLL_INTERVAL: "3"
+      # log-module materializes this minted flag into secret/flag.txt at start.
+      # It is the real per-deployment secret the OTA RCE chain (#4) and tar-slip
+      # symlink (#3) steal off this victim host: `${LOG_FLAG_VALUE:-}` passthrough
+      # so a harness's minted value flows in; unset, entrypoint.sh applies its own
+      # FLAG{local-dev-default}. Either way the poc below gets the same value.
+      LOG_FLAG_VALUE: ${LOG_FLAG_VALUE:-}
+    networks:
+      - dmz
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - ota
+      - fmm
+      - ipm
+      - log
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    networks:
+      - dmz
+    environment:
+      LOG_HOST: log
+      LOG_PORT: "8080"
+      # So PoC #6 can assert the SSRF disclosed THIS deployment's real secret
+      # (materialized by the metadata service, which the poc can't reach).
+      OTA_FLAG: "${OTA_FLAG:-FLAG{local-dev-default}}"
+      # Same minted API key the `ota` service requires, so #2/#3/#4 authenticate
+      # with the real credential once a harness fixes #2 by minting one.
+      OTA_API_KEY: ${OTA_API_KEY:-}
+      # The log sibling's minted flag, so #3 (tar-slip symlink) and #4 (RCE) can
+      # assert the EXACT value they exfiltrate off the log host, not just shape.
+      LOG_FLAG_VALUE: ${LOG_FLAG_VALUE:-}
+    # PoCs are pure-stdlib (urllib/tarfile). Standalone: wait for OTA's health endpoint, then run the flagship PoC.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import urllib.request; urllib.request.urlopen('http://ota:8090/health', timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 04_post_install_command_injection.py ota 8090
+
+networks:
+  dmz:
+  backend:

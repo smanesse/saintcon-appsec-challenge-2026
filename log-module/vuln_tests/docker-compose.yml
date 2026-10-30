@@ -1,0 +1,63 @@
+# Brings up the Log Aggregation Module and a vuln-test PoC entirely in
+# containers, so the deliberately-vulnerable service never runs on the host.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #1 (path traversal). Override which
+# script runs by passing a command, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm \
+#       poc python3 03_lookup_injection.py log 8080
+#
+# `log` is only reachable on the private compose network — it is deliberately
+# NOT published to the host.
+
+services:
+  log:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "8080"
+    # Mirrors the resource envelope a real deployment/scoring harness would give
+    # this module. Vuln #4 (search ReDoS) does NOT depend on these caps: GET
+    # /search compiles the client's `q` into a recursive java.util.regex and runs
+    # it over every stored line (Main.scala Search.run). A nested-quantifier query
+    # like `(a|a)+` over a long line recurses one stack frame per character and
+    # throws a StackOverflowError -- a fatal VirtualMachineError that Cats Effect
+    # turns into a JVM exit, not a 500 -- so a SINGLE request crashes the whole
+    # service (ota-agent.sh does not respawn on a crash). The caps are here only
+    # to mirror a realistic single-core / bounded-memory deployment, not to make
+    # the outage observable; the crash is provable on any host. Note the default
+    # Temurin 21 thread stack is what sets the ~tens-of-thousands recursion depth
+    # the PoC's line length clears with margin -- these limits don't change that.
+    cpus: "1.0"
+    mem_limit: "1g"
+    environment:
+      LOG_OP_TOKEN: "operator-secret-123"
+      LOG_FLAG_VALUE: ${LOG_FLAG_VALUE:-}
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - log
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    environment:
+      # Same `${LOG_FLAG_VALUE:-}` passthrough the `log` service uses, so a PoC
+      # can assert the EXACT minted flag it recovered (e.g. #3 Log4Shell exfil)
+      # against the value the harness configured, not just its `FLAG{...}` shape.
+      # Unset (standalone dev) it stays empty and PoCs fall back to shape-only.
+      LOG_FLAG_VALUE: ${LOG_FLAG_VALUE:-}
+    # PoCs are pure-stdlib (urllib); no pip install needed. Wait for LOG's HTTP
+    # port to answer, then run PoC #1 against the log container.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import urllib.request; urllib.request.urlopen('http://log:8080/health',timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 01_path_traversal.py log 8080

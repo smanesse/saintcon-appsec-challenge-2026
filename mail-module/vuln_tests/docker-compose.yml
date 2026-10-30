@@ -1,0 +1,128 @@
+# Brings up the MTA server and a vuln-test PoC runner entirely in
+# containers, so the deliberately-vulnerable server never listens on a host
+# port.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #1 (relay disk-exhaustion DoS).
+# Override which script runs, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --rm \
+#       poc python3 03_bounce_command_injection.py mta 2525 8081 mta.local /home/ctf/mta/queue
+#
+# Two networks model a realistic split:
+#   * dmz     - mta and the poc/attacker
+#   * backend - mta and the shared fleet metadata service (see
+#               ../../metadata-service) the attacker CANNOT reach
+# PoC #8 (webhook SSRF) relies on that split: only mta bridges both networks.
+#
+# mta's queue dir is a small, fixed-size tmpfs here (see the `tmpfs:` entry
+# below) so PoC #1's disk-exhaustion DoS has a real, quickly-exhaustible
+# quota to fill without writing real gigabytes to the host or CI runner.
+#
+# MTA_AUTH_PASS is the minted per-deployment credential, passed through from
+# generate-secrets.sh via `${MTA_AUTH_PASS:-qx7m2p}` (standalone it falls back
+# to a fixed, non-default dev value). It is handed to the `poc` container too
+# (as MTA_TEST_AUTH_USER/PASS) so PoCs #2/#4/#8 - which need a normal,
+# already-authenticated session to reach the code paths they demonstrate, same
+# as any legitimately-credentialed sender - can log in.
+
+services:
+  mta:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "2525"
+      - "8081"
+    environment:
+      MTA_AUTH_PASS: "${MTA_AUTH_PASS:-qx7m2p}"
+      # Passed through from the invoking shell (see ../../generate-secrets.sh).
+      # VULN #7's target - the runtime flag, written outside MTA_QUEUE_DIR at
+      # container start. Empty/unset falls back to entrypoint.sh's own
+      # local-dev default; PoC #7 only checks for a FLAG{...}-shaped value.
+      MTA_FLAG: ${MTA_FLAG:-}
+    # Mirrors the resource envelope a real deployment/scoring harness would
+    # give this module, and - crucially - turns two DoS bugs into *observable*
+    # outages instead of theoretical ones (an unconstrained host has effectively
+    # infinite headroom, so nothing ever actually falls over). mem_limit is the
+    # load-bearing cap for vuln #5 (unbounded DATA buffering): src/smtp.js's
+    # onDataLine()/drain() append every DATA-phase line to this.dataLines (and
+    # bytes to this.buffer) with no size or line-length cap. Node auto-sizes
+    # V8's old-space heap to this cgroup memory limit, so a client streaming a
+    # few hundred MB of DATA with no terminating '.' grows the live heap past
+    # that auto-tuned ceiling and Node dies with a fatal "JavaScript heap out
+    # of memory" abort (reproducibly at ~240MB of buffered DATA under this
+    # 512m cap). There is NO restart supervisor (entrypoint.sh just `exec`s
+    # node) and no compose `restart:` policy, so - unlike FMM's
+    # ota-agent-supervised binary - that abort is a *permanent* outage until
+    # manual restart, not a crash-and-respawn blip. Tightened from FMM's 1g to
+    # 512m on purpose: this relay's steady-state footprint is a few tens of MB,
+    # so 512m is still a very generous realistic envelope while keeping the
+    # unbounded-DATA OOM reachable after a couple hundred MB rather than >1GB
+    # (kinder to a shared/contended CI runner) - and, because Node's heap
+    # ceiling tracks this limit rather than host swap, the abort fires the same
+    # whether or not the host has swap. The queue tmpfs below counts against
+    # this same cgroup, but it caps out at its own 24m size long before
+    # mem_limit, so the two limits stay independent.
+    cpus: "1.0"
+    mem_limit: "512m"
+    tmpfs:
+      # VULN #1 target: no per-sender/global cap on relay volume means an
+      # unauthenticated client can fill this shared quota for everyone. Mode
+      # 1777 (Docker's tmpfs default) is world-writable so the unprivileged
+      # `ctf` user can write into it regardless of its container UID.
+      - /home/ctf/mta/queue:size=24m,mode=1777
+    networks:
+      - dmz
+      - backend
+
+  # Shared fleet metadata service (PoC #8 SSRF target); see ../../metadata-service.
+  # Only on `backend`, so the poc container cannot reach it directly - only mta
+  # can. Serves this deployment's real MTA_FLAG at /secret/mta, from the
+  # environment (never hardcoded), so #8's disclosure is scored against the same
+  # per-deployment secret PoC #7 targets.
+  metadata:
+    image: python:3.12-slim
+    working_dir: /srv
+    volumes:
+      - ../../metadata-service:/srv:ro
+    environment:
+      META_SECRET_MTA: "${MTA_FLAG:-FLAG{local-dev-default}}"
+    command: ["python3", "metadata_service.py", "9000"]
+    networks:
+      - backend
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - mta
+      - metadata
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    networks:
+      - dmz
+    environment:
+      MTA_TEST_AUTH_USER: "relay"
+      # Same `${MTA_AUTH_PASS:-qx7m2p}` passthrough as the mta service, so this
+      # tracks the real minted credential and #2/#4/#8 authenticate with it.
+      MTA_TEST_AUTH_PASS: "${MTA_AUTH_PASS:-qx7m2p}"
+      # So PoC #8 can assert the SSRF disclosed this deployment's REAL secret
+      # (the same runtime flag PoC #7 targets), not just any string.
+      MTA_FLAG: "${MTA_FLAG:-FLAG{local-dev-default}}"
+    # PoCs are pure-stdlib. Wait for MTA's admin port to answer, then run
+    # PoC #1.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import urllib.request; urllib.request.urlopen('http://mta:8081/health',timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 01_relay_disk_exhaustion.py mta 2525 8081
+
+networks:
+  dmz:
+  backend:

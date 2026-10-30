@@ -1,0 +1,75 @@
+# Runs the Image Processing Module, its FMM dependency, and a vuln-test PoC
+# entirely in containers, so neither deliberately-vulnerable service — nor the
+# vulnerable ImageMagick build inside IPM — ever runs on the host.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #8 (CVE-2022-44268). Override which
+# script runs by passing a command, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm \
+#       poc python3 01_command_injection.py ipm 8080
+#
+# `fmm` and `ipm` are only reachable on the private compose network — they are
+# deliberately NOT published to the host.
+
+services:
+  fmm:
+    build:
+      context: ../../file-management-module
+      dockerfile: Dockerfile
+    expose:
+      - "2121"
+
+  ipm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - fmm
+    expose:
+      - "8080"
+    environment:
+      IPM_FMM_HOST: fmm
+      IPM_FMM_PORT: "2121"
+      IPM_FMM_USER: alice
+      IPM_FMM_PASS: password123
+      # Passed through from the invoking shell (see ../../generate-secrets.sh).
+      # Empty/unset falls back to entrypoint.sh's FLAG{local-dev-default}, so
+      # local/standalone module dev needs zero setup.
+      IPM_FLAG: ${IPM_FLAG:-}
+    # The DoS PoCs (#3 pixel-flood, #7 billion laughs) are only *scoreable*
+    # against a bounded resource envelope - the SAME one the real fleet imposes
+    # (see bridge/fleet-compose.yml): 1 CPU, 1g RAM, 100 pids. Without these
+    # caps a 12-core/64g host silently absorbs the flood and the DoS looks like
+    # a false negative. cpus/pids in particular are what #3 exhausts (a barrage
+    # of gigapixel magick/inkscape subprocess trees starves the CPU and pushes
+    # the JVM past the pid ceiling, killing Tomcat's poller thread).
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 100
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - ipm
+      - fmm
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    environment:
+      # Same per-deployment secret the ipm service gets, so PoC #2 (coder LFI)
+      # can assert it recovered THIS deployment's exact IPM_FLAG, not just a
+      # FLAG{...}-shaped value. Empty/unset is fine: the PoC then asserts shape.
+      IPM_FLAG: ${IPM_FLAG:-}
+    # PoCs are pure-stdlib (urllib); no pip install needed. Wait for IPM's HTTP
+    # port to answer, then run the CVE-2022-44268 PoC against the ipm container.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import urllib.request,sys; urllib.request.urlopen('http://ipm:8080/health',timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 08_cve_2022_44268_png_profile.py ipm 8080

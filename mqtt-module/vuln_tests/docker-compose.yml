@@ -1,0 +1,88 @@
+# Runs the MQB broker(s) and a vuln-test PoC runner, all in containers -
+# nothing is ever published to the host.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #1 (no auth by default). Override
+# which script runs, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --rm \
+#       poc python3 04_client_id_collision_hijack.py mqb 1883
+#
+# Every PoC targets the `mqb` instance (which HAS a password configured --
+# VULN #1 is that it never enforces it).
+#
+# PoC #3 (retained-message poisoning) permanently overwrites the shared
+# fleet/control/flag retained message for the rest of that `mqb` container's
+# uptime -- see vuln_tests/README.md. Run it last, or `down`/`run` again for
+# a clean instance, if you're also running #2 or #4 against the same `mqb`.
+
+services:
+  # Primary deployment, target of PoCs #1-#5, #7. It DOES carry a real
+  # MQB_REQUIREPASS (a harness mints one; standalone it falls back to a fixed
+  # dev default) -- VULN #1 is precisely that this configured password is
+  # never enforced (a fail-open gate: PoC #1 connects with no credentials, is
+  # told CONNACK rc=4, and is served anyway). MQB_FLAG seeds the real
+  # per-deployment secret PoCs #1/#2/#3/#4/#7 target (see
+  # Broker.seed_startup_state() in mqb/broker.py); empty/unset falls back to
+  # FLAG{local-dev-default}.
+  mqb:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "1883"
+      - "8081"
+    # Mirrors the (deliberately modest) resource envelope a real deployment
+    # or scoring harness would give this tiny IoT broker. mem_limit in
+    # particular is what makes vuln #5 (unbounded in-flight QoS-1 table)
+    # observable: Broker._forward_to() in mqb/broker.py stores one
+    # (topic, payload) entry in the target client's `pending_ack` dict per
+    # un-acked QoS-1 message with NO cap and NO eviction but a matching
+    # PUBACK, so a fast publisher aimed at a subscriber that never PUBACKs
+    # grows that dict without bound. On an unconstrained host that's just
+    # slow memory creep; under this cap the Python process (PID 1) blows
+    # past the cgroup limit, the kernel OOM-kills it, and -- because the
+    # image's CMD runs the broker directly with NO restart-supervisor (see
+    # Dockerfile) and neither compose file sets a `restart:` policy -- the
+    # container stays DOWN. 256m is small enough that 05_unbounded_inflight_dos.py
+    # provokes the kill within a few seconds of flooding, yet still a
+    # plausible footprint for a broker meant for small sensor payloads.
+    # (asyncio is single-process, so cpus is not load-bearing for #5; it is
+    # kept only for envelope consistency with the other modules.)
+    cpus: "1.0"
+    mem_limit: "256m"
+    environment:
+      # A real configured password (VULN #1 leaves it unenforced). PoCs #2-#5
+      # and #7 authenticate with it (they read MQB_REQUIREPASS from the `poc`
+      # runner's env) so each isolates its own bug and keeps working even
+      # after a student FIXES #1; PoC #1 deliberately ignores it to prove the
+      # anonymous bypass. `${VAR:-...}` => harness-minted value, else dev
+      # default.
+      MQB_REQUIREPASS: "${MQB_REQUIREPASS:-s3cr3t-iot-pw}"
+      MQB_FLAG: ${MQB_FLAG:-}
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - mqb
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    environment:
+      # PoCs #2-#5 and #7 read this to authenticate as legitimate clients
+      # (their bug is orthogonal to auth), so they keep proving their own vuln
+      # even after #1 is fixed. Must match the broker's MQB_REQUIREPASS above.
+      # PoC #1 ignores it (it proves the anonymous bypass).
+      MQB_REQUIREPASS: "${MQB_REQUIREPASS:-s3cr3t-iot-pw}"
+    # PoCs are pure-stdlib (socket/http.client); no pip install needed. Wait
+    # for mqb to accept connections, then run PoC #1.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import socket; socket.create_connection(('mqb',1883),timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 01_no_auth_default.py mqb 1883

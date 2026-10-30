@@ -108,6 +108,23 @@ env-var prefixes use a short uppercase acronym (`FMM`, `IPM`).
   an `expose`-only (unpublished) port on a private network plus a
   `python:3.x-slim` runner; `run-in-docker.sh` builds, runs, and tears
   everything down, mirroring the test exit code.
+- **`vuln_tests/`** holds numbered PoCs (`NN_<slug>.py`), a compose file that
+  stands up the target stack with nothing published to the host, and a README
+  listing each vulnerability. A PoC exits 0 if the exploit landed, 1 if it was
+  defended, and anything else if it could not run.
+
+### Running the tests
+
+`./run-all-unit-tests.sh` runs every module's unit tests and vuln tests in
+Docker. A vuln test passes when the exploit is defended, so vuln tests report
+`VULNERABLE` and fail until the module is patched.
+
+```bash
+./run-all-unit-tests.sh                # everything
+./run-all-unit-tests.sh keystore       # one module (matches on substring)
+./run-all-unit-tests.sh --unit-only    # functional tests only
+./run-all-unit-tests.sh --vuln-only -v # PoCs only, with full output
+```
 
 ### Runtime secrets
 

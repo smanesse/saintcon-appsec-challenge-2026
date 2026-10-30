@@ -1,0 +1,58 @@
+# Runs the File Management Module and a vuln-test PoC runner entirely in
+# containers, so the deliberately-vulnerable server never listens on a host
+# port.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #1 (command injection). Override
+# which script runs by passing a command, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm \
+#       poc python3 04_path_traversal.py fmm 2121
+
+services:
+  fmm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "2121"
+    # Mirrors the resource envelope a real deployment/scoring harness would
+    # give this module. pids_limit in particular matters for vuln #7
+    # (ReDoS): fmm.cpp's accept loop does an un-caught
+    # `std::thread(handle_client, client_fd).detach()` per connection, so
+    # once concurrent hung ReDoS threads exhaust this cap, pthread_create()
+    # fails, the thrown std::system_error is never caught, and the whole
+    # process dies via std::terminate() -- not just the one connection.
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 100
+    environment:
+      # Unpublished, `${FMM_FLAG:-}` passthrough: unset falls back to the
+      # FLAG{local-dev-default} baked into fmm.cpp (write_flag_files() in
+      # main()), so a plain local run stays zero-setup; a harness that has
+      # sourced ../../generate-secrets.sh gives fmm and poc the same value.
+      FMM_FLAG: ${FMM_FLAG:-}
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - fmm
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    environment:
+      # So a PoC can assert the flag it exfiltrated matches this run's
+      # value instead of just checking that *something* came back.
+      FMM_FLAG: ${FMM_FLAG:-}
+    # PoCs are pure-stdlib (socket); no pip install needed. Wait for FMM to
+    # accept connections, then run PoC #1.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import socket; socket.create_connection(('fmm',2121),timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 01_command_injection.py fmm 2121

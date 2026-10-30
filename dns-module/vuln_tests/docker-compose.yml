@@ -1,0 +1,98 @@
+# Brings up the DNS Module and its vuln-test PoC runner entirely in
+# containers, so the deliberately-vulnerable server never listens on a host
+# port.
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm poc
+#
+# By default the `poc` service runs PoC #1 (the name-decompression pointer
+# loop, the centerpiece memory bug). Override which script runs by passing a
+# command, e.g.:
+#
+#   docker compose -f vuln_tests/docker-compose.yml run --build --rm \
+#       poc python3 06_cname_chain_dos.py dnsm 8053
+#
+# Nothing is published to the host. Two networks model a realistic split:
+#   * dmz     - dnsm and the poc/attacker
+#   * backend - dnsm and the shared fleet metadata service (see
+#               ../../metadata-service) the attacker CANNOT reach
+# The SSRF PoC (#4) relies on that split: only dnsm bridges both networks.
+
+services:
+  dnsm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    expose:
+      - "8053"
+      - "8053/udp"
+      - "8080"
+    # Mirrors the resource envelope a real deployment/scoring harness would
+    # give this module, and bounds the blast radius of the DoS PoCs so they
+    # can't take down the host. Both caps are load-bearing for the thread-
+    # exhaustion vulns (#1 name-decompression pointer loop, #6 CNAME-chain):
+    #   * pids_limit - dnsm.c's udp_server() does an uncapped
+    #     `pthread_create(... udp_worker ...)` per datagram, and each #1/#6
+    #     query pins its worker thread in a tight, syscall-free 100%-CPU spin
+    #     that is NEVER reclaimed. Once enough leaked spinners hit this cap,
+    #     pthread_create() fails and udp_server()'s fallback runs udp_worker()
+    #     INLINE on the single listener thread -- so the next evil datagram
+    #     wedges the listener itself in the same infinite loop, killing the
+    #     whole UDP service (not just one request).
+    #   * cpus - caps the container at one core so the leaked spinners actually
+    #     saturate the CPU legitimate queries need; without it a many-core host
+    #     has enough headroom to keep answering and no outage is observable.
+    cpus: "1.0"
+    mem_limit: "1g"
+    pids_limit: 200
+    environment:
+      DNSM_FLAG: "${DNSM_FLAG:-}"      # runtime secret - see entrypoint.sh (PoC #5)
+      DNSM_ADMIN_TOKEN: "${DNSM_ADMIN_TOKEN:-}"   # admin bearer; PoC #8 shows it's fail-open (entrypoint defaults it if empty)
+    networks:
+      - dmz
+      - backend
+
+  # Shared fleet metadata service (PoC #4 SSRF target); see ../../metadata-service.
+  # Only on `backend`, so the poc container cannot reach it directly - only dnsm
+  # can. Serves this deployment's real DNSM_FLAG at /secret/dns, from the
+  # environment (never hardcoded).
+  metadata:
+    image: python:3.12-slim
+    working_dir: /srv
+    volumes:
+      - ../../metadata-service:/srv:ro
+    environment:
+      META_SECRET_DNS: "${DNSM_FLAG:-FLAG{local-dev-default}}"
+    command: ["python3", "metadata_service.py", "9000"]
+    networks:
+      - backend
+
+  poc:
+    image: python:3.12-slim
+    depends_on:
+      - dnsm
+      - metadata
+    working_dir: /pocs
+    volumes:
+      - ./:/pocs:ro
+    environment:
+      DNSM_FLAG: "${DNSM_FLAG:-FLAG{local-dev-default}}"
+      # Admin bearer, matching dnsm's effective token (entrypoint defaults the
+      # same "dev-admin-token" when host env is unset). PoCs #2/#4/#5 present it
+      # so they exercise their own sinks, not the fail-open gate (#8).
+      DNSM_ADMIN_TOKEN: "${DNSM_ADMIN_TOKEN:-dev-admin-token}"
+    networks:
+      - dmz
+    # PoCs are pure-stdlib. Wait for DNSM's admin port to answer, then run PoC #1.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          python3 -c "import urllib.request; urllib.request.urlopen('http://dnsm:8080/health',timeout=2)" 2>/dev/null && break
+          sleep 1
+        done
+        python3 01_compression_pointer_loop.py dnsm 8053
+
+networks:
+  dmz:
+  backend:
